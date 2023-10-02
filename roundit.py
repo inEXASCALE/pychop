@@ -1,6 +1,11 @@
 import numpy as np
 
 
+
+def return_column_order(A):
+    return A.T.reshape(-1)
+
+
 def roundit(x, rmode=1, flip=0, p=0.5, t=24):
     
     sign = lambda x: np.sign(x) + (x==0)
