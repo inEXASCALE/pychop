@@ -6,6 +6,7 @@ def return_column_order(A):
     return A.T.reshape(-1)
 
 
+
 def roundit(x, rmode=1, flip=0, p=0.5, t=24):
     
     sign = lambda x: np.sign(x) + (x==0)
@@ -78,7 +79,7 @@ def roundit(x, rmode=1, flip=0, p=0.5, t=24):
             # exponent.  
 
             b = randi(t-1, u.shape[0], u.shape[1]);
-            b = np.random.uniform(low=1, high=t-1, size=u.shape)
+            b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1));
             y[k] = sign(y(k))*u; 
