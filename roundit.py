@@ -7,7 +7,8 @@ def return_column_order(A):
 
 
 
-def roundit(x, rmode=1, flip=0, p=0.5, t=24):
+
+def roundit(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
     
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -16,6 +17,9 @@ def roundit(x, rmode=1, flip=0, p=0.5, t=24):
     else:
         is_arr = False
     
+    if randfunc is None:
+        randfunc = lambda n: np.random.uniform(0, 1, n)
+            
     match rmode:
         case 1:
             y = np.abs(x);
@@ -45,7 +49,7 @@ def roundit(x, rmode=1, flip=0, p=0.5, t=24):
             else:   
                 # Uniformly distributed random numbers
                 
-                rnd = np.random.uniform(0, 1, len(k))
+                rnd = randfunc(len(k))
                 vals = frac(k)
                 
                 if len(vals.shape) == 2:
@@ -85,5 +89,6 @@ def roundit(x, rmode=1, flip=0, p=0.5, t=24):
             y[k] = sign(y(k))*u; 
     
     return y
+    
     
     
