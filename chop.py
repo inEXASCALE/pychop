@@ -1,6 +1,7 @@
 import numpy as np
     
-def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, randfunc=False, p=0.5, *argv, **kwargs):
+    
+def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, p=0.5, randfunc=None, *argv, **kwargs):
          
         
         if str(x).isnumeric():
@@ -13,6 +14,11 @@ def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, randfunc=Fals
     
         if not is_arr:
             x = np.array(x, ndmin=1)
+            
+            
+        if randfunc is None:
+            randfunc = lambda n: np.random.uniform(0, 1, n)
+            
             
         t = None
         emax = None
@@ -83,7 +89,12 @@ def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, randfunc=Fals
         if k_sub.size != 0:
             temp = emin-e(k_sub)
             t1 = t - np.fmax(temp, np.zeros(temp.shape))
-            c[k_sub] = roundit(x[k_sub] * np.power(2, t1-1-e[k_sub]), rmode=rmode, t=t) * np.power(2, e[k_sub]-(t1-1));
+            c[k_sub] = roundit(
+                x[k_sub] * np.power(2, t1-1-e[k_sub]), 
+                rmode=rmode, 
+                randfunc=randfunc,
+                t=t
+            ) * np.power(2, e[k_sub]-(t1-1));
 
         
         if explim:
@@ -138,4 +149,6 @@ def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, randfunc=Fals
                     c[k_small] = 0
                     
         return c
+    
+    
     
