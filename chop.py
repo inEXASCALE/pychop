@@ -1,15 +1,19 @@
-
-class chop:
+import numpy as np
     
-    def __init__(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, randfunc=False, p=0.5, *argv, **kwargs):
+def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, randfunc=False, p=0.5, *argv, **kwargs):
          
-        
-        self.x = x
         
         if str(x).isnumeric():
             error('Chop requires real input values.')
-        
-        
+
+        if hasattr(x, "__len__"):
+            is_arr = True
+        else:
+            is_arr = False
+    
+        if not is_arr:
+            x = np.array(x, ndmin=1)
+            
         t = None
         emax = None
         
@@ -37,7 +41,6 @@ class chop:
                 emax = 1023
             
             
-            
         elif fmt in {'c','custom'}:
             t = customs.t
             emax = customs.emax
@@ -47,42 +50,46 @@ class chop:
             else:
                 maxfraction = isinstance(x, np.single) * 23 + isinstance(x, np.double) * 52
                 
-            if (t > maxfraction)
+            if t > maxfraction:
                 print('Precision of the custom format must be at most')
                 
         emin = 1 - emax            # Exponent of smallest normalized number.
-        xmin = pow(2, emin)            # Smallest positive normalized number.
+        xmin = 2**emin            # Smallest positive normalized number.
         emins = emin + 1 - t     # Exponent of smallest positive subnormal number.
         xmins = pow(2, emins)          # Smallest positive subnormal number.
         xmax = pow(2,emax) * (2-2**(1-t))
         
         
         c = x
-        e = np.log2(np.abs(x)) - 1
+        e =  np.floor(np.log2(np.abs(x)) / np.log(2)) - 1
         ktemp = (e < emin) & (e >= emins)
-        
+        print("ktemp:", ktemp)
         if explim:
-            k_sub = np.nonzero(ktemp)
-            k_norm = np.nonzero(~ktemp)
+            k_sub = np.nonzero(ktemp)[0]
+            k_norm = np.nonzero(ktemp!=1)[0]
         else:
-            k_sub = []
-            k_norm = 1:len(return_column_order(ktemp)) # Do not limit exponent.
-    
+            k_sub = np.array([])
+            k_norm = np.arange(1, len(return_column_order(ktemp)) + 1)
+        
+        print("k_sub:", k_sub)
+        print("k_norm:", k_norm)
         
         temp = x[k_norm] * np.power(2, t-1-e[k_norm])
+        print("temp:", temp)
         c[k_norm] = roundit(temp, rmode=rmode, t=t) * np.power(2, e[k_norm]-(t-1))
         
         
+        print("c[k_norm]:", c[k_norm])
         if k_sub.size != 0:
             temp = emin-e(k_sub)
             t1 = t - np.fmax(temp, np.zeros(temp.shape))
-            c(k_sub) = roundit(x[k_sub] * np.power(2, t1-1-e[k_sub]), rmode=rmode, t=t) * np.power(2, e[k_sub]-(t1-1));
+            c[k_sub] = roundit(x[k_sub] * np.power(2, t1-1-e[k_sub]), rmode=rmode, t=t) * np.power(2, e[k_sub]-(t1-1));
 
         
         if explim:
             match rmode:
                 case 1 | 6:
-                    xboundary = 2^emax * (2-(1/2) * 2**(1-t))
+                    xboundary = 2**emax * (2-(1/2) * 2**(1-t))
                     c[np.nonzero(x >= xboundary)] = np.inf    # Overflow to +inf.
                     c[np.nonzero(x <= -xboundary)] = -np.inf  # Overflow to -inf.
                     
@@ -100,16 +107,16 @@ class chop:
                     
                     
             # Round to smallest representable number or flush to zero.
-            if subnormal == 0
+            if subnormal == 0:
                 min_rep = xmin;
-            else
+            else:
                 min_rep = xmins;
 
             k_small = np.abs(c) < min_rep;
             
             match rmode:
                 case 1:
-                    if fpopts.subnormal == 0:
+                    if subnormal == 0:
                         k_round = k_small & (np.abs(c) >= min_rep/2)
                     else:
                         k_round = k_small & (np.abs(c) > min_rep/2)
@@ -131,3 +138,4 @@ class chop:
                     c[k_small] = 0
                     
         return c
+    
