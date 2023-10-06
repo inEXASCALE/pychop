@@ -53,7 +53,7 @@ metadata = {"name":PACKAGE_NAME,
             ],
             "maintainer_email":EMAIL,
             "description":"Python code for simulating low precision floating-point arithmetic",
-            "long_description_content_type":'text/x-rst',
+            "long_description_content_type":'text/markdown',
             "url":"https://github.com/chenxinye/pychop.git",
             "license":'MIT License'
 }
