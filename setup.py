@@ -14,7 +14,7 @@ INREUIRES=["numpy>=1.7.2"]
 
 AUTHORS="Xinye Chen"
 
-with open("README.rst", 'r') as f:
+with open("README.md", 'r') as f:
     long_description = f.read()
 
 ext_errors = (ModuleNotFoundError, IOError, SystemExit)
