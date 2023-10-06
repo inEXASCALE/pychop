@@ -1,12 +1,16 @@
 import numpy as np
     
-    
-def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, p=0.5, randfunc=None, *argv, **kwargs):
+        
+def _chop(x, prec='single', input_prec=np.double, subnormal=0, rmode=1, flip=0, customs=None,
+          explim=1, p=0.5, randfunc=None, *argv, **kwargs):
          
         
         if str(x).isnumeric():
-            error('Chop requires real input values.')
-
+            raise ValueError('Chop requires real input values.')
+        
+        x = input_prec(x)
+        # print(" type(x):", type(x))
+            
         if hasattr(x, "__len__"):
             is_arr = True
         else:
@@ -23,41 +27,42 @@ def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, p=0.5, randfu
         t = None
         emax = None
         
-        if fmt in {'h','half','fp16','b','bfloat16','s',
+        if prec in {'h','half','fp16','b','bfloat16','s',
                    'single','fp32','d','double','fp64',
                    'q43','fp8-e4m3','q52','fp8-e5m2'}:
             
-            if fmt in {'q43','fp8-e4m3'}:
+            if prec in {'q43','fp8-e4m3'}:
                 t = 4
                 emax = 7
-            elif fmt in {'q52','fp8-e5m2'}:
+            elif prec in {'q52','fp8-e5m2'}:
                 t = 3
                 emax = 15
-            elif fmt in {'h','half','fp16'}:
+            elif prec in {'h','half','fp16'}:
                 t = 11
                 emax = 15
-            elif fmt in {'b','bfloat16'}:
+            elif prec in {'b','bfloat16'}:
                 t = 8
                 emax = 127  
-            elif fmt in {'s','single','fp32'}:
+            elif prec in {'s','single','fp32'}:
                 t = 24
                 emax = 127
-            elif fmt in {'d','double','fp64'}:
+            elif prec in {'d','double','fp64'}:
                 t = 53
                 emax = 1023
             
             
-        elif fmt in {'c','custom'}:
+        elif prec in {'c','custom'}:
             t = customs.t
             emax = customs.emax
             
             if rmode == 1:
-                maxfraction = isinstance(x, np.single) * 11 + isinstance(x, np.double) * 25
+                maxfraction = isinstance(x[0], np.single) * 11 + isinstance(x[0], np.double) * 25
             else:
-                maxfraction = isinstance(x, np.single) * 23 + isinstance(x, np.double) * 52
+                maxfraction = isinstance(x[0], np.single) * 23 + isinstance(x[0], np.double) * 52
                 
+            # print("maxfraction:", maxfraction, " type(x):", type(x[0]))
             if t > maxfraction:
-                print('Precision of the custom format must be at most')
+                raise ValueError('Precision of the custom format must be at most')
                 
         emin = 1 - emax            # Exponent of smallest normalized number.
         xmin = 2**emin            # Smallest positive normalized number.
@@ -69,7 +74,7 @@ def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, p=0.5, randfu
         c = x
         e =  np.floor(np.log2(np.abs(x)) / np.log(2)) - 1
         ktemp = (e < emin) & (e >= emins)
-        print("ktemp:", ktemp)
+        # print("ktemp:", ktemp)
         if explim:
             k_sub = np.nonzero(ktemp)[0]
             k_norm = np.nonzero(ktemp!=1)[0]
@@ -77,17 +82,17 @@ def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, p=0.5, randfu
             k_sub = np.array([])
             k_norm = np.arange(1, len(return_column_order(ktemp)) + 1)
         
-        print("k_sub:", k_sub)
-        print("k_norm:", k_norm)
+        # print("k_sub:", k_sub)
+        # print("k_norm:", k_norm)
         
         temp = x[k_norm] * np.power(2, t-1-e[k_norm])
-        print("temp:", temp)
+        # print("temp:", temp)
         c[k_norm] = roundit(temp, rmode=rmode, t=t) * np.power(2, e[k_norm]-(t-1))
         
         
-        print("c[k_norm]:", c[k_norm])
+        # print("c[k_norm]:", c[k_norm])
         if k_sub.size != 0:
-            temp = emin-e(k_sub)
+            temp = emin-e[k_sub]
             t1 = t - np.fmax(temp, np.zeros(temp.shape))
             c[k_sub] = roundit(
                 x[k_sub] * np.power(2, t1-1-e[k_sub]), 
@@ -149,6 +154,8 @@ def _chop(x, fmt='single', subnormal=0, rmode=1, flip=0, explim=1, p=0.5, randfu
                     c[k_small] = 0
                     
         return c
+    
+    
     
     
     
