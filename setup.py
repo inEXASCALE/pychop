@@ -8,11 +8,11 @@ PACKAGE_NAME = "pychop"
 VERSION = "0.0.1"
 SETREQUIRES=["numpy"]
 MAINTAINER="Xinye Chen"
-EMAIL="xinyechenai@gmail.con"
+EMAIL="xinyechenai@gmail.com"
 INREUIRES=["numpy>=1.7.2"]
 
 
-AUTHORS="Roberto Cahuantzi, Xinye Chen, Stefan Güttel"
+AUTHORS="Xinye Chen"
 
 with open("README.rst", 'r') as f:
     long_description = f.read()
@@ -52,7 +52,7 @@ metadata = {"name":PACKAGE_NAME,
             "Programming Language :: Python :: 3.9",
             ],
             "maintainer_email":EMAIL,
-            "description":"A package linking symbolic representation with sklearn for time series prediction",
+            "description":"Python code for simulating low precision floating-point arithmetic",
             "long_description_content_type":'text/x-rst',
             "url":"https://github.com/chenxinye/pychop.git",
             "license":'MIT License'
