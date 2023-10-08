@@ -25,52 +25,7 @@ class options:
         
         
         
-class chop(object):
-    def __init__(self, prec='single', subnormal=None, rmode=1, flip=0, explim=1, input_prec='double',
-                 p=0.5, randfunc=None, customs=None, random_state=0):
-        
-        if input_prec in {'d', 'double', float, np.double}:
-            self.input_prec = np.double
-        else:
-            self.input_prec = np.float
-        
-        np.random.seed(random_state)
-        
-        self.prec = prec
-        
-        if subnormal is not None:
-            self.subnormal = subnormal
-        else:
-            if prec in {'b','bfloat16'}:
-                self.subnormal = 0
-            else:
-                self.subnormal = 1
-            
-        self.rmode = rmode
-        self.flip = flip
-        self.explim = explim
-        self.p = p
-        self.customs = customs
-        self.randfunc = randfunc
-        
-        
-        
-        
-    def chop(self, x):
-        return _chop(x, prec=self.prec, input_prec=self.input_prec,
-                     subnormal=self.subnormal,
-                     rmode=self.rmode,
-                     flip=self.flip, 
-                     explim=self.explim, 
-                     p=self.p, customs=self.customs, 
-                     randfunc=self.randfunc
-                    )
-    
-    def options(self):
-        return 
-    
-
-def _chop(x, prec='single', input_prec=np.double, subnormal=1, rmode=1, flip=0, customs=None,
+def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, customs=None,
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
          
         
@@ -80,6 +35,9 @@ def _chop(x, prec='single', input_prec=np.double, subnormal=1, rmode=1, flip=0, 
         x = input_prec(x)
         # print(" type(x):", type(x))
             
+            
+        
+
         if hasattr(x, "__len__"):
             is_arr = True
         else:
@@ -141,11 +99,11 @@ def _chop(x, prec='single', input_prec=np.double, subnormal=1, rmode=1, flip=0, 
         
         
         c = x
-        _, e = np.frexp(np.abs(x)) # np.floor(np.log2(np.abs(x)) / np.log(2)) - 1
-        np.array(e, ndmin=1)
-        print("e:", e)
+        _, e = np.frexp(np.abs(x)) # np.floor(np.log2(np.abs(x)) / np.log(2))
+        e = np.array(e - 1, ndmin=1)
+        # print("e:", e)
         ktemp = (e < emin) & (e >= emins)
-        print("ktemp:", ktemp)
+        # print("ktemp:", ktemp)
         if explim:
             k_sub = np.nonzero(ktemp)[0]
             k_norm = np.nonzero(ktemp!=1)[0]
@@ -153,13 +111,13 @@ def _chop(x, prec='single', input_prec=np.double, subnormal=1, rmode=1, flip=0, 
             k_sub = np.array([])
             k_norm = np.arange(0, len(return_column_order(ktemp)))
         
-        print("k_sub:", k_sub)
-        print("k_norm:", k_norm)
-        print(" t-1-e[k_norm]:",  t-1-e[k_norm])
+        # print("k_sub:", k_sub)
+        # print("k_norm:", k_norm)
+        # print(" t-1-e[k_norm]:",  t-1-e[k_norm])
         temp1 = x[k_norm] * np.power(2.0, t-1-e[k_norm])
-        print("pow2(x(k_norm), t-1-e(k_norm)):", temp1)
+        # print("pow2(x(k_norm), t-1-e(k_norm)):", temp1)
         temp2 = roundit(temp1, rmode=rmode, t=t)
-        print("temp:", temp2)
+        # print("temp:", temp2)
         c[k_norm] = temp2 * np.power(2.0, e[k_norm]-(t-1))
         
         
@@ -174,7 +132,7 @@ def _chop(x, prec='single', input_prec=np.double, subnormal=1, rmode=1, flip=0, 
                 t=t
             ) * np.power(2, e[k_sub]-(t1-1));
         
-        print("c[k_sub]:", c[k_sub])
+        # print("c[k_sub]:", c[k_sub])
         if explim:
             match rmode:
                 case 1 | 6:
