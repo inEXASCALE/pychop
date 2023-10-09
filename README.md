@@ -8,9 +8,17 @@ This package provides consistent APIs to the original chop software as much as p
 
 ## Install
 
-``pychop`` has the following dependencies:
+``pychop`` has the only following dependency:
 
 - numpy >=1.7.3
+
+To install the current ``pychop`` release via PIP use:
+
+```pip install pychop```
+
+To check the ``pychop`` installation use:
+
+```python -m pip show pychop```
 
 ## References
 
