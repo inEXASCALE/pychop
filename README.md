@@ -6,6 +6,12 @@ Using low precesion can gain extra speedup while resulting in less storage and e
 
 This package provides consistent APIs to the original chop software as much as possible.   
 
+## Install
+
+``pychop`` has the following dependencies:
+
+- numpy >=1.7.3
+
 ## References
 
 Nicholas J. Higham and Srikara Pranesh, Simulating Low Precision Floating-Point Arithmetic, SIAM J. Sci. Comput., 41(4):A2536-A2551, 2019.
