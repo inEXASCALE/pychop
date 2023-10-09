@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from roundit import roundit
 import numpy as np
-
+import gc
 
 @dataclass
 class customs:
@@ -21,7 +21,72 @@ class options:
     explim: bool
     p: float
     input_prec: str
+
         
+
+        
+
+
+        
+        
+class chop(object):
+    def __init__(self, prec='single', subnormal=None, rmode=1, flip=0, explim=1, input_prec='double',
+                 p=0.5, randfunc=None, customs=None, random_state=0):
+        
+        if input_prec in {'d', 'double', float, np.double}:
+            self.input_prec = np.double
+        else:
+            self.input_prec = np.float
+        
+        np.random.seed(random_state)
+        
+        self.prec = prec
+        
+        if subnormal is not None:
+            self.subnormal = subnormal
+        else:
+            if self.prec in {'b','bfloat16'}:
+                self.subnormal = 0
+            else:
+                self.subnormal = 1
+            
+        self.rmode = rmode
+        self.flip = flip
+        self.explim = explim
+        self.p = p
+        self.customs = customs
+        self.randfunc = randfunc
+        
+        
+        
+        
+    def chop(self, x):
+        return _chop(x, prec=self.prec, input_prec=self.input_prec,
+                     subnormal=self.subnormal,
+                     rmode=self.rmode,
+                     flip=self.flip, 
+                     explim=self.explim, 
+                     p=self.p, customs=self.customs, 
+                     randfunc=self.randfunc
+                    )
+    
+    
+    def options(self):
+        return options(self.customs.t, 
+                       self.customs.emax,
+                       self.random_state,
+                       self.prec,
+                       self.subnormal,
+                       self.rmode,
+                       self.flip,
+                       self.explim,
+                       self.p,
+                       self.input_prec,
+                      )
+    
+    
+    
+    
         
 def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, customs=None,
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
@@ -99,11 +164,11 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
         k_sub = np.array([])
         k_norm = np.arange(0, len(return_column_order(ktemp)))
     
-    temp = roundit(x[k_norm] * np.power(2.0, t-1-e[k_norm]), rmode=rmode, t=t)
-    c[k_norm] = temp * np.power(2.0, e[k_norm]-(t-1))
+    c[k_norm] = roundit(
+        x[k_norm] * np.power(2.0, t-1-e[k_norm]), rmode=rmode, t=t
+    ) * np.power(2.0, e[k_norm]-(t-1))
     
     if k_sub.size != 0:
-        
         temp = emin-e[k_sub]
         t1 = t - np.fmax(temp, np.zeros(temp.shape))
         c[k_sub] = roundit(
@@ -113,6 +178,9 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
             t=t
         ) * np.power(2, e[k_sub]-(t1-1))
         
+     
+    del temp, t1; gc.collect()
+    
     if explim:
         match rmode:
             case 1 | 6:
