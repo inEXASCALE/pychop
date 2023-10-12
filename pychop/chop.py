@@ -88,6 +88,9 @@ class chop(object):
     
     
         
+import gc
+import time
+
 def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, customs=None,
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
               
@@ -108,6 +111,8 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
         
     t = None
     emax = None
+    
+    st = time.time()
     
     if prec in {'h','half','fp16','b','bfloat16','s',
                'single','fp32','d','double','fp64',
@@ -132,6 +137,7 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
             t = 53
             emax = 1023
         
+    
         
     elif prec in {'c','custom'}:
         t = customs.t
@@ -151,56 +157,73 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
+    print("phase 1:", time.time() - st)
     
+    st = time.time()
     c = x
     _, e = np.frexp(np.abs(x)) 
     e = np.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
-    
+    print("phase 21:", time.time() - st)
+    st = time.time()
     if explim:
-        k_sub = np.nonzero(ktemp)[0]
-        k_norm = np.nonzero(ktemp!=1)[0]
+        k_sub = ktemp.astype(bool)
+        k_norm = ~ktemp
     else:
         k_sub = np.array([])
         k_norm = np.arange(0, len(return_column_order(ktemp)))
-    
+    print("phase 22:", time.time() - st)
+    st = time.time()
+    w = np.power(2.0, t-1-e[k_norm])
     c[k_norm] = roundit(
-        x[k_norm] * np.power(2.0, t-1-e[k_norm]), rmode=rmode, t=t
-    ) * np.power(2.0, e[k_norm]-(t-1))
+        x[k_norm] * w, rmode=rmode, t=t
+    ) 
+    print("phase 23:", time.time() - st)
+    st = time.time()
+    c[k_norm] *= 1 / w
+    print("phase 24:", time.time() - st)
     
+    st = time.time()
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - np.fmax(temp, np.zeros(temp.shape))
+        
         c[k_sub] = roundit(
             x[k_sub] * np.power(2, t1-1-e[k_sub]), 
             rmode=rmode, 
             randfunc=randfunc,
             t=t
         ) * np.power(2, e[k_sub]-(t1-1))
+        del temp, t1
         
-     
-    del temp, t1; gc.collect()
-    
+    del w; gc.collect()
+        
+    print("phase 3:", time.time() - st)
     if explim:
+        st = time.time()
         match rmode:
             case 1 | 6:
-                xboundary = 2**emax * (2-(1/2) * 2**(1-t))
-                c[np.nonzero(x >= xboundary)] = np.inf    # Overflow to +inf.
-                c[np.nonzero(x <= -xboundary)] = -np.inf  # Overflow to -inf.
+                xboundary = 2**emax * (2- 0.5 * 2**(1-t))
+                c[x >= xboundary] = np.inf    # Overflow to +inf.
+                c[x <= -xboundary] = -np.inf  # Overflow to -inf.
                 
             case 2:
-                c[np.nonzero(x > xmax)] = np.inf
-                c[np.nonzero((x < -xmax) & (x != -np.inf))] = -xmax
+                c[x > xmax] = np.inf
+                c[(x < -xmax) & (x != -np.inf)] = -xmax
             
             case 3:
-                c[np.nonzero((x > xmax) & (x != np.inf))] = xmax
-                c[np.nonzero(x < -xmax)] = -np.inf
+                c[(x > xmax) & (x != np.inf)] = xmax
+                c[x < -xmax] = -np.inf
+                
                 
             case 4|5:
-                c[np.nonzero((x > xmax) & (x != np.inf))] = xmax
-                c[np.nonzero((x < -xmax) & (x != -np.inf))] = -xmax
+                c[(x > xmax) & (x != np.inf)] = xmax
+                c[(x < -xmax) & (x != -np.inf)] = -xmax
                 
-                
+        print("phase 4:", time.time() - st)
+        
+        
+        st = time.time()
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
             min_rep = xmin;
@@ -231,8 +254,14 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
                 
             case 4 | 5 | 6:
                 c[k_small] = 0
-                
+        print("phase 5:", time.time() - st)
     return c
+    
+    
+    
+    
+    
+    
     
     
     
