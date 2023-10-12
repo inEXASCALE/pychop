@@ -8,19 +8,6 @@
 Using low precesion can gain extra speedup while resulting in less storage and energy cost.  The intention of ``pychop``, following the same function of ``chop`` in Matlab provided by Nick higham, is to simulate the low precision formats based on single and double precisions, which is pravalent on modern machine. 
 
 
-The supported floating point arithmetic formats include:
-
-| format | description |
-| ------------- | ------------- |
-| 'q43', 'fp8-e4m3'         | NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits) |
-| 'q52', 'fp8-e5m2'         | NVIDIA quarter precision (5 exponent bits, 2 significand bits) |
-|  'b', 'bfloat16'          | bfloat16 |
-|  'h', 'half', 'fp16'      | IEEE half precision (the default) |
-|  's', 'single', 'fp32'    | IEEE single precision |
-|  'd', 'double', 'fp64'    | IEEE double precision |
-|  'c', 'custom'            | custom format |
-
-
 The supported rounding modes include:
 
 1. Round to nearest using round to even last bit to break ties
@@ -40,6 +27,20 @@ The supported rounding modes include:
   floating-point number with equal probability.
 
 Subnormal numbers is supported, they are flushed to zero if it not considered (by setting `subnormal` to 0).
+
+The supported floating point arithmetic formats include:
+
+| format | description |
+| ------------- | ------------- |
+| 'q43', 'fp8-e4m3'         | NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits) |
+| 'q52', 'fp8-e5m2'         | NVIDIA quarter precision (5 exponent bits, 2 significand bits) |
+|  'b', 'bfloat16'          | bfloat16 |
+|  'h', 'half', 'fp16'      | IEEE half precision (the default) |
+|  's', 'single', 'fp32'    | IEEE single precision |
+|  'd', 'double', 'fp64'    | IEEE double precision |
+|  'c', 'custom'            | custom format |
+
+
 
 This package provides consistent APIs to the chop software by Nick higham as much as possible.  For the first four rounding mode,  with the same user-specific parameters, ``pychop`` generates exactly same result as that of the chop software. For stochastic rounding (``rmode`` as 5 and 6), both output same results if random numbers is given the same. 
 
