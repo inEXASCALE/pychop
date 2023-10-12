@@ -11,6 +11,7 @@ Using low precesion can gain extra speedup while resulting in less storage and e
 The supported floating point arithmetic formats include:
 
 | format | description |
+| ------------- | ------------- |
 | 'q43', 'fp8-e4m3'         | NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits) |
 | 'q52', 'fp8-e5m2'         | NVIDIA quarter precision (5 exponent bits, 2 significand bits) |
 |  'b', 'bfloat16'          | bfloat16 |
