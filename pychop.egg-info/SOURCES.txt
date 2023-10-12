@@ -1,0 +1,15 @@
+LICENSE
+README.md
+setup.py
+pychop/__init__.py
+pychop/chop.py
+pychop/demo_harmonic.py
+pychop/float_params.py
+pychop/fptype.py
+pychop/roundit.py
+pychop/test_chop.py
+pychop.egg-info/PKG-INFO
+pychop.egg-info/SOURCES.txt
+pychop.egg-info/dependency_links.txt
+pychop.egg-info/requires.txt
+pychop.egg-info/top_level.txt

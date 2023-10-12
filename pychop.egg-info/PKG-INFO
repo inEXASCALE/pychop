@@ -1,3 +1,28 @@
+Metadata-Version: 2.1
+Name: pychop
+Version: 0.0.2
+Summary: Python code for simulating low precision floating-point arithmetic
+Home-page: https://github.com/chenxinye/pychop.git
+Author: Xinye Chen
+Author-email: xinyechenai@gmail.com
+Maintainer: Xinye Chen
+Maintainer-email: xinyechenai@gmail.com
+License: MIT License
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python
+Classifier: Topic :: Software Development
+Classifier: Topic :: Scientific/Engineering
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: Unix
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
 # pychop
 
 [![!pypi](https://img.shields.io/pypi/v/snnpy?color=white)](https://pypi.org/project/pychop/)
