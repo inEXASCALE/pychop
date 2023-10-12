@@ -87,10 +87,6 @@ class chop(object):
     
     
     
-        
-import gc
-import time
-
 def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, customs=None,
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
               
@@ -112,7 +108,6 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
     t = None
     emax = None
     
-    st = time.time()
     
     if prec in {'h','half','fp16','b','bfloat16','s',
                'single','fp32','d','double','fp64',
@@ -157,33 +152,26 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
-    print("phase 1:", time.time() - st)
     
-    st = time.time()
     c = x
     _, e = np.frexp(np.abs(x)) 
     e = np.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
-    print("phase 21:", time.time() - st)
-    st = time.time()
+              
     if explim:
         k_sub = ktemp.astype(bool)
         k_norm = ~ktemp
     else:
         k_sub = np.array([])
         k_norm = np.arange(0, len(return_column_order(ktemp)))
-    print("phase 22:", time.time() - st)
-    st = time.time()
+
     w = np.power(2.0, t-1-e[k_norm])
     c[k_norm] = roundit(
         x[k_norm] * w, rmode=rmode, t=t
     ) 
-    print("phase 23:", time.time() - st)
-    st = time.time()
+
     c[k_norm] *= 1 / w
-    print("phase 24:", time.time() - st)
     
-    st = time.time()
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - np.fmax(temp, np.zeros(temp.shape))
@@ -198,7 +186,6 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
         
     del w; gc.collect()
         
-    print("phase 3:", time.time() - st)
     if explim:
         st = time.time()
         match rmode:
@@ -220,10 +207,7 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
                 c[(x > xmax) & (x != np.inf)] = xmax
                 c[(x < -xmax) & (x != -np.inf)] = -xmax
                 
-        print("phase 4:", time.time() - st)
         
-        
-        st = time.time()
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
             min_rep = xmin;
@@ -254,7 +238,7 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
                 
             case 4 | 5 | 6:
                 c[k_small] = 0
-        print("phase 5:", time.time() - st)
+                
     return c
     
     
