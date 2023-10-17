@@ -1,6 +1,6 @@
 # pychop
 
-[![!pypi](https://img.shields.io/pypi/v/snnpy?color=purple)](https://pypi.org/project/pychop/)
+[![!pypi](https://img.shields.io/pypi/v/pychop?color=purple)](https://pypi.org/project/pychop/)
 [![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.org/project/pychop/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
