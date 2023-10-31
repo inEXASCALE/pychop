@@ -1,7 +1,51 @@
 import numpy as np
 
 class simulate():
-    def __init__(self, beta, t, emin, emax, sign=False, subnormal=1, rmode=1):
+    """Simulate a customised floating point system with rounding methods
+
+    Parameters
+    ----------
+    beta : int
+        The base (or radix) in the floating point number system.
+    
+    t : int 
+        The precision in the floating point number system.
+    
+    emin, emax : int
+        The exponent range, with emin < e < emax.
+
+    sign : bool, default=False
+        Whether or not give sign to the floating point numbers.
+        If ``sign=False``, then the generated floating point numbers are nonnegative.
+
+    subnormal : bool, default=False
+        Whether or not to include subnormal numbers. 
+        If subnormal numbers are not included, the floating point numbers are normalized. 
+
+    rmode : int, default=1
+        Ways to round the values in the floating point system.
+        There are 6 options for rounding: 
+        1. Round to nearest using round to even last bit to break ties (the default).
+        2. Round towards plus infinity (round up).
+        3. Round towards minus infinity (round down).
+        4. Round towards zero.
+        5. Stochastic rounding - round to the next larger or next smaller floating-point number 
+            with probability proportional to the distance to those floating-point numbers.
+        6. Stochastic rounding - round to the next larger or next smaller floating-point number 
+            with equal probability.
+
+    Methods
+    ----------
+    generate():
+        Generate the floating point numbers given user specified parameters.
+
+    rounding(x):
+        Round the values ``x`` in terms of the predefined rounding mode.
+        
+    
+    """
+
+    def __init__(self, beta, t, emin, emax, sign=False, subnormal=False, rmode=1):
         self.beta = beta
         self.t = t
         self.emin = emin
@@ -67,6 +111,15 @@ class simulate():
     
     
     def rounding(self, x):
+        """Simulate a customised floating point system with rounding methods
+
+        Parameters
+        ----------
+        x : flaot or numpy.ndarray
+            The values to be rounded.
+
+        """
+
         if hasattr(x, "__len__"):
             x_copy = x.copy()
             id_underflow = np.abs(x) < self.underflow_bound
@@ -95,10 +148,12 @@ class simulate():
         # Round towards plus infinity
         return min(self.fp_numbers[self.fp_numbers >= x])
     
+
     def _round_to_minus_inf(self, x):
         # Round towards minus infinity
         return max(self.fp_numbers[self.fp_numbers <= x])
     
+
     def _round_to_zero(self, x):
         # Round towards zero
         if x >= 0:
@@ -106,6 +161,7 @@ class simulate():
         else:
             return max(self.fp_numbers[self.fp_numbers <= x])
     
+
     def _round_to_stochastic_distance(self, x):
         # round to the next larger or next smaller floating-point number 
         # with probability proportional to the distance to those floating-point numbers
@@ -115,6 +171,7 @@ class simulate():
             return self.fp_numbers[distances[1]]
         else:
             return self.fp_numbers[distances[0]]
+
 
     def _round_to_stochastic_uniform(self, x):
         # round to the next larger or next smaller floating-point number with equal probability
