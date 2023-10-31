@@ -1,7 +1,7 @@
 import numpy as np
 
-class simulateFTP():
-    def __init__(self, beta, t, emin, emax, subnormal=0):
+class simulate():
+    def __init__(self, beta, t, emin, emax, subnormal=1):
         self.beta = beta
         self.t = t
         self.emin = emin
@@ -11,40 +11,30 @@ class simulateFTP():
     def generate(self, sign):
         m_max = self.beta**self.t - 1
         
-        if not self.subnormal:
-            m_min = self.beta**(self.t - 1)
-            i = 0
-            n = (self.emax - self.emin + 1) * (m_max - m_min + 1)
-            
-            if not sign:
-                numbers = np.empty(n)
-            else:
-                numbers = np.empty(n*2)
-            
-            for e in np.arange(self.emin, self.emax+1):
-                for m in np.arange(m_min, m_max+1):
-                    numbers[i] = m*self.beta**int(e - self.t)
-                    i = i + 1
-                
+        if self.subnormal:
+            m_min = 1
         else:
             m_min = self.beta**(self.t - 1)
-            i = 0
-            n = (self.emax + 1 - self.emin) * (m_max - m_min + 1)
-            
-            if not sign:
-                numbers = np.empty(n)
-            else:
-                numbers = np.empty(n*2)
-                
-            for e in np.arange(self.emin, self.emax+1, dtype=int):
-                for m in np.arange(m_min, m_max+1, dtype=int):
-                    numbers[n+i] = m*self.beta**int(e - self.t)
-                    numbers[n-i-1] = -m*self.beta**int(e - self.t)
+
+        i = 1
+        n = (self.emax - self.emin + 1) * (m_max - m_min + 1)
+
+        if sign:
+            self.floating_numbers = np.zeros(2*n+1)
+            for e in np.arange(self.emin, self.emax+1):
+                for m in np.arange(m_min, m_max+1):
+                    self.floating_numbers[n+i] = m*self.beta**int(e - self.t)
+                    self.floating_numbers[n-i] = -m*self.beta**int(e - self.t)
                     i = i + 1
-        
-        self.floating_numbers = numbers
-        
-        nonnegatives = numbers[numbers > 0]
+        else:
+            self.floating_numbers = np.zeros(n+1)
+            for e in np.arange(self.emin, self.emax+1):
+                for m in np.arange(m_min, m_max+1):
+                    self.floating_numbers[i] = m*self.beta**int(e - self.t)
+                    i = i + 1
+                    
+            
+        nonnegatives = self.floating_numbers[self.floating_numbers > 0]
         self.underflow_bound = min(nonnegatives)
         self.overflow_bound = max(nonnegatives)
         
