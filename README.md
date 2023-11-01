@@ -1,7 +1,7 @@
 # pychop
 
 [![!pypi](https://img.shields.io/pypi/v/pychop?color=greenyellow)](https://pypi.org/project/pychop/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 
 ### A python package for simulaing low precision floating point arithmetic in scientific computing
 
