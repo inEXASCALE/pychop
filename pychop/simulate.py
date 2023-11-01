@@ -5,7 +5,7 @@ class simulate():
 
     Parameters
     ----------
-    beta : int
+    base : int
         The base (or radix) in the floating point number system.
     
     t : int 
@@ -14,11 +14,11 @@ class simulate():
     emin, emax : int
         The exponent range, with emin < e < emax.
 
-    sign : bool, default=False
+    sign : boolean, default=False
         Whether or not give sign to the floating point numbers.
         If ``sign=False``, then the generated floating point numbers are nonnegative.
 
-    subnormal : bool, default=False
+    subnormal : boolean, default=False
         Whether or not to include subnormal numbers. 
         If subnormal numbers are not included, the floating point numbers are normalized. 
 
@@ -45,8 +45,8 @@ class simulate():
     
     """
 
-    def __init__(self, beta, t, emin, emax, sign=False, subnormal=False, rmode=1):
-        self.beta = beta
+    def __init__(self, base, t, emin, emax, sign=False, subnormal=False, rmode=1):
+        self.base = base
         self.t = t
         self.emin = emin
         self.emax = emax
@@ -79,12 +79,12 @@ class simulate():
         
 
     def generate(self):
-        m_max = self.beta**self.t - 1
+        m_max = self.base**self.t - 1
         
         if self.subnormal:
             m_min = 1
         else:
-            m_min = self.beta**(self.t - 1)
+            m_min = self.base**(self.t - 1)
 
         i = 1
         n = (self.emax - self.emin + 1) * (m_max - m_min + 1)
@@ -93,14 +93,14 @@ class simulate():
             self.fp_numbers = np.zeros(2*n+1)
             for e in np.arange(self.emin, self.emax+1):
                 for m in np.arange(m_min, m_max+1):
-                    self.fp_numbers[n+i] = m*self.beta**int(e - self.t)
-                    self.fp_numbers[n-i] = -m*self.beta**int(e - self.t)
+                    self.fp_numbers[n+i] = m*self.base**int(e - self.t)
+                    self.fp_numbers[n-i] = -m*self.base**int(e - self.t)
                     i = i + 1
         else:
             self.fp_numbers = np.zeros(n+1)
             for e in np.arange(self.emin, self.emax+1):
                 for m in np.arange(m_min, m_max+1):
-                    self.fp_numbers[i] = m*self.beta**int(e - self.t)
+                    self.fp_numbers[i] = m*self.base**int(e - self.t)
                     i = i + 1
                     
             
