@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from .roundit import roundit
+from .roundit import rounditcase1, rounditcase2, rounditcase3, rounditcase4, rounditcase5, rounditcase6, rounditcase1rountitTest
 import numpy as np
 import gc
 
@@ -56,9 +56,25 @@ class chop(object):
         self.p = p
         self.customs = customs
         self.randfunc = randfunc
-        
-        
-        
+
+        if rmode == 1:
+            self.roundit = rounditcase1
+            
+        elif rmode == 2:
+            self.roundit = rounditcase2
+            
+        elif rmode == 3:
+            self.roundit = rounditcase3
+            
+        elif rmode == 4:
+            self.roundit = rounditcase2
+            
+        elif rmode == 5:
+            self.roundit = rounditcase3
+            
+        elif rmode == 6:
+            self.roundit = rounditcase2
+            
         
     def chop(self, x):
         return _chop(x, prec=self.prec, input_prec=self.input_prec,
@@ -68,6 +84,7 @@ class chop(object):
                      explim=self.explim, 
                      p=self.p, customs=self.customs, 
                      randfunc=self.randfunc
+                     func_roundit=self.roundit
                     )
     
     
@@ -88,7 +105,7 @@ class chop(object):
     
     
 def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, customs=None,
-          explim=1, p=0.5, randfunc=None, *argv, **kwargs):
+          explim=1, p=0.5, randfunc=None, func_roundit=rountitcase1, *argv, **kwargs):
               
     if str(x).isnumeric():
         raise ValueError('Chop requires real input values.')
@@ -166,8 +183,8 @@ def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, custo
         k_norm = np.arange(0, len(return_column_order(ktemp)))
 
     w = np.power(2.0, t-1-e[k_norm])
-    c[k_norm] = roundit(
-        x[k_norm] * w, rmode=rmode, t=t
+    c[k_norm] = func_roundit(
+        x[k_norm] * w, t=t
     ) 
 
     c[k_norm] *= 1 / w
