@@ -25,10 +25,6 @@ class options:
         
 
         
-
-
-        
-        
 class chop(object):
     def __init__(self, prec='single', subnormal=None, rmode=1, flip=0, explim=1, input_prec='double',
                  p=0.5, randfunc=None, customs=None, random_state=0):
@@ -57,40 +53,87 @@ class chop(object):
         self.customs = customs
         self.randfunc = randfunc
 
-        if rmode == 1:
+        if self.rmode == 1:
             self.roundit = rounditcase1
             
-        elif rmode == 2:
+        elif self.rmode == 2:
             self.roundit = rounditcase2
             
-        elif rmode == 3:
+        elif self.rmode == 3:
             self.roundit = rounditcase3
             
-        elif rmode == 4:
-            self.roundit = rounditcase2
+        elif self.rmode == 4:
+            self.roundit = rounditcase4
             
-        elif rmode == 5:
-            self.roundit = rounditcase3
+        elif self.rmode == 5:
+            self.roundit = rounditcase5
             
-        elif rmode == 6:
-            self.roundit = rounditcase2
-            
+        elif self.rmode == 6:
+            self.roundit = rounditcase6
+
+        else:
+            raise ValueError('Unsupported value of rmode.')
+
         
+        if self.prec in {'h','half','fp16','b','bfloat16','s',
+                   'single','fp32','d','double','fp64',
+                   'q43','fp8-e4m3','q52','fp8-e5m2'}:
+            
+            if self.prec in {'q43','fp8-e4m3'}:
+                self.t = 4
+                self.emax = 7
+            elif self.prec in {'q52','fp8-e5m2'}:
+                self.t = 3
+                self.emax = 15
+            elif self.prec in {'h','half','fp16'}:
+                self.t = 11
+                self.emax = 15
+            elif self.prec in {'b','bfloat16'}:
+                self.t = 8
+                self.emax = 127  
+            elif self.prec in {'s','single','fp32'}:
+                self.t = 24
+                self.emax = 127
+            elif self.prec in {'d','double','fp64'}:
+                self.t = 53
+                self.emax = 1023
+            
+            
+        elif self.prec in {'c','custom'}:
+            self.t = customs.t
+            self.emax = customs.emax
+            
+            if self.rmode == 1:
+                self.maxfraction = isinstance(x[0], np.single) * 11 + isinstance(x[0], np.double) * 25
+            else:
+                self.maxfraction = isinstance(x[0], np.single) * 23 + isinstance(x[0], np.double) * 52
+                
+            if self.t > self.maxfraction:
+                raise ValueError('Precision of the custom format must be at most')
+
+        else:
+            raise ValueError('Please enter valid prec value.')
+
+    
+            
     def chop(self, x):
-        return _chop(x, prec=self.prec, input_prec=self.input_prec,
+        return _chop(x, 
+                     t=self.t, emax=self.emax,
+                     input_prec=self.input_prec,
                      subnormal=self.subnormal,
                      rmode=self.rmode,
                      flip=self.flip, 
                      explim=self.explim, 
-                     p=self.p, customs=self.customs, 
+                     p=self.p, 
                      randfunc=self.randfunc
                      func_roundit=self.roundit
                     )
+
     
     
     def options(self):
-        return options(self.customs.t, 
-                       self.customs.emax,
+        return options(self.t, 
+                       self.emax,
                        self.random_state,
                        self.prec,
                        self.subnormal,
@@ -102,67 +145,23 @@ class chop(object):
                       )
     
     
+
+
     
-    
-def _chop(x, prec='h', input_prec=np.double, subnormal=1, rmode=1, flip=0, customs=None,
+def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0, 
           explim=1, p=0.5, randfunc=None, func_roundit=rountitcase1, *argv, **kwargs):
               
     if str(x).isnumeric():
         raise ValueError('Chop requires real input values.')
     
     x = input_prec(x)
-    # print(" type(x):", type(x))
-        
 
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
 
-        
     if randfunc is None:
         randfunc = lambda n: np.random.uniform(0, 1, n)
         
-        
-    t = None
-    emax = None
-    
-    
-    if prec in {'h','half','fp16','b','bfloat16','s',
-               'single','fp32','d','double','fp64',
-               'q43','fp8-e4m3','q52','fp8-e5m2'}:
-        
-        if prec in {'q43','fp8-e4m3'}:
-            t = 4
-            emax = 7
-        elif prec in {'q52','fp8-e5m2'}:
-            t = 3
-            emax = 15
-        elif prec in {'h','half','fp16'}:
-            t = 11
-            emax = 15
-        elif prec in {'b','bfloat16'}:
-            t = 8
-            emax = 127  
-        elif prec in {'s','single','fp32'}:
-            t = 24
-            emax = 127
-        elif prec in {'d','double','fp64'}:
-            t = 53
-            emax = 1023
-        
-    
-        
-    elif prec in {'c','custom'}:
-        t = customs.t
-        emax = customs.emax
-        
-        if rmode == 1:
-            maxfraction = isinstance(x[0], np.single) * 11 + isinstance(x[0], np.double) * 25
-        else:
-            maxfraction = isinstance(x[0], np.single) * 23 + isinstance(x[0], np.double) * 52
-            
-        if t > maxfraction:
-            raise ValueError('Precision of the custom format must be at most')
-            
     emin = 1 - emax            # Exponent of smallest normalized number.
     xmin = 2**emin            # Smallest positive normalized number.
     emins = emin + 1 - t     # Exponent of smallest positive subnormal number.
