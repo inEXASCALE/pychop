@@ -5,7 +5,7 @@ import importlib
 import logging
 
 PACKAGE_NAME = "pychop"
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 SETREQUIRES=["numpy"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
