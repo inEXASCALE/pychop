@@ -135,7 +135,7 @@ class chop(object):
                     )
 
     
-    
+    @property
     def options(self):
         return options(self.t, 
                        self.emax,
