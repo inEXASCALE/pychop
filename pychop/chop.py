@@ -7,7 +7,6 @@ from .roundit import (rounditcase1,
                       rounditcase6)
 import numpy as np
 import gc
-import copy
 
 @dataclass
 class customs:
@@ -127,7 +126,7 @@ class chop(object):
         if str(x).isnumeric():
             raise ValueError('Chop requires real input values.')
           
-        return _chop(copy.deepcopy(x), 
+        return _chop(x, 
                      t=self.t, emax=self.emax,
                      input_prec=self.input_prec,
                      subnormal=self.subnormal,
@@ -177,7 +176,7 @@ def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0,
     xmax = pow(2,emax) * (2-2**(1-t))
     
     
-    c = x
+    c = x.copy()
     _, e = np.frexp(np.abs(x)) 
     e = np.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
