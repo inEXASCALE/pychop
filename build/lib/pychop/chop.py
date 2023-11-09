@@ -7,6 +7,7 @@ from .roundit import (rounditcase1,
                       rounditcase6)
 import numpy as np
 import gc
+import copy
 
 @dataclass
 class customs:
@@ -122,7 +123,7 @@ class chop(object):
     
             
     def chop(self, x):
-        return _chop(x, 
+        return _chop(copy.deepcopy(x), 
                      t=self.t, emax=self.emax,
                      input_prec=self.input_prec,
                      subnormal=self.subnormal,
@@ -162,7 +163,7 @@ def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0,
     x = input_prec(x)
 
     if not hasattr(x, "__len__"):
-        x = np.array(x, ndmin=1)
+        x = np.asarray(x, ndmin=1)
 
     if randfunc is None:
         randfunc = lambda n: np.random.uniform(0, 1, n)
