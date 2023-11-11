@@ -5,7 +5,7 @@ import importlib
 import logging
 
 PACKAGE_NAME = "pychop"
-VERSION = "0.0.3"
+VERSION = "0.0.4"
 SETREQUIRES=["numpy"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
@@ -45,11 +45,10 @@ metadata = {"name":PACKAGE_NAME,
             "Topic :: Scientific/Engineering",
             "Operating System :: Microsoft :: Windows",
             "Operating System :: Unix",
-            "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.6",
-            "Programming Language :: Python :: 3.7",
-            "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
+            "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
             ],
             "maintainer_email":EMAIL,
             "description":"Python code for simulating low precision floating-point arithmetic",

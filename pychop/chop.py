@@ -182,11 +182,11 @@ def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0,
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
-        k_sub = ktemp.astype(bool)
+        k_sub = ktemp
         k_norm = ~ktemp
     else:
         k_sub = np.array([])
-        k_norm = np.arange(0, len(return_column_order(ktemp)))
+        k_norm = np.arange(0, sum(ktemp.shape))
 
     w = np.power(2.0, t-1-e[k_norm])
     c[k_norm] = func_roundit(
@@ -270,8 +270,6 @@ def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0,
     
     
     
-    
-def return_column_order(arr):
-    return arr.T.reshape(-1)
+
     
     
