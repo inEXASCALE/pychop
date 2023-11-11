@@ -169,7 +169,7 @@ def rounditcase6(x, flip=0, p=0.5, t=24, randfunc=None):
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = np.nonzero(frac != 0)[0]
+    k = frac != 0
     
     if len(k) == 0:
         y = x; 
