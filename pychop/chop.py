@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from .roundit import (rounditcase1, 
-                      rounditcase2, 
-                      rounditcase3, 
-                      rounditcase4, 
-                      rounditcase5, 
-                      rounditcase6)
+from .roundit import (round_to_nearest, 
+                      round_towards_plus_inf, 
+                      round_towards_minus_infinity, 
+                      round_towards_zero, 
+                      stochastic_rounding, 
+                      stochastic_rounding_equal)
 import numpy as np
 import gc
 
@@ -31,7 +31,33 @@ class options:
 
         
 class chop(object):
-    def __init__(self, prec='single', subnormal=None, rmode=1, flip=0, explim=1, input_prec='double',
+
+    """
+    Parameters
+    ----------
+    prec : str, default='s':
+        The target arithmetic format.
+    
+    subnormal : boolean
+        Whether or not support subnormal numbers are supported.
+        If set `subnormal=False`, subnormals are flushed to zero.
+        
+    rmode : int, default=1
+        The supported rounding modes include:
+        1. Round to nearest using round to even last bit to break ties (the default).
+        2. Round towards plus infinity (round up).
+        3. Round towards minus infinity (round down).
+        4. Round towards zero.
+        5. Stochastic rounding - round to the next larger or next smaller
+           floating-point number with probability proportional to the distance 
+           to those floating-point numbers.
+        6. Stochastic rounding - round to the next larger or next smaller 
+           floating-point number with equal probability.
+
+        
+        
+    """
+    def __init__(self, prec='s', subnormal=None, rmode=1, flip=0, explim=1, input_prec='double',
                  p=0.5, randfunc=None, customs=None, random_state=0):
         
         if input_prec in {'d', 'double', float, np.double}:
@@ -59,22 +85,22 @@ class chop(object):
         self.randfunc = randfunc
 
         if self.rmode == 1:
-            self.roundit = rounditcase1
+            self.roundit = round_to_nearest
             
         elif self.rmode == 2:
-            self.roundit = rounditcase2
+            self.roundit = round_towards_plus_inf
             
         elif self.rmode == 3:
-            self.roundit = rounditcase3
+            self.roundit = round_towards_minus_infinity
             
         elif self.rmode == 4:
-            self.roundit = rounditcase4
+            self.roundit = round_towards_zero
             
         elif self.rmode == 5:
-            self.roundit = rounditcase5
+            self.roundit = stochastic_rounding
             
         elif self.rmode == 6:
-            self.roundit = rounditcase6
+            self.roundit = stochastic_rounding_equal
 
         else:
             raise ValueError('Unsupported value of rmode.')
@@ -158,7 +184,7 @@ class chop(object):
 
     
 def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0, 
-          explim=1, p=0.5, randfunc=None, func_roundit=rounditcase1, *argv, **kwargs):
+          explim=1, p=0.5, randfunc=None, func_roundit=None, *argv, **kwargs):
               
     
     x = input_prec(x)
