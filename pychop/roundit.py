@@ -1,8 +1,7 @@
 import numpy as np
 
-
-
-def rounditcase1(x, flip=0, p=0.5, t=24, randfunc=None):
+                      
+def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -33,7 +32,7 @@ def rounditcase1(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 
-def rounditcase2(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -61,7 +60,7 @@ def rounditcase2(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 
-def rounditcase3(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -88,7 +87,7 @@ def rounditcase3(x, flip=0, p=0.5, t=24, randfunc=None):
     return y
 
 
-def rounditcase4(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -116,7 +115,7 @@ def rounditcase4(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 
-def rounditcase5(x, flip=0, p=0.5, t=24, randfunc=None):
+def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -157,7 +156,7 @@ def rounditcase5(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 
-def rounditcase6(x, flip=0, p=0.5, t=24, randfunc=None):
+def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -200,7 +199,7 @@ def rounditcase6(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 
-def rounditTest(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
+def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
