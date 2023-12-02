@@ -63,7 +63,7 @@ class chop(object):
         if input_prec in {'d', 'double', float, np.double}:
             self.input_prec = np.double
         else:
-            self.input_prec = np.float
+            self.input_prec = np.single
         
         np.random.seed(random_state)
         
@@ -257,11 +257,11 @@ def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0,
         
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
-            min_rep = xmin;
+            min_rep = xmin
         else:
-            min_rep = xmins;
+            min_rep = xmins
 
-        k_small = np.abs(c) < min_rep;
+        k_small = np.abs(c) < min_rep
         
         match rmode:
             case 1:
