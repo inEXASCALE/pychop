@@ -186,7 +186,6 @@ class chop(object):
 def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0, 
           explim=1, p=0.5, randfunc=None, func_roundit=None, *argv, **kwargs):
               
-    
     x = input_prec(x)
 
     if not hasattr(x, "__len__"):
@@ -216,7 +215,10 @@ def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0,
 
     w = np.power(2.0, t-1-e[k_norm])
     c[k_norm] = func_roundit(
-        x[k_norm] * w, t=t
+        x=x[k_norm] * w, 
+        flip=flip, p=p,
+        t=t,
+        randfunc=randfunc
     ) 
 
     c[k_norm] *= 1 / w
@@ -226,9 +228,10 @@ def _chop(x, t, emax, input_prec=np.double, subnormal=1, rmode=1, flip=0,
         t1 = t - np.fmax(temp, np.zeros(temp.shape))
         
         c[k_sub] = func_roundit(
-            x[k_sub] * np.power(2, t1-1-e[k_sub]), 
-            randfunc=randfunc,
-            t=t
+            x=x[k_sub] * np.power(2, t1-1-e[k_sub]), 
+            flip=flip, p=p,
+            t=t,
+            randfunc=randfunc
         ) * np.power(2, e[k_sub]-(t1-1))
         del temp, t1
         

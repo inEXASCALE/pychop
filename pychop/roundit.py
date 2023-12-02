@@ -1,7 +1,7 @@
 import numpy as np
 
                       
-def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_to_nearest(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -27,7 +27,7 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 
-def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_plus_inf(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -50,7 +50,7 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 
-def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -72,7 +72,7 @@ def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, randfunc=None):
     return y
 
 
-def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_zero(x, flip=0, p=0.5, t=24, *argv):
 
     sign = lambda x: np.sign(x) + (x==0)
     
