@@ -79,4 +79,8 @@ Output [0.07629395 0.77978516 0.43823242 0.72314453 0.97753906].
 
 ## References
 
-Nicholas J. Higham and Srikara Pranesh, Simulating Low Precision Floating-Point Arithmetic, SIAM J. Sci. Comput., 41(4):A2536-A2551, 2019.
+[1] Nicholas J. Higham and Srikara Pranesh, Simulating Low Precision Floating-Point Arithmetic, SIAM J. Sci. Comput., 2019.
+
+[2] IEEE Standard for Floating-Point Arithmetic, IEEE Std 754-2019 (revision of IEEE Std 754-2008), IEEE, 2019.
+
+[3] Intel Corporation, BFLOAT16---hardware numerics definition,  2018

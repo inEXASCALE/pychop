@@ -50,7 +50,7 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, **kwargs):
 
 
 
-def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, **kwargs):
+def round_towards_minus_inf(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -107,14 +107,12 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = frac != 0
-    
-    if np.count_nonzero(k) == 0:
+ 
+    if np.count_nonzero(frac) == 0:
         y = x; 
     else:   
-        rnd = randfunc(k.shape)
-        vals = frac[k]
-        j = rnd <= vals
+        rnd = randfunc(frac.shape)
+        j = rnd <= frac
             
         y[j] = np.ceil(y[j])
         y[~j] = np.floor(y[~j])
@@ -146,13 +144,12 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = frac != 0
     
-    if np.count_nonzero(k) == 0:
+    if np.count_nonzero(frac) == 0:
         y = x; 
     else:   
         # Uniformly distributed random numbers
-        rnd = randfunc(k.shape)
+        rnd = randfunc(frac.shape)
         j = rnd <= 0.5
         y[j] = np.ceil(y[j])
         y[~j] = np.floor(y[~j])
