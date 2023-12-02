@@ -17,7 +17,7 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None):
         temp = np.random.uniform(low=0, high=1, size=y.shape)
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
-            u = np.abs(y(k))
+            u = np.abs(y[k])
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
@@ -40,7 +40,7 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None):
         temp = np.random.uniform(low=0, high=1, size=y.shape)
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
-            u = np.abs(y(k))
+            u = np.abs(y[k])
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
@@ -63,7 +63,7 @@ def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, randfunc=None):
         temp = np.random.uniform(low=0, high=1, size=y.shape)
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
-            u = np.abs(y(k))
+            u = np.abs(y[k])
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
@@ -85,7 +85,7 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None):
         temp = np.random.uniform(low=0, high=1, size=y.shape)
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
-            u = np.abs(y(k))
+            u = np.abs(y[k])
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
@@ -124,7 +124,7 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
             temp = np.random.uniform(low=0, high=1, size=y.shape)
             k = temp <= p; # Indices of elements to have a bit flipped.
             if not np.any(k):
-                u = np.abs(y(k))
+                u = np.abs(y[k])
                 
                 
                 b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
@@ -167,7 +167,7 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
         temp = np.random.uniform(low=0, high=1, size=y.shape)
         k = temp <= p; # Indices of elements to have a bit flipped.
         if np.any(k):
-            u = np.abs(y(k))
+            u = np.abs(y[k])
             
             
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
@@ -242,7 +242,7 @@ def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
         temp = np.random.uniform(low=0, high=1, size=y.shape)
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
-            u = np.abs(y(k))
+            u = np.abs(y[k])
             
             # Random bit flip in significand.
             # b defines which bit (1 to p-1) to flip in each element of y.
