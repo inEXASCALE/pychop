@@ -107,12 +107,12 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = np.nonzero(frac != 0)[0]
+    k = np.nonzero(frac != 0)
     
-    if len(k) == 0:
+    if len(k[0]) == 0:
         y = x; 
     else:   
-        rnd = randfunc(len(k))
+        rnd = randfunc(len(k[0]))
         vals = frac[k]
         j = rnd <= vals
             
@@ -125,8 +125,6 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
             k = temp <= p; # Indices of elements to have a bit flipped.
             if not np.any(k):
                 u = np.abs(y[k])
-                
-                
                 b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
                 # Flip selected bits.
                 u = np.bitwise_xor(u, np.power(2, b-1))
@@ -148,17 +146,14 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = frac != 0
+    k = np.nonzero(frac != 0)
     
-    if len(k) == 0:
+    if len(k[0]) == 0:
         y = x; 
     else:   
         # Uniformly distributed random numbers
-        
-        rnd = randfunc(len(k))
-        
+        rnd = randfunc(len(k[0]))
         j = rnd <= 0.5
-            
         y[k[j==0]] = np.ceil(y[k[j==0]])
         y[k[j!=0]] = np.floor(y[k[j!=0]])
         y = sign(x)*y
@@ -168,8 +163,6 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
         k = temp <= p; # Indices of elements to have a bit flipped.
         if np.any(k):
             u = np.abs(y[k])
-            
-            
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
