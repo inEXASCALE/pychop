@@ -84,8 +84,8 @@ class chop(object):
         
     """
 
-    def __init__(self, prec='s', subnormal=None, rmode=1, flip=False, explim=1, 
-                 p=0.5, randfunc=None, customs=None, random_state=0):
+    def __init__(self, prec='s', subnormal=None, rmode=1, flip=False, explim=1, inplace=True,
+                 p=0.5, blockdim=512, randfunc=None, customs=None, random_state=0):
         
         
         np.random.seed(random_state)
@@ -106,7 +106,9 @@ class chop(object):
         self.p = p
         self.customs = customs
         self.randfunc = randfunc
-
+        self.blockdim = blockdim
+        self.inplace = inplace
+        
         if self.rmode == 1:
             self._chop = _chop_round_to_nearest
             
@@ -176,16 +178,37 @@ class chop(object):
 
         if not hasattr(x, "__len__"):
             x = np.array(x, ndmin=1)
+        
+        blocksizes = x.shape[0] // self.blockdim
+        remains_ids = x.shape[0] % self.blockdim
 
-        return self._chop(x, 
-                     t=self.t, emax=self.emax,
-                     subnormal=self.subnormal,
-                     flip=self.flip, 
-                     explim=self.explim, 
-                     p=self.p
-                    )
+        if self.inplace:
+            for i in range(blocksizes):
+                x[i*self.blockdim:(i+1)*self.blockdim, :] = self.chop_wrapper(x[i*self.blockdim:(i+1)*self.blockdim, :])
+            
+            
+            if remains_ids > 0:
+                x[-remains_ids:, :] = self.chop_wrapper(x[-remains_ids:, :])
+
+            return
+        else:
+            y = x.copy()
+            for i in range(blocksizes):
+                y[i*self.blockdim:(i+1)*self.blockdim, :] = self.chop_wrapper(x[i*self.blockdim:(i+1)*self.blockdim, :])
+            
+            
+            if remains_ids > 0:
+                y[-remains_ids:, :] = self.chop_wrapper(x[-remains_ids:, :])
+
+            return y
+        
 
     
+    def chop_wrapper(self, x):
+        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
+                                explim=self.explim, p=self.p)
+    
+
     @property
     def options(self):
         return options(self.t, 
