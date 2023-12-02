@@ -107,17 +107,17 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = np.nonzero(frac != 0)
+    k = frac != 0
     
-    if len(k[0]) == 0:
+    if np.count_nonzero(k) == 0:
         y = x; 
     else:   
-        rnd = randfunc(len(k[0]))
+        rnd = randfunc(k.shape)
         vals = frac[k]
         j = rnd <= vals
             
-        y[k[j==0]] = np.ceil(y[k[j==0]])
-        y[k[j!=0]] = np.floor(y[k[j!=0]])
+        y[j] = np.ceil(y[j])
+        y[~j] = np.floor(y[~j])
         y = sign(x)*y
                 
         if flip:
@@ -146,16 +146,16 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = np.nonzero(frac != 0)
+    k = frac != 0
     
-    if len(k[0]) == 0:
+    if np.count_nonzero(k) == 0:
         y = x; 
     else:   
         # Uniformly distributed random numbers
-        rnd = randfunc(len(k[0]))
+        rnd = randfunc(k.shape)
         j = rnd <= 0.5
-        y[k[j==0]] = np.ceil(y[k[j==0]])
-        y[k[j!=0]] = np.floor(y[k[j!=0]])
+        y[j] = np.ceil(y[j])
+        y[~j] = np.floor(y[~j])
         y = sign(x)*y
             
     if flip:
