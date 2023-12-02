@@ -8,9 +8,6 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None):
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
     
-    if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
-            
     y = np.abs(x)
     u = np.round(y - ((y % 2) == 0.5))
     u[u == -1] = 0 # Special case, negative argument to ROUND.
@@ -21,8 +18,6 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None):
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
             u = np.abs(y(k))
-            
-            
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
@@ -39,9 +34,6 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None):
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
     
-    if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
-            
     y = np.ceil(x)
             
     if flip:
@@ -49,8 +41,6 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None):
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
             u = np.abs(y(k))
-            
-            
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
@@ -66,9 +56,6 @@ def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, randfunc=None):
     
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
-    
-    if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
             
     y = np.floor(x)
             
@@ -77,8 +64,6 @@ def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, randfunc=None):
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
             u = np.abs(y(k))
-            
-            
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
@@ -93,9 +78,6 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None):
     
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
-    
-    if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
             
     y = ((x >= 0) | (x == -np.inf)) * np.floor(x) + ((x < 0) | (x == np.inf)) * np.ceil(x)
             
@@ -104,8 +86,6 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None):
         k = temp <= p; # Indices of elements to have a bit flipped.
         if not np.any(k):
             u = np.abs(y(k))
-            
-            
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
