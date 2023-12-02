@@ -21,7 +21,7 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None):
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
@@ -44,7 +44,7 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None):
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
@@ -67,7 +67,7 @@ def round_towards_minus_infinity(x, flip=0, p=0.5, t=24, randfunc=None):
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
@@ -89,7 +89,7 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None):
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
@@ -130,7 +130,7 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
                 b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
                 # Flip selected bits.
                 u = np.bitwise_xor(u, np.power(2, b-1))
-                y[k] = sign(y(k))*u
+                y[k] = sign(y[k])*u
         
     return y
 
@@ -173,7 +173,7 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
@@ -256,7 +256,7 @@ def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
             b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
     
