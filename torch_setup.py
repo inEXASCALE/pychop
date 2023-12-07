@@ -4,9 +4,9 @@ import platform
 import importlib
 import logging
 
-PACKAGE_NAME = "pychop"
-VERSION = "0.0.4"
-SETREQUIRES=["numpy"]
+PACKAGE_NAME = "torch-chop"
+VERSION = "0.0.1"
+SETREQUIRES=["numpy", "torch"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
 INREUIRES=["numpy>=1.7.2"]
