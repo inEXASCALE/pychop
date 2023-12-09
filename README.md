@@ -31,19 +31,6 @@ Subnormal numbers is supported, they are flushed to zero if it not considered (b
 
 This package provides consistent APIs to the chop software by Nick higham as much as possible.  For the first four rounding mode,  with the same user-specific parameters, ``pychop`` generates exactly same result as that of the chop software. For stochastic rounding (``rmode`` as 5 and 6), both output same results if random numbers is given the same. 
 
-## Install
-
-``pychop`` has the only essential following dependency:
-
-- numpy >=1.7.3
-- torch (only for ``torch-chop``)
-
-To install the current current release via PIP use:
-
- Numpy backend | Torch backend
-:---:|:---:
-`pip install pychop` | `pip install torch-chop` 
-
 ## The supported floating point formats
 
 
@@ -58,6 +45,20 @@ The supported floating point arithmetic formats include:
 |  's', 'single', 'fp32'    | IEEE single precision |
 |  'd', 'double', 'fp64'    | IEEE double precision |
 |  'c', 'custom'            | custom format |
+
+
+## Install
+
+``pychop`` has the only essential following dependency:
+
+- numpy >=1.7.3
+- torch (only for ``torch-chop``)
+
+To install the current current release via PIP use:
+
+ Numpy backend | Torch backend
+:---:|:---:
+`pip install pychop` | `pip install torch-chop` 
 
 
 ## References
