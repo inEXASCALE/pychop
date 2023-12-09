@@ -81,3 +81,14 @@ Second, define parameter ``customs`` instead of ``prec`` for both NumPy backend 
     nc = chop(customs=prec, rmode=3, flip=0) 
     y = nc.chop(x)
     print(y[0, :5])
+
+
+The above example is for bit-level simulation, you can depoy a direct setting to floating point arithmetic:
+
+.. code:: python
+
+    from pychop import simulate
+    x = np.random.rand(10000, 10000) # use x = torch.rand(size=(10000, 10000)) for Torch backend
+    si = simulate(base=2, t=11, emin=11, emax=22, sign=False, subnormal=False, rmode=1):
+    y = si.rounding(x)
+    print(y[0, :5])
