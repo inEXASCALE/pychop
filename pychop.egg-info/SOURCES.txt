@@ -11,3 +11,9 @@ pychop.egg-info/SOURCES.txt
 pychop.egg-info/dependency_links.txt
 pychop.egg-info/requires.txt
 pychop.egg-info/top_level.txt
+pychop/numpy/__init__.py
+pychop/numpy/chop.py
+pychop/numpy/roundit.py
+pychop/torch/__init__.py
+pychop/torch/chop.py
+pychop/torch/roundit.py

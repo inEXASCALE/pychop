@@ -6,7 +6,7 @@ import logging
 
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
-VERSION = "0.1.0"
+VERSION = "0.1.5"
 SETREQUIRES=["numpy", "torch"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
@@ -29,7 +29,7 @@ else:
    
     
 metadata = {"name":PRJECT_NAME,
-            "packages":[PACKAGE_NAME],
+            'packages':{"pychop", "pychop.numpy", "pychop.torch"},
             "version":VERSION,
             "setup_requires":SETREQUIRES,
             "install_requires":INREUIRES,
