@@ -46,35 +46,26 @@ This package provides consistent APIs to the chop software by Nick higham as muc
 
 ## Install
 
-``pychop`` has the only following dependency:
+``pychop`` has the only essential following dependency:
 
 - numpy >=1.7.3
+- torch (only for ``torch-chop``)
 
 To install the current ``pychop`` release via PIP use:
 
 ```pip install pychop```
 
+For torch use, use
+
+```pip install torch-chop```
+
+
 To check the ``pychop`` installation use:
 
 ```python -m pip show pychop```
 
+```python -m pip show troch-chop```
 
-## Usage
-
-After installing ``pychop``, load the pacakge by ```import pychop``` (of course you can use ```from pychop import chop``` for saving a lot code).
-
-We use an simple example to illustrate its usage:
-
-
-```Python
-x = np.array([0.07630829, 0.77991879, 0.43840923, 0.72346518, 0.97798951]); 
-
-cp = pychop.chop(prec='h', rmode=3) # use chop(prec='h', rmode=3) if you load with from pychop import chop
-c = cp.chop(x)
-print(c)
-```
-
-Output [0.07629395 0.77978516 0.43823242 0.72314453 0.97753906].
 
 
 ## References
