@@ -51,21 +51,11 @@ This package provides consistent APIs to the chop software by Nick higham as muc
 - numpy >=1.7.3
 - torch (only for ``torch-chop``)
 
-To install the current ``pychop`` release via PIP use:
+To install the current current release via PIP use:
 
-```pip install pychop```
-
-For torch use, use
-
-```pip install torch-chop```
-
-
-To check the ``pychop`` installation use:
-
-```python -m pip show pychop```
-
-```python -m pip show troch-chop```
-
+:---:|:---:|:---:
+| Numpy backend | Torch backend
+Command | `pip install pychop` | `pip install torch-chop` 
 
 
 ## References
