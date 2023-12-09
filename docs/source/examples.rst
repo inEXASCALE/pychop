@@ -7,12 +7,6 @@ To import the package:
 
     from pychop import chop
 
-or 
-
-.. code:: python
-
-    from torch_chop import chop
-    
 
 
 +----------------------------------+----------------------------------+
