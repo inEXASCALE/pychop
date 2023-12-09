@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
 
-### A python package for simulaing low precision floating point arithmetic
+## A python package for simulaing low precision floating point arithmetic
 
 Using low precesion can gain extra speedup while resulting in less storage and energy cost.  The intention of ``pychop``, following the same function of ``chop`` in Matlab provided by Nick higham, is to simulate the low precision formats based on single and double precisions, which is pravalent on modern machine. 
 
@@ -32,7 +32,7 @@ Subnormal numbers is supported, they are flushed to zero if it not considered (b
 
 This package provides consistent APIs to the chop software by Nick higham as much as possible.  For the first four rounding mode,  with the same user-specific parameters, ``pychop`` generates exactly same result as that of the chop software. For stochastic rounding (``rmode`` as 5 and 6), both output same results if random numbers is given the same. 
 
-## The supported floating point formats
+### The supported floating point formats
 
 
 The supported floating point arithmetic formats include:
@@ -48,7 +48,7 @@ The supported floating point arithmetic formats include:
 |  'c', 'custom'            | custom format |
 
 
-## Install
+### Install
 
 ``pychop`` has the only essential following dependency:
 
@@ -62,10 +62,10 @@ To install the current current release via PIP use:
 `pip install pychop` | `pip install torch-chop` 
 
 
-## Contributing
+### Contributing
 We welcome contributions in any form! Assistance with documentation is always welcome. To contribute, feel free to open an issue or please fork the project make your changes and submit a pull request. We will do our best to work through any issues and requests.
 
-## References
+### References
 
 [1] Nicholas J. Higham and Srikara Pranesh, Simulating Low Precision Floating-Point Arithmetic, SIAM J. Sci. Comput., 2019.
 
