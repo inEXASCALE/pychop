@@ -2,6 +2,7 @@
 
 [![!pypi](https://img.shields.io/pypi/v/pychop?color=greenyellow)](https://pypi.org/project/pychop/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
+[![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
 
 ### A python package for simulaing low precision floating point arithmetic
 
