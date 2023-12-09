@@ -1,122 +1,101 @@
 import numpy as np
 
-
-
-def rounditcase1(x, flip=0, p=0.5, t=24, randfunc=None):
+                      
+def round_to_nearest(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
     
-    if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
-            
     y = np.abs(x)
     u = np.round(y - ((y % 2) == 0.5))
-    u[np.nonzero(u == -1)] = 0 # Special case, negative argument to ROUND.
+    u[u == -1] = 0 # Special case, negative argument to ROUND.
     y = np.sign(x) * u
             
     if flip:
-        temp = np.random.uniform(low=0, high=1, size=y.shape)
-        k = np.nonzero(temp <= p); # Indices of elements to have a bit flipped.
-        if len(k)==0:
-            u = np.abs(y(k))
-            
-            b = randi(t-1, u.shape[0], u.shape[1])
-            b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
+        temp = np.random.randint(low=0, high=1, size=y.shape)
+        k = temp <= p # Indices of elements to have a bit flipped.
+        if np.any(k):
+            u = np.abs(y[k])
+            b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
 
 
-def rounditcase2(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_plus_inf(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
     
-    if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
-            
     y = np.ceil(x)
             
     if flip:
-        temp = np.random.uniform(low=0, high=1, size=y.shape)
-        k = np.nonzero(temp <= p); # Indices of elements to have a bit flipped.
-        if len(k)==0:
-            u = np.abs(y(k))
-            
-            b = randi(t-1, u.shape[0], u.shape[1])
-            b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
+        temp = np.random.randint(low=0, high=1, size=y.shape)
+        k = temp <= p # Indices of elements to have a bit flipped.
+        if np.any(k):
+            u = np.abs(y[k])
+            b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
 
 
-def rounditcase3(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_minus_inf(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
-    
-    if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
             
     y = np.floor(x)
             
     if flip:
-        temp = np.random.uniform(low=0, high=1, size=y.shape)
-        k = np.nonzero(temp <= p); # Indices of elements to have a bit flipped.
-        if len(k)==0:
-            u = np.abs(y(k))
-            
-            b = randi(t-1, u.shape[0], u.shape[1])
-            b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
+        temp = np.random.randint(low=0, high=1, size=y.shape)
+        k = temp <= p # Indices of elements to have a bit flipped.
+        if np.any(k):
+            u = np.abs(y[k])
+            b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
 
-def rounditcase4(x, flip=0, p=0.5, t=24, randfunc=None):
+def round_towards_zero(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
     if not hasattr(x, "__len__"):
         x = np.array(x, ndmin=1)
-    
-    if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
             
     y = ((x >= 0) | (x == -np.inf)) * np.floor(x) + ((x < 0) | (x == np.inf)) * np.ceil(x)
             
     if flip:
-        temp = np.random.uniform(low=0, high=1, size=y.shape)
-        k = np.nonzero(temp <= p); # Indices of elements to have a bit flipped.
-        if len(k)==0:
-            u = np.abs(y(k))
-            
-            b = randi(t-1, u.shape[0], u.shape[1])
-            b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
+        temp = np.random.randint(low=0, high=1, size=y.shape)
+        k = temp <= p # Indices of elements to have a bit flipped.
+        if np.any(k):
+            u = np.abs(y[k])
+            b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
 
 
-def rounditcase5(x, flip=0, p=0.5, t=24, randfunc=None):
+def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -124,46 +103,36 @@ def rounditcase5(x, flip=0, p=0.5, t=24, randfunc=None):
         x = np.array(x, ndmin=1)
     
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: np.random.randint(0, 1, n)
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = np.nonzero(frac != 0)[0]
-    
-    if len(k) == 0:
-        y = x; 
+ 
+    if np.count_nonzero(frac) == 0:
+        y = x 
     else:   
-        rnd = randfunc(len(k))
-        vals = frac[k]
-        
-        if len(vals.shape) == 2:
-            vals = return_column_order(vals)
-        else:
-            pass
+        rnd = randfunc(frac.shape)
+        j = rnd <= frac
             
-        j = rnd <= vals
-            
-        y[k[j==0]] = np.ceil(y[k[j==0]])
-        y[k[j!=0]] = np.floor(y[k[j!=0]])
+        y[j] = np.ceil(y[j])
+        y[~j] = np.floor(y[~j])
         y = sign(x)*y
                 
         if flip:
-            temp = np.random.uniform(low=0, high=1, size=y.shape)
-            k = np.nonzero(temp <= p); # Indices of elements to have a bit flipped.
-            if len(k)==0:
-                u = np.abs(y(k))
-                
-                b = randi(t-1, u.shape[0], u.shape[1])
-                b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
+            temp = np.random.randint(low=0, high=1, size=y.shape)
+            k = temp <= p # Indices of elements to have a bit flipped.
+            if np.any(k):
+                u = np.abs(y[k])
+                b = np.random.randint(low=1, high=t-1, size=u.shape) 
                 # Flip selected bits.
                 u = np.bitwise_xor(u, np.power(2, b-1))
-                y[k] = sign(y(k))*u
+                y[k] = sign(y[k])*u
         
     return y
 
 
 
-def rounditcase6(x, flip=0, p=0.5, t=24, randfunc=None):
+def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -171,49 +140,36 @@ def rounditcase6(x, flip=0, p=0.5, t=24, randfunc=None):
         x = np.array(x, ndmin=1)
     
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: np.random.randint(0, 1, n)
             
     y = np.abs(x)
     frac = y - np.floor(y)
-    k = np.nonzero(frac != 0)[0]
     
-    if len(k) == 0:
-        y = x; 
+    if np.count_nonzero(frac) == 0:
+        y = x 
     else:   
         # Uniformly distributed random numbers
-        
-        rnd = randfunc(len(k))
-        
-        vals = frac[k]
-        
-        if len(vals.shape) == 2:
-            vals = return_column_order(vals)
-        else:
-            pass
-        
+        rnd = randfunc(frac.shape)
         j = rnd <= 0.5
-            
-        y[k[j==0]] = np.ceil(y[k[j==0]])
-        y[k[j!=0]] = np.floor(y[k[j!=0]])
+        y[j] = np.ceil(y[j])
+        y[~j] = np.floor(y[~j])
         y = sign(x)*y
             
     if flip:
-        temp = np.random.uniform(low=0, high=1, size=y.shape)
-        k = np.nonzero(temp <= p); # Indices of elements to have a bit flipped.
-        if len(k)==0:
-            u = np.abs(y(k))
-            
-            b = randi(t-1, u.shape[0], u.shape[1])
-            b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
+        temp = np.random.randint(low=0, high=1, size=y.shape)
+        k = temp <= p # Indices of elements to have a bit flipped.
+        if np.any(k):
+            u = np.abs(y[k])
+            b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
 
 
 
-def rounditTest(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
+def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
 
     sign = lambda x: np.sign(x) + (x==0)
     
@@ -221,14 +177,14 @@ def rounditTest(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
         x = np.array(x, ndmin=1)
     
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: np.random.randint(0, 1, n)
             
     match rmode:
         case 1:
             y = np.abs(x)
             u = np.round(y - ((y % 2) == 0.5))
             
-            u[np.nonzero(u == -1)] = 0 # Special case, negative argument to ROUND.
+            u[u == -1] = 0 # Special case, negative argument to ROUND.
                 
             y = np.sign(x) * u
             
@@ -247,7 +203,7 @@ def rounditTest(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
             k = np.nonzero(frac != 0)[0]
             
             if len(k) == 0:
-                y = x; 
+                y = x 
             else:   
                 # Uniformly distributed random numbers
                 
@@ -273,10 +229,10 @@ def rounditTest(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
             raise ValueError('Unsupported value of rmode.')
             
     if flip:
-        temp = np.random.uniform(low=0, high=1, size=y.shape)
-        k = np.nonzero(temp <= p); # Indices of elements to have a bit flipped.
-        if len(k)==0:
-            u = np.abs(y(k))
+        temp = np.random.randint(low=0, high=1, size=y.shape)
+        k = temp <= p # Indices of elements to have a bit flipped.
+        if np.any(k):
+            u = np.abs(y[k])
             
             # Random bit flip in significand.
             # b defines which bit (1 to p-1) to flip in each element of y.
@@ -286,11 +242,11 @@ def rounditTest(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
             # (including the hidden bit) and emax is the maximum value of the
             # exponent.  
 
-            b = randi(t-1, u.shape[0], u.shape[1])
-            b = np.random.uniform(low=1, high=t-1, size=u.shape) # % t is an integer with modulus on [0,15].
+            
+            b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
             u = np.bitwise_xor(u, np.power(2, b-1))
-            y[k] = sign(y(k))*u
+            y[k] = sign(y[k])*u
     
     return y
     

@@ -1,5 +1,5 @@
 Metadata-Version: 2.1
-Name: pychop
+Name: torch-chop
 Version: 0.0.5
 Summary: Python code for simulating low precision floating-point arithmetic
 Home-page: https://github.com/chenxinye/pychop.git

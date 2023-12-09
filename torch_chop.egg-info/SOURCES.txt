@@ -1,0 +1,11 @@
+LICENSE
+README.rst
+setup2.py
+torch-chop/__init__.py
+torch-chop/chop.py
+torch-chop/roundit.py
+torch_chop.egg-info/PKG-INFO
+torch_chop.egg-info/SOURCES.txt
+torch_chop.egg-info/dependency_links.txt
+torch_chop.egg-info/requires.txt
+torch_chop.egg-info/top_level.txt

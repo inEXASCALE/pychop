@@ -1,7 +1,6 @@
 LICENSE
-README.md
 README.rst
-setup.py
+setup1.py
 pychop/__init__.py
 pychop/chop.py
 pychop/demo_harmonic.py
