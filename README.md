@@ -53,13 +53,11 @@ The supported floating point arithmetic formats include:
 ``pychop`` has the only essential following dependency:
 
 - numpy >=1.7.3
-- torch (only for ``torch-chop``)
+- torch
 
 To install the current current release via PIP use:
 
- Numpy backend | Torch backend
-:---:|:---:
-`pip install pychop` | `pip install torch-chop` 
+`pip install pychop`
 
 
 ### Contributing
