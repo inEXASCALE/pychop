@@ -1,6 +1,12 @@
 LICENSE
 README.rst
-setup2.py
+pychop/__init__.py
+pychop/chop.py
+pychop/demo_harmonic.py
+pychop/float_params.py
+pychop/roundit.py
+pychop/simulate.py
+pychop/test_chop.py
 torch-chop/__init__.py
 torch-chop/chop.py
 torch-chop/roundit.py
