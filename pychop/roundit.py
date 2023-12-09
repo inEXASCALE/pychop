@@ -72,7 +72,7 @@ def round_towards_minus_inf(x, flip=0, p=0.5, t=24, **kwargs):
     return y
 
 
-def round_towards_zero(x, flip=0, p=0.5, t=24, *argv):
+def round_towards_zero(x, flip=0, p=0.5, t=24, **kwargs):
 
     sign = lambda x: np.sign(x) + (x==0)
     
