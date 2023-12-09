@@ -62,6 +62,9 @@ To install the current current release via PIP use:
 `pip install pychop` | `pip install torch-chop` 
 
 
+## Contributing
+We welcome contributions in any form! Assistance with documentation is always welcome. To contribute, feel free to open an issue or please fork the project make your changes and submit a pull request. We will do our best to work through any issues and requests.
+
 ## References
 
 [1] Nicholas J. Higham and Srikara Pranesh, Simulating Low Precision Floating-Point Arithmetic, SIAM J. Sci. Comput., 2019.
