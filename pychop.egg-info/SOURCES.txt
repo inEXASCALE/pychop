@@ -1,10 +1,9 @@
 LICENSE
-README.rst
+README.md
+setup.py
 pychop/__init__.py
-pychop/chop.py
 pychop/demo_harmonic.py
 pychop/float_params.py
-pychop/roundit.py
 pychop/simulate.py
 pychop/test_chop.py
 pychop.egg-info/PKG-INFO
