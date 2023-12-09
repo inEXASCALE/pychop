@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
 
-## A python package for simulaing low precision floating point arithmetic
+## A python package for simulating low precision floating point arithmetic
 
 Using low precesion can gain extra speedup while resulting in less storage and energy cost.  The intention of ``pychop``, following the same function of ``chop`` in Matlab provided by Nick higham, is to simulate the low precision formats based on single and double precisions, which is pravalent on modern machine. 
 
