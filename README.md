@@ -48,10 +48,11 @@ The supported floating point arithmetic formats include:
 |  'd', 'double', 'fp64'    | IEEE double precision |
 |  'c', 'custom'            | custom format |
 
+The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/docs/source/examples.rst).
 
 ### Install
 
-``pychop`` has the only essential following dependency:
+``pychop`` relies on dependencies:
 
 - numpy >=1.7.3
 - torch
