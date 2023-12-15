@@ -92,3 +92,5 @@ The above example is for bit-level simulation, you can depoy a direct setting to
     si = simulate(base=2, t=11, emin=11, emax=22, sign=False, subnormal=False, rmode=1):
     y = si.rounding(x)
     print(y[0, :5])
+
+Note that if emin is not set, then IEEE 754 assumption is used which means emin = 1 - emax
