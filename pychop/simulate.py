@@ -50,7 +50,7 @@ class simulate():
         self.t = t
         self.emax = emax
         if emin is None:
-            self.emin = 1 - self.emax # using IEEE 754 assumption for default 
+            self.emin = 1 - self.emax # using IEEE 754 assumption by default 
         else:
             self.emin = emin
             
