@@ -45,11 +45,15 @@ class simulate():
     
     """
 
-    def __init__(self, base, t, emin, emax, sign=False, subnormal=False, rmode=1):
+    def __init__(self, base, t, emax, emin=None, sign=False, subnormal=False, rmode=1):
         self.base = base
         self.t = t
-        self.emin = emin
         self.emax = emax
+        if emin is None:
+            self.emin = 1 - self.emax # using IEEE 754 assumption for default 
+        else:
+            self.emin = emin
+            
         self.sign = sign
         self.subnormal = subnormal
         
