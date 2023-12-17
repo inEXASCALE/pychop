@@ -128,7 +128,7 @@ class chop(object):
             raise ValueError('Unsupported value of rmode.')
             
             
-        if customs is not None::
+        if customs is not None:
             self.t = customs.t
             self.emax = customs.emax
         
