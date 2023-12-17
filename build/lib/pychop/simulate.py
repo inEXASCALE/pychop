@@ -13,7 +13,8 @@ class simulate():
     
     emin, emax : int
         The exponent range, with emin < e < emax.
-
+        If emin is omited, emin = 1 - emax which conform to IEEE 754 standard.
+        
     sign : boolean, default=False
         Whether or not give sign to the floating point numbers.
         If ``sign=False``, then the generated floating point numbers are nonnegative.
@@ -45,11 +46,15 @@ class simulate():
     
     """
 
-    def __init__(self, base, t, emin, emax, sign=False, subnormal=False, rmode=1):
+    def __init__(self, base, t, emax, emin=None, sign=False, subnormal=False, rmode=1):
         self.base = base
         self.t = t
-        self.emin = emin
         self.emax = emax
+        if emin is None:
+            self.emin = 1 - self.emax # using IEEE 754 assumption by default 
+        else:
+            self.emin = emin
+            
         self.sign = sign
         self.subnormal = subnormal
         
@@ -75,7 +80,8 @@ class simulate():
 
         else:
             self._rounding = np.frompyfunc(self._round_to_nearest, 1, 1)
-
+        
+        self.__fit__ = False
         
 
     def generate(self):
@@ -107,6 +113,7 @@ class simulate():
         self.underflow_bound = min(np.abs(self.fp_numbers))
         self.overflow_bound = max(np.abs(self.fp_numbers))
         
+        self.__fit__ = True
         return self.fp_numbers
     
     
@@ -119,7 +126,10 @@ class simulate():
             The values to be rounded.
 
         """
-
+        
+        if self.__fit__ == False:
+            self.generate()
+            
         if hasattr(x, "__len__"):
             x_copy = x.copy()
             id_underflow = np.abs(x) < self.underflow_bound

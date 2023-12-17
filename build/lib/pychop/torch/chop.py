@@ -103,7 +103,6 @@ class chop(object):
         self.flip = flip
         self.explim = explim
         self.p = p
-        self.customs = customs
         self.randfunc = randfunc
         self.device = device
 
@@ -129,7 +128,7 @@ class chop(object):
             raise ValueError('Unsupported value of rmode.')
             
             
-        if hasattr(self, 'customs'):
+        if customs is not None:
             self.t = customs.t
             self.emax = customs.emax
         
@@ -212,7 +211,6 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
     emins = emin + 1 - t     # Exponent of smallest positive subnormal number.
     xmins = pow(2, emins)          # Smallest positive subnormal number.
 
-    c = torch.clone(x)
     _, e = torch.frexp(torch.abs(x)) 
     e = e - 1
     ktemp = (e < emin) & (e >= emins)
@@ -225,17 +223,17 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
         k_norm = torch.arange(0, sum(ktemp.shape)).to(device)
 
     w = torch.pow(2.0, t-1-e[k_norm])
-    c[k_norm] = round_to_nearest(
+    x[k_norm] = round_to_nearest(
         x[k_norm] * w, randfunc=randfunc, t=t, flip=flip, p=p, device=device
     ) 
 
-    c[k_norm] *= 1 / w
+    x[k_norm] *= 1 / w
 
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - torch.fmax(temp, torch.zeros(temp.shape).to(device))
         
-        c[k_sub] = round_to_nearest(
+        x[k_sub] = round_to_nearest(
             x[k_sub] * torch.pow(2, t1-1-e[k_sub]), 
             randfunc=randfunc,
             t=t, flip=flip, p=p, device=device
@@ -246,8 +244,8 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
         
     if explim:
         xboundary = 2**emax * (2- 0.5 * 2**(1-t))
-        c[x >= xboundary] = torch.inf    # Overflow to +inf.
-        c[x <= -xboundary] = -torch.inf  # Overflow to -inf.
+        x[x >= xboundary] = torch.inf    # Overflow to +inf.
+        x[x <= -xboundary] = -torch.inf  # Overflow to -inf.
                 
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -255,17 +253,17 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = torch.abs(c) < min_rep
+        k_small = torch.abs(x) < min_rep
 
         if subnormal == 0:
-            k_round = k_small & (torch.abs(c) >= min_rep/2)
+            k_round = k_small & (torch.abs(x) >= min_rep/2)
         else:
-            k_round = k_small & (torch.abs(c) > min_rep/2)
+            k_round = k_small & (torch.abs(x) > min_rep/2)
         
-        c[k_round] = torch.sign(c[k_round]) * min_rep
-        c[k_small & (k_round != 1)] = 0
+        x[k_round] = torch.sign(x[k_round]) * min_rep
+        x[k_small & (k_round != 1)] = 0
                 
-    return c
+    return x
     
     
 
@@ -278,7 +276,6 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
-    c = torch.clone(x)
     _, e = torch.frexp(torch.abs(x)) 
     e = e - 1
     ktemp = (e < emin) & (e >= emins)
@@ -291,17 +288,17 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
         k_norm = torch.arange(0, sum(ktemp.shape)).to(device)
 
     w = torch.pow(2.0, t-1-e[k_norm])
-    c[k_norm] = round_towards_plus_inf(
+    x[k_norm] = round_towards_plus_inf(
         x[k_norm] * w, randfunc=randfunc, t=t, flip=flip, p=p, device=device
     ) 
 
-    c[k_norm] *= 1 / w
+    x[k_norm] *= 1 / w
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - torch.fmax(temp, torch.zeros(temp.shape).to(device))
         
-        c[k_sub] = round_towards_plus_inf(
+        x[k_sub] = round_towards_plus_inf(
             x[k_sub] * torch.pow(2, t1-1-e[k_sub]), 
             randfunc=randfunc,
             t=t, flip=flip, p=p, device=device
@@ -311,8 +308,8 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
     del w; gc.collect()
         
     if explim:
-        c[x > xmax] = torch.inf
-        c[(x < -xmax) & (x != -torch.inf)] = -xmax
+        x[x > xmax] = torch.inf
+        x[(x < -xmax) & (x != -torch.inf)] = -xmax
                 
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -320,13 +317,13 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = torch.abs(c) < min_rep
+        k_small = torch.abs(x) < min_rep
         
-        k_round = k_small & (c > 0) & (c < min_rep)
-        c[k_round] = min_rep
-        c[k_small & (k_round != 0)] = 0
+        k_round = k_small & (x > 0) & (x < min_rep)
+        x[k_round] = min_rep
+        x[k_small & (k_round != 0)] = 0
 
-    return c
+    return x
 
 
 def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0, 
@@ -338,7 +335,6 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
-    c = torch.clone(x)
     _, e = torch.frexp(torch.abs(x)) 
     e = e - 1
     ktemp = (e < emin) & (e >= emins)
@@ -351,17 +347,17 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
         k_norm = torch.arange(0, sum(ktemp.shape)).to(device)
 
     w = torch.pow(2.0, t-1-e[k_norm])
-    c[k_norm] = round_towards_minus_inf(
+    x[k_norm] = round_towards_minus_inf(
         x[k_norm] * w, randfunc=randfunc, t=t, flip=flip, p=p, device=device
     ) 
 
-    c[k_norm] *= 1 / w
+    x[k_norm] *= 1 / w
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - torch.fmax(temp, torch.zeros(temp.shape).to(device))
         
-        c[k_sub] = round_towards_minus_inf(
+        x[k_sub] = round_towards_minus_inf(
             x[k_sub] * torch.pow(2, t1-1-e[k_sub]), 
             randfunc=randfunc,
             t=t, flip=flip, p=p, device=device
@@ -371,8 +367,8 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
     del w; gc.collect()
         
     if explim:
-        c[(x > xmax) & (x != torch.inf)] = xmax
-        c[x < -xmax] = -torch.inf
+        x[(x > xmax) & (x != torch.inf)] = xmax
+        x[x < -xmax] = -torch.inf
         
         
         # Round to smallest representable number or flush to zero.
@@ -381,13 +377,13 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = torch.abs(c) < min_rep
+        k_small = torch.abs(x) < min_rep
         
-        k_round = k_small & (c < 0) & (c > -min_rep)
-        c[k_round] = -min_rep
-        c[k_small & (k_round != 0)] = 0
+        k_round = k_small & (x < 0) & (x > -min_rep)
+        x[k_round] = -min_rep
+        x[k_small & (k_round != 0)] = 0
                 
-    return c
+    return x
 
 
 def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0, 
@@ -399,7 +395,6 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0,
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
-    c = torch.clone(x)
     _, e = torch.frexp(torch.abs(x)) 
     e = e - 1
     ktemp = (e < emin) & (e >= emins)
@@ -412,17 +407,17 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0,
         k_norm = torch.arange(0, sum(ktemp.shape)).to(device)
 
     w = torch.pow(2.0, t-1-e[k_norm])
-    c[k_norm] = round_towards_zero(
+    x[k_norm] = round_towards_zero(
         x[k_norm] * w, randfunc=randfunc, t=t, flip=flip, p=p, device=device
     ) 
 
-    c[k_norm] *= 1 / w
+    x[k_norm] *= 1 / w
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - torch.fmax(temp, torch.zeros(temp.shape).to(device))
         
-        c[k_sub] = round_towards_zero(
+        x[k_sub] = round_towards_zero(
             x[k_sub] * torch.pow(2, t1-1-e[k_sub]), 
             randfunc=randfunc,
             t=t, flip=flip, p=p, device=device
@@ -432,8 +427,8 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0,
     del w; gc.collect()
         
     if explim:
-        c[(x > xmax) & (x != torch.inf)] = xmax
-        c[(x < -xmax) & (x != -torch.inf)] = -xmax
+        x[(x > xmax) & (x != torch.inf)] = xmax
+        x[(x < -xmax) & (x != -torch.inf)] = -xmax
         
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -441,10 +436,10 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = torch.abs(c) < min_rep
-        c[k_small] = 0
+        k_small = torch.abs(x) < min_rep
+        x[k_small] = 0
                 
-    return c
+    return x
 
 
 def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0, 
@@ -456,7 +451,6 @@ def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0,
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
-    c = torch.clone(x)
     _, e = torch.frexp(torch.abs(x)) 
     e = e - 1
     ktemp = (e < emin) & (e >= emins)
@@ -469,17 +463,17 @@ def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0,
         k_norm = torch.arange(0, sum(ktemp.shape)).to(device)
 
     w = torch.pow(2.0, t-1-e[k_norm])
-    c[k_norm] = stochastic_rounding(
+    x[k_norm] = stochastic_rounding(
         x[k_norm] * w, randfunc=randfunc, t=t, flip=flip, p=p, device=device
     ) 
 
-    c[k_norm] *= 1 / w
+    x[k_norm] *= 1 / w
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - torch.fmax(temp, torch.zeros(temp.shape).to(device))
         
-        c[k_sub] = stochastic_rounding(
+        x[k_sub] = stochastic_rounding(
             x[k_sub] * torch.pow(2, t1-1-e[k_sub]), 
             randfunc=randfunc,
             t=t, flip=flip, p=p, device=device
@@ -489,20 +483,19 @@ def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0,
     del w; gc.collect()
         
     if explim:
-        c[(x > xmax) & (x != torch.inf)] = xmax
-        c[(x < -xmax) & (x != -torch.inf)] = -xmax
+        x[(x > xmax) & (x != torch.inf)] = xmax
+        x[(x < -xmax) & (x != -torch.inf)] = -xmax
           
-        
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
             min_rep = xmin
         else:
             min_rep = xmins
 
-        k_small = torch.abs(c) < min_rep
-        c[k_small] = 0
+        k_small = torch.abs(x) < min_rep
+        x[k_small] = 0
                 
-    return c
+    return x
 
 
 
@@ -514,7 +507,6 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p
     emins = emin + 1 - t     # Exponent of smallest positive subnormal number.
     xmins = pow(2, emins)          # Smallest positive subnormal number.
 
-    c = torch.clone(x)
     _, e = torch.frexp(torch.abs(x)) 
     e = e - 1
     ktemp = (e < emin) & (e >= emins)
@@ -527,17 +519,17 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p
         k_norm = torch.arange(0, sum(ktemp.shape)).to(device)
 
     w = torch.pow(2.0, t-1-e[k_norm])
-    c[k_norm] = stochastic_rounding_equal(
+    x[k_norm] = stochastic_rounding_equal(
         x[k_norm] * w, randfunc=randfunc, t=t, flip=flip, p=p, device=device
     ) 
 
-    c[k_norm] *= 1 / w
+    x[k_norm] *= 1 / w
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - torch.fmax(temp, torch.zeros(temp.shape).to(device))
         
-        c[k_sub] = stochastic_rounding_equal(
+        x[k_sub] = stochastic_rounding_equal(
             x[k_sub] * torch.pow(2, t1-1-e[k_sub]), 
             randfunc=randfunc,
             t=t, flip=flip, p=p, device=device
@@ -548,8 +540,8 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p
         
     if explim:
         xboundary = 2**emax * (2- 0.5 * 2**(1-t))
-        c[x >= xboundary] = torch.inf    # Overflow to +inf.
-        c[x <= -xboundary] = -torch.inf  # Overflow to -inf.
+        x[x >= xboundary] = torch.inf    # Overflow to +inf.
+        x[x <= -xboundary] = -torch.inf  # Overflow to -inf.
         
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -557,7 +549,7 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p
         else:
             min_rep = xmins
 
-        k_small = torch.abs(c) < min_rep
-        c[k_small] = 0
+        k_small = torch.abs(x) < min_rep
+        x[k_small] = 0
                 
-    return c
+    return x
