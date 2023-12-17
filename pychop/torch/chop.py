@@ -103,7 +103,6 @@ class chop(object):
         self.flip = flip
         self.explim = explim
         self.p = p
-        self.customs = customs
         self.randfunc = randfunc
         self.device = device
 
@@ -129,7 +128,7 @@ class chop(object):
             raise ValueError('Unsupported value of rmode.')
             
             
-        if hasattr(self, 'customs'):
+        if customs is not None::
             self.t = customs.t
             self.emax = customs.emax
         
