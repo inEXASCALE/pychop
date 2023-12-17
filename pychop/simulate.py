@@ -13,7 +13,8 @@ class simulate():
     
     emin, emax : int
         The exponent range, with emin < e < emax.
-
+        If emin is omited, emin = 1 - emax which conform to IEEE 754 standard.
+        
     sign : boolean, default=False
         Whether or not give sign to the floating point numbers.
         If ``sign=False``, then the generated floating point numbers are nonnegative.
