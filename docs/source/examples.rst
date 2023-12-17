@@ -88,8 +88,9 @@ The above example is for bit-level simulation, you can depoy a direct setting to
 .. code:: python
 
     from pychop import simulate
-    x = np.random.rand(10000, 10000) # use x = torch.rand(size=(10000, 10000)) for Torch backend
-    si = simulate(base=2, t=11, emin=11, emax=22, sign=False, subnormal=False, rmode=1):
+    import numpy as np
+    x = np.random.rand(100, 100)
+    si = simulate(base=2, t=11, emax=22, sign=False, subnormal=False, rmode=1)
     y = si.rounding(x)
     print(y[0, :5])
 
