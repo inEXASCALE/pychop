@@ -79,7 +79,8 @@ class simulate():
 
         else:
             self._rounding = np.frompyfunc(self._round_to_nearest, 1, 1)
-
+        
+        self.__fit__ = False
         
 
     def generate(self):
@@ -111,6 +112,7 @@ class simulate():
         self.underflow_bound = min(np.abs(self.fp_numbers))
         self.overflow_bound = max(np.abs(self.fp_numbers))
         
+        self.__fit__ = True
         return self.fp_numbers
     
     
@@ -123,7 +125,10 @@ class simulate():
             The values to be rounded.
 
         """
-
+        
+        if self.__fit__ == False:
+            self.generate()
+            
         if hasattr(x, "__len__"):
             x_copy = x.copy()
             id_underflow = np.abs(x) < self.underflow_bound
