@@ -160,7 +160,7 @@ class chop(object):
 
     
             
-    def chop(self, x):
+    def __call__(self, x):
         if str(x).isnumeric():
             raise ValueError('Chop requires real input values.')
             
