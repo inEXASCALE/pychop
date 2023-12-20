@@ -1,4 +1,4 @@
-Examples
+Basic examples
 =====================================================
 
 To import the package for NumPy backend:
