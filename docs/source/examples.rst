@@ -44,7 +44,7 @@ For Torch backend:
 
     x = torch.rand(size=(10000, 10000))
     tc = chop(prec='h', rmode=3, device=device) 
-    y = tc.chop(x)
+    y = tc(x)
     print(y[0, :5])
 
 
@@ -58,7 +58,7 @@ For NumPy backend:
 
     x = np.random.rand(10000, 10000)
     nc = chop(prec='h', rmode=3) 
-    y = nc.chop(x)
+    y = nc(x)
     print(y[0, :5])
 
 
@@ -79,7 +79,7 @@ Second, define parameter ``customs`` instead of ``prec`` for both NumPy backend 
 
     x = np.random.rand(10000, 10000) # use x = torch.rand(size=(10000, 10000)) for Torch backend
     nc = chop(customs=prec, rmode=3, flip=0) 
-    y = nc.chop(x)
+    y = nc(x)
     print(y[0, :5])
 
 
