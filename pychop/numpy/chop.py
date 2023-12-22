@@ -176,9 +176,7 @@ class chop(object):
             if self.t > self.maxfraction:
                 raise ValueError('Precision of the custom format must be at most')
                 
-        y = x.copy()
-        y[:, :] = self.chop_wrapper(x[:, :])
-
+        y = self.chop_wrapper(x[:, :])
         return y
         
 
