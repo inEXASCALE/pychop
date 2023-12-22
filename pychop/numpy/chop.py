@@ -26,6 +26,8 @@ class options:
     p: float
 
         
+from time import time
+
 class chop(object):
 
     """
@@ -85,8 +87,7 @@ class chop(object):
     """
 
     def __init__(self, prec='s', subnormal=None, rmode=1, flip=False, explim=1, inplace=False,
-                 p=0.5, blockdim=512, randfunc=None, customs=None, random_state=0):
-        
+                 p=0.5, randfunc=None, customs=None, random_state=0):
         
         np.random.seed(random_state)
         
@@ -106,7 +107,6 @@ class chop(object):
         self.p = p
         
         self.randfunc = randfunc
-        self.blockdim = blockdim
         self.inplace = inplace
         
         if self.rmode == 1:
@@ -176,28 +176,10 @@ class chop(object):
             if self.t > self.maxfraction:
                 raise ValueError('Precision of the custom format must be at most')
                 
-        blocksizes = x.shape[0] // self.blockdim
-        remains_ids = x.shape[0] % self.blockdim
+        y = x.copy()
+        y[:, :] = self.chop_wrapper(x[:, :])
 
-        if self.inplace:
-            for i in range(blocksizes):
-                x[i*self.blockdim:(i+1)*self.blockdim, :] = self.chop_wrapper(x[i*self.blockdim:(i+1)*self.blockdim, :])
-            
-            
-            if remains_ids > 0:
-                x[-remains_ids:, :] = self.chop_wrapper(x[-remains_ids:, :])
-
-            return
-        else:
-            y = x.copy()
-            for i in range(blocksizes):
-                y[i*self.blockdim:(i+1)*self.blockdim, :] = self.chop_wrapper(x[i*self.blockdim:(i+1)*self.blockdim, :])
-            
-            
-            if remains_ids > 0:
-                y[-remains_ids:, :] = self.chop_wrapper(x[-remains_ids:, :])
-
-            return y
+        return y
         
 
     
@@ -225,16 +207,16 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
               
     if randfunc is None:
         randfunc = lambda n: np.random.uniform(0, 1, n)
-        
+
     emin = 1 - emax                # Exponent of smallest normalized number.
     xmin = 2**emin                 # Smallest positive normalized number.
     emins = emin + 1 - t           # Exponent of smallest positive subnormal number.
     xmins = pow(2, emins)          # Smallest positive subnormal number.
-    
+
     _, e = np.frexp(np.abs(x)) 
     e = np.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
-              
+
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
@@ -251,7 +233,7 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
     ) 
 
     x[k_norm] *= 1 / w
-    
+
     if k_sub.size != 0:
         temp = emin-e[k_sub]
         t1 = t - np.fmax(temp, np.zeros(temp.shape))
@@ -265,7 +247,7 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
         del temp, t1
         
     del w; gc.collect()
-        
+
     if explim:
         xboundary = 2**emax * (2- 0.5 * 2**(1-t))
         x[x >= xboundary] = np.inf    # Overflow to +inf.
@@ -286,7 +268,7 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
         
         x[k_round] = np.sign(x[k_round]) * min_rep
         x[k_small & (k_round != 1)] = 0
-        
+
     return x
     
     
