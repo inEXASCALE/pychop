@@ -2,11 +2,10 @@ import numpy as np
 
                       
 def round_to_nearest(x, flip=0, p=0.5, t=24, **kwargs):
-    
     y = np.abs(x)
-    
-    u = np.int32(np.round(y - ((y - (2 * np.floor(y / 2))) == 0.5))) 
-    
+    inds = (y - (2 * np.floor(y / 2))) == 0.5
+    y[inds] = y[inds] - 1
+    u = np.round(y)
     u[u == -1] = 0 # Special case, negative argument to ROUND.
     y = np.sign(x) * u
     
