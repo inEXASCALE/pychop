@@ -219,8 +219,8 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([])
-        k_norm = np.arange(0, sum(ktemp.shape))
+        k_sub = np.array([], dtype=bool)
+        k_norm = np.full(ktemp.shape, True, dtype=bool)
 
     w = np.power(2.0, t-1-e[k_norm])
     x[k_norm] = round_to_nearest(
@@ -293,8 +293,8 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([])
-        k_norm = np.arange(0, sum(ktemp.shape))
+        k_sub = np.array([], dtype=bool)
+        k_norm = np.full(ktemp.shape, True, dtype=bool)
 
     w = np.power(2.0, t-1-e[k_norm])
     x[k_norm] = round_towards_plus_inf(
@@ -360,8 +360,8 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([])
-        k_norm = np.arange(0, sum(ktemp.shape))
+        k_sub = np.array([], dtype=bool)
+        k_norm = np.full(ktemp.shape, True, dtype=bool)
 
     w = np.power(2.0, t-1-e[k_norm])
     x[k_norm] = round_towards_minus_inf(
@@ -427,8 +427,8 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0,
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([])
-        k_norm = np.arange(0, sum(ktemp.shape))
+        k_sub = np.array([], dtype=bool)
+        k_norm = np.full(ktemp.shape, True, dtype=bool)
 
     w = np.power(2.0, t-1-e[k_norm])
     x[k_norm] = round_towards_zero(
@@ -491,8 +491,8 @@ def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0,
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([])
-        k_norm = np.arange(0, sum(ktemp.shape))
+        k_sub = np.array([], dtype=bool)
+        k_norm = np.full(ktemp.shape, True, dtype=bool)
 
     w = np.power(2.0, t-1-e[k_norm])
     x[k_norm] = stochastic_rounding(
@@ -554,8 +554,8 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0,
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([])
-        k_norm = np.arange(0, sum(ktemp.shape))
+        k_sub = np.array([], dtype=bool)
+        k_norm = np.full(ktemp.shape, True, dtype=bool)
 
     w = np.power(2.0, t-1-e[k_norm])
     x[k_norm] = stochastic_rounding_equal(
