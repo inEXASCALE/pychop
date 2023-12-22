@@ -1,17 +1,14 @@
 import numpy as np
-from time import time
+
                       
 def round_to_nearest(x, flip=0, p=0.5, t=24, **kwargs):
-    st = time()
+    
     y = np.abs(x)
     u = np.int32(np.round(y - ((y % 2) == 0.5)))
-    et = time()
-
-    st = time()
+    
     u[u == -1] = 0 # Special case, negative argument to ROUND.
     y = np.sign(x) * u
-    et = time()
-
+    
     if flip:
         sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)
