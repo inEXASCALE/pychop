@@ -265,7 +265,7 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
             k_round = k_small & (np.abs(x) > min_rep/2)
         
         x[k_round] = np.sign(x[k_round]) * min_rep
-        x[k_small & (k_round != 1)] = 0
+        x[k_small & ~k_round] = 0
 
     return x
     
@@ -334,7 +334,7 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
         
         k_round = k_small & (x > 0) & (x < min_rep)
         x[k_round] = min_rep
-        x[k_small & (k_round != 0)] = 0
+        x[k_small & ~k_round] = 0
                 
     return x
 
@@ -401,7 +401,7 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
 
         k_round = k_small & (x < 0) & (x > -min_rep)
         x[k_round] = -min_rep
-        x[k_small & (k_round != 0)] = 0
+        x[k_small & ~k_round] = 0
                 
     return x
 
