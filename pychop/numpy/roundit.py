@@ -1,26 +1,26 @@
 import numpy as np
-
+from time import time
                       
 def round_to_nearest(x, flip=0, p=0.5, t=24, **kwargs):
-
-    sign = lambda x: np.sign(x) + (x==0)
-    
-    if not hasattr(x, "__len__"):
-        x = np.array(x, ndmin=1)
-    
+    st = time()
     y = np.abs(x)
-    u = np.round(y - ((y % 2) == 0.5))
+    u = np.int32(np.round(y - ((y % 2) == 0.5)))
+    et = time()
+
+    st = time()
     u[u == -1] = 0 # Special case, negative argument to ROUND.
     y = np.sign(x) * u
-            
+    et = time()
+
     if flip:
+        sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)
         k = temp <= p # Indices of elements to have a bit flipped.
         if np.any(k):
             u = np.abs(y[k])
             b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
-            u = np.bitwise_xor(u, np.power(2, b-1))
+            u = np.bitwise_xor(np.int32(u), np.power(2, b-1))
             y[k] = sign(y[k])*u
     
     return y
@@ -28,22 +28,17 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, **kwargs):
 
 
 def round_towards_plus_inf(x, flip=0, p=0.5, t=24, **kwargs):
-
-    sign = lambda x: np.sign(x) + (x==0)
-    
-    if not hasattr(x, "__len__"):
-        x = np.array(x, ndmin=1)
-    
     y = np.ceil(x)
             
     if flip:
+        sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)
         k = temp <= p # Indices of elements to have a bit flipped.
         if np.any(k):
             u = np.abs(y[k])
             b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
-            u = np.bitwise_xor(u, np.power(2, b-1))
+            u = np.bitwise_xor(np.int32(u), np.power(2, b-1))
             y[k] = sign(y[k])*u
     
     return y
@@ -51,44 +46,34 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, **kwargs):
 
 
 def round_towards_minus_inf(x, flip=0, p=0.5, t=24, **kwargs):
-
-    sign = lambda x: np.sign(x) + (x==0)
-    
-    if not hasattr(x, "__len__"):
-        x = np.array(x, ndmin=1)
-            
     y = np.floor(x)
             
     if flip:
+        sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)
         k = temp <= p # Indices of elements to have a bit flipped.
         if np.any(k):
             u = np.abs(y[k])
             b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
-            u = np.bitwise_xor(u, np.power(2, b-1))
+            u = np.bitwise_xor(np.int32(u), np.power(2, b-1))
             y[k] = sign(y[k])*u
     
     return y
 
 
 def round_towards_zero(x, flip=0, p=0.5, t=24, **kwargs):
-
-    sign = lambda x: np.sign(x) + (x==0)
-    
-    if not hasattr(x, "__len__"):
-        x = np.array(x, ndmin=1)
-            
     y = ((x >= 0) | (x == -np.inf)) * np.floor(x) + ((x < 0) | (x == np.inf)) * np.ceil(x)
             
     if flip:
+        sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)
         k = temp <= p # Indices of elements to have a bit flipped.
         if np.any(k):
             u = np.abs(y[k])
             b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
-            u = np.bitwise_xor(u, np.power(2, b-1))
+            u = np.bitwise_xor(np.int32(u), np.power(2, b-1))
             y[k] = sign(y[k])*u
     
     return y
@@ -96,15 +81,6 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, **kwargs):
 
 
 def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
-
-    sign = lambda x: np.sign(x) + (x==0)
-    
-    if not hasattr(x, "__len__"):
-        x = np.array(x, ndmin=1)
-    
-    if randfunc is None:
-        randfunc = lambda n: np.random.randint(0, 1, n)
-            
     y = np.abs(x)
     frac = y - np.floor(y)
  
@@ -119,13 +95,14 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
         y = sign(x)*y
                 
         if flip:
+            sign = lambda x: np.sign(x) + (x==0)
             temp = np.random.randint(low=0, high=1, size=y.shape)
             k = temp <= p # Indices of elements to have a bit flipped.
             if np.any(k):
                 u = np.abs(y[k])
                 b = np.random.randint(low=1, high=t-1, size=u.shape) 
                 # Flip selected bits.
-                u = np.bitwise_xor(u, np.power(2, b-1))
+                u = np.bitwise_xor(np.int32(u), np.power(2, b-1))
                 y[k] = sign(y[k])*u
         
     return y
@@ -133,15 +110,6 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
-
-    sign = lambda x: np.sign(x) + (x==0)
-    
-    if not hasattr(x, "__len__"):
-        x = np.array(x, ndmin=1)
-    
-    if randfunc is None:
-        randfunc = lambda n: np.random.randint(0, 1, n)
-            
     y = np.abs(x)
     frac = y - np.floor(y)
     
@@ -156,13 +124,14 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
         y = sign(x)*y
             
     if flip:
+        sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)
         k = temp <= p # Indices of elements to have a bit flipped.
         if np.any(k):
             u = np.abs(y[k])
             b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
-            u = np.bitwise_xor(u, np.power(2, b-1))
+            u = np.bitwise_xor(np.int32(u), np.power(2, b-1))
             y[k] = sign(y[k])*u
     
     return y
@@ -170,12 +139,6 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
-
-    sign = lambda x: np.sign(x) + (x==0)
-    
-    if not hasattr(x, "__len__"):
-        x = np.array(x, ndmin=1)
-    
     if randfunc is None:
         randfunc = lambda n: np.random.randint(0, 1, n)
             
@@ -229,6 +192,7 @@ def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
             raise ValueError('Unsupported value of rmode.')
             
     if flip:
+        sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)
         k = temp <= p # Indices of elements to have a bit flipped.
         if np.any(k):
@@ -245,7 +209,7 @@ def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
             
             b = np.random.randint(low=1, high=t-1, size=u.shape) 
             # Flip selected bits.
-            u = np.bitwise_xor(u, np.power(2, b-1))
+            u = np.bitwise_xor(np.int32(u), np.power(2, b-1))
             y[k] = sign(y[k])*u
     
     return y
