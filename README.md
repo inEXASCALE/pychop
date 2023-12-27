@@ -72,3 +72,5 @@ We welcome contributions in any form! Assistance with documentation is always we
 [2] IEEE Standard for Floating-Point Arithmetic, IEEE Std 754-2019 (revision of IEEE Std 754-2008), IEEE, 2019.
 
 [3] Intel Corporation, BFLOAT16---hardware numerics definition,  2018
+
+[4] Muller, Jean-Michel et al., Handbook of Floating-Point Arithmetic, Springer, 2018
