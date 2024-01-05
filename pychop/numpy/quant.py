@@ -1,14 +1,15 @@
 import numpy as np
 
 class quantizer():
-    def __init__(self, bits):
+    def __init__(self, bits, epsilon=1e-12):
         self.bits = bits
         self.alpha_q = -2**(self.bits - 1)
         self.beta_q = 2**(self.bits - 1) - 1
+        self.epsilon = epsilon 
         
     def quantize(self, x):
         x_min = np.min(x)
-        x_max = np.max(x)
+        x_max = np.max(x) + self.epsilon
         self.s, self.z = self.compute_scaling(x_min, x_max, 
                                               self.alpha_q, self.beta_q)
         
