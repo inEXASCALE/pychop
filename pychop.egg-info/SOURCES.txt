@@ -13,7 +13,10 @@ pychop.egg-info/requires.txt
 pychop.egg-info/top_level.txt
 pychop/numpy/__init__.py
 pychop/numpy/chop.py
+pychop/numpy/quant.py
 pychop/numpy/roundit.py
 pychop/torch/__init__.py
 pychop/torch/chop.py
+pychop/torch/layers.py
+pychop/torch/quant.py
 pychop/torch/roundit.py
