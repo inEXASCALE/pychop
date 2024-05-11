@@ -86,7 +86,7 @@ class chop(object):
         
     """
 
-    def __init__(self, prec='h', subnormal=None, rmode=1, flip=False, explim=1,
+    def __init__(self, prec='s', subnormal=None, rmode=1, flip=False, explim=1, inplace=False,
                  p=0.5, randfunc=None, customs=None, random_state=0):
         
         np.random.seed(random_state)
@@ -107,6 +107,8 @@ class chop(object):
         self.p = p
         
         self.randfunc = randfunc
+        self.inplace = inplace
+        
         if self.rmode == 1:
             self._chop = _chop_round_to_nearest
             
@@ -174,7 +176,7 @@ class chop(object):
             if self.t > self.maxfraction:
                 raise ValueError('Precision of the custom format must be at most')
                 
-        y = self.chop_wrapper(x.copy())
+        y = self.chop_wrapper(x)
         return y
         
 
