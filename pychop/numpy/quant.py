@@ -21,6 +21,10 @@ class quant():
     clip_range : list, default=None
         The clipping function for the quantization.
         
+    epsilon : double, default=1e-12
+        When the x is comprised of single value, then the scaling factor will be (b - a + epsilon) / (alpha - beta)
+        for mapping [a, b] to [alpha, beta].
+        
     Methods
     ----------
     quant(x):
@@ -31,9 +35,10 @@ class quant():
         self.bits = bits
         self.sign = sign
         self.zpoint = zpoint
-        self.epsilon = epsilon 
+        
         self.rd_func = rd_func
         self.clip_range = clip_range
+        self.epsilon = epsilon 
         
         if bits in {8, 16, 32, 64}:
             if bits == 8:
