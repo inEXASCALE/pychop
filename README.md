@@ -67,8 +67,10 @@ We welcome contributions in any form! Assistance with documentation is always we
 
 
 ### Acknowledgement
-Any forms of contributions are welcomed. Our documents are still in progress; feel free to pull request and submit issues for suggestions. Before contributing code, we suggest to contact the maintainers. The contact information of maintainers can be found in  [MaintainerList](https://github.com/chenxinye/mhodlr/blob/main/maintainerList).
-
+This project is supported by the European Union (ERC, [InEXASCALE](https://www.karlin.mff.cuni.cz/~carson/inexascale), 101075632). Views and opinions
+ expressed are those of the authors only and do not necessarily reflect those of the European
+ Union or the European Research Council. Neither the European Union nor the granting
+ authority can be held responsible for them.
 
 ### References
 
