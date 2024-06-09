@@ -99,7 +99,6 @@ class chop(object):
             else:
                 self.subnormal = 1
         
-        self.copy = copy
         self.rmode = rmode
         self.flip = flip
         self.explim = explim
