@@ -1,4 +1,4 @@
 from .simulate import simulate
-from .numpy.chop import customs
+from .np.chop import customs
 
-__version__ = '0.2.2'  
+__version__ = '0.2.3'  
