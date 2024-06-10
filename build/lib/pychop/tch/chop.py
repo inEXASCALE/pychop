@@ -98,7 +98,7 @@ class chop(object):
                 self.subnormal = 0
             else:
                 self.subnormal = 1
-            
+        
         self.rmode = rmode
         self.flip = flip
         self.explim = explim
@@ -176,16 +176,16 @@ class chop(object):
         if self.randfunc is None:
             self.randfunc = lambda size: torch.rand(size).to(self.device)
 
-        return self._chop(x.to(self.device), 
-                     t=self.t, emax=self.emax,
-                     subnormal=self.subnormal,
-                     flip=self.flip, 
-                     explim=self.explim, 
-                     p=self.p, 
-                     randfunc=self.randfunc,
-                     device=self.device
+        
+        return self._chop(x.clone().to(self.device), 
+                    t=self.t, emax=self.emax,
+                    subnormal=self.subnormal,
+                    flip=self.flip, 
+                    explim=self.explim, 
+                    p=self.p, 
+                    randfunc=self.randfunc,
+                    device=self.device
                     )
-
 
     @property
     def options(self):

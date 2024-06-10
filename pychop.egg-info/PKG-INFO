@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pychop
-Version: 0.2.1
+Version: 0.2.3
 Summary: Python code for simulating low precision floating-point arithmetic
 Home-page: https://github.com/chenxinye/pychop.git
 Author: Xinye Chen
@@ -86,6 +86,13 @@ To install the current current release via PIP use:
 
 ### Contributing
 We welcome contributions in any form! Assistance with documentation is always welcome. To contribute, feel free to open an issue or please fork the project make your changes and submit a pull request. We will do our best to work through any issues and requests.
+
+
+### Acknowledgement
+This project is supported by the European Union (ERC, [InEXASCALE](https://www.karlin.mff.cuni.cz/~carson/inexascale), 101075632). Views and opinions
+ expressed are those of the authors only and do not necessarily reflect those of the European
+ Union or the European Research Council. Neither the European Union nor the granting
+ authority can be held responsible for them.
 
 ### References
 

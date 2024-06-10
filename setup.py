@@ -29,7 +29,7 @@ else:
    
     
 metadata = {"name":PRJECT_NAME,
-            'packages':{"pychop", "pychop.numpy", "pychop.torch"},
+            'packages':{"pychop", "pychop.np", "pychop.tch", "pychop.jx"},
             "version":VERSION,
             "setup_requires":SETREQUIRES,
             "install_requires":INREUIRES,
@@ -103,5 +103,5 @@ if __name__ == "__main__":
     try:
         setup_package()
     except ext_errors as ext:
-        log.warn(ext)
-        log.warn("failure Installation.")
+        log.warning(ext)
+        log.warning("failure Installation.")

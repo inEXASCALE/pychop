@@ -1,4 +1,4 @@
-import nunpy as np
+import numpy as np
 
 
 def float_params(*argv):

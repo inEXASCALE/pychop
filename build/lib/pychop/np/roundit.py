@@ -84,6 +84,7 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
     if np.count_nonzero(frac) == 0:
         y = x 
     else:   
+        sign = lambda x: np.sign(x) + (x==0)
         rnd = randfunc(frac.shape)
         j = rnd <= frac
             
@@ -92,7 +93,7 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
         y = sign(x)*y
                 
         if flip:
-            sign = lambda x: np.sign(x) + (x==0)
+            
             temp = np.random.randint(low=0, high=1, size=y.shape)
             k = temp <= p # Indices of elements to have a bit flipped.
             if np.any(k):
