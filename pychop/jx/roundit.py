@@ -85,6 +85,7 @@ def stochastic_rounding(key, x, flip=0, p=0.5, t=24, randfunc=None):
     if jnp.count_nonzero(frac) == 0:
         y = x 
     else:   
+        sign = lambda x: jnp.sign(x) + (x==0)
         rnd = randfunc(frac.shape)
         j = rnd <= frac
 
@@ -93,7 +94,6 @@ def stochastic_rounding(key, x, flip=0, p=0.5, t=24, randfunc=None):
         y = sign(x)*y
                 
         if flip:
-            sign = lambda x: jnp.sign(x) + (x==0)
             temp = random.randint(key, shape=y.shape, minval=0, maxval=1)
             k = temp <= p # Indices of elements to have a bit flipped.
             if jnp.any(k):
@@ -138,14 +138,14 @@ def stochastic_rounding_equal(key, x, flip=0, p=0.5, t=24, randfunc=None):
 
 def roundit_test(key, x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
     if randfunc is None:
-        randfunc = lambda n: random.randint(key, shape=(n, ), minval=0, maxval=1)
+        randfunc = lambda n: random.randint(key, shape=n, minval=0, maxval=1)
             
     match rmode:
         case 1:
             y = jnp.abs(x)
             u = jnp.round(y - ((y % 2) == 0.5))
             
-            u[u == -1] = 0 # Special case, negative argument to ROUND.
+            u = u.at[u == -1].set(0) # Special case, negative argument to ROUND.
                 
             y = jnp.sign(x) * u
             
@@ -182,8 +182,8 @@ def roundit_test(key, x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
                 elif rmode == 6: # Round up or down with equal probability.       
                     j = rnd <= 0.5
                     
-                y[k[j==0]] = jnp.ceil(y[k[j==0]])
-                y[k[j!=0]] = jnp.floor(y[k[j!=0]])
+                y = y.at[k[j==0]].set(jnp.ceil(y[k[j==0]]))
+                y = y.set[k[j!=0]].set(jnp.floor(y[k[j!=0]]))
                 y = sign(x)*y
                 
         case _:
@@ -191,7 +191,7 @@ def roundit_test(key, x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
             
     if flip:
         sign = lambda x: jnp.sign(x) + (x==0)
-        temp = jnp.random.randint(low=0, high=1, size=y.shape)
+        temp = random.randint(key, shape=y.shape, minval=0, maxval=1)
         k = temp <= p # Indices of elements to have a bit flipped.
         if jnp.any(k):
             u = jnp.abs(y[k])
