@@ -5,7 +5,8 @@ from .roundit import (round_to_nearest,
                       round_towards_zero, 
                       stochastic_rounding, 
                       stochastic_rounding_equal)
-import numpy as np
+import jax.numpy as jnp
+from jax import random
 import gc
 
 @dataclass
@@ -70,7 +71,7 @@ class chop(object):
     randfunc : callable, default=None
         If ``randfunc`` is supplied, then the random numbers used for rounding  will be generated 
         using that function in stochastic rounding (i.e., ``rmode`` of 5 and 6). Default is numbers
-        in uniform distribution between 0 and 1, i.e., np.random.uniform.
+        in uniform distribution between 0 and 1, i.e., jnp.random.uniform.
 
     customs : dataclass, default=None
         If customs is defined, then use customs.t and customs.emax for floating point arithmetic.
@@ -89,8 +90,7 @@ class chop(object):
     def __init__(self, prec='h', subnormal=None, rmode=1, flip=False, explim=1,
                  p=0.5, randfunc=None, customs=None, random_state=0):
         
-        np.random.seed(random_state)
-        
+        self.key = random.key(random_state)
         self.prec = prec
         
         if subnormal is not None:
@@ -160,10 +160,10 @@ class chop(object):
             
     def __call__(self, x):
         if str(x).isnumeric():
-            raise ValueError('Chop requires real input values.')
+            raise ValueError('Chop requires real ijnput values.')
             
         if not hasattr(x, "__len__"):
-            x = np.array(x, ndmin=1)
+            x = jnp.array(x, ndmin=1)
             
         if hasattr(self, 'customs'):
             if self.rmode == 1:
@@ -180,7 +180,7 @@ class chop(object):
 
     
     def chop_wrapper(self, x):
-        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
+        return self._chop(self.key, x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
                                 explim=self.explim, p=self.p)
     
 
@@ -198,56 +198,57 @@ class chop(object):
     
     
     
-def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0, 
+def _chop_round_to_nearest(key, x, t, emax, subnormal=1, flip=0, 
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
               
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: random.uniform(key, (n,))
 
     emin = 1 - emax                # Exponent of smallest normalized number.
     xmin = 2**emin                 # Smallest positive normalized number.
     emins = emin + 1 - t           # Exponent of smallest positive subnormal number.
     xmins = pow(2, emins)          # Smallest positive subnormal number.
 
-    _, e = np.frexp(np.abs(x)) 
-    e = np.array(e - 1, ndmin=1)
+    _, e = jnp.frexp(jnp.abs(x)) 
+    e = jnp.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
 
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([], dtype=bool)
-        k_norm = np.full(ktemp.shape, True, dtype=bool)
+        k_sub = jnp.array([], dtype=bool)
+        k_norm = jnp.full(ktemp.shape, True, dtype=bool)
 
-    w = np.power(2.0, t-1-e[k_norm])
-    x[k_norm] = round_to_nearest(
-        x=x[k_norm] * w, 
+    w = jnp.power(2.0, t-1-e[k_norm])
+    x = x.at[k_norm].set(round_to_nearest(
+        key=key, x=x[k_norm] * w, 
         flip=flip, p=p,
         t=t,
         randfunc=randfunc
-    ) 
+    )) 
 
-    x[k_norm] *= 1 / w
+    x = x.at[k_norm].set(x[k_norm] / w) 
 
     if k_sub.size != 0:
         temp = emin-e[k_sub]
-        t1 = t - np.fmax(temp, np.zeros(temp.shape))
+        t1 = t - jnp.fmax(temp, jnp.zeros(temp.shape))
         
-        x[k_sub] = round_to_nearest(
-            x=x[k_sub] * np.power(2, t1-1-e[k_sub]), 
+        x = x.at[k_sub].set(round_to_nearest(
+            key=key, x=x[k_sub] * jnp.power(2, t1-1-e[k_sub]), 
             flip=flip, p=p,
             t=t,
             randfunc=randfunc
-        ) * np.power(2, e[k_sub]-(t1-1))
+        ) * jnp.power(2, e[k_sub]-(t1-1)))
+
         del temp, t1
         
     del w; gc.collect()
 
     if explim:
         xboundary = 2**emax * (2- 0.5 * 2**(1-t))
-        x[x >= xboundary] = np.inf    # Overflow to +inf.
-        x[x <= -xboundary] = -np.inf  # Overflow to -inf.
+        x = x.at[x >= xboundary].set(jnp.inf)# Overflow to +inf.
+        x = x.at[x <= -xboundary].set(-jnp.inf) # Overflow to -inf.
                 
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -255,15 +256,15 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = np.abs(x) < min_rep
+        k_small = jnp.abs(x) < min_rep
         
         if subnormal == 0:
-            k_round = k_small & (np.abs(x) >= min_rep/2)
+            k_round = k_small & (jnp.abs(x) >= min_rep/2)
         else:
-            k_round = k_small & (np.abs(x) > min_rep/2)
+            k_round = k_small & (jnp.abs(x) > min_rep/2)
         
-        x[k_round] = np.sign(x[k_round]) * min_rep
-        x[k_small & ~k_round] = 0
+        x = x.at[k_round].set(jnp.sign(x[k_round]) * min_rep)
+        x = x.at[k_small & ~k_round].set(0)
 
     return x
     
@@ -271,11 +272,11 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0,
     
     
 
-def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0, 
+def _chop_round_towards_plus_inf(key, x, t, emax, subnormal=1, flip=0, 
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
               
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: random.uniform(key, (n,))
         
     emin = 1 - emax                # Exponent of smallest normalized number.
     xmin = 2**emin                 # Smallest positive normalized number.
@@ -283,44 +284,43 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
 
-    _, e = np.frexp(np.abs(x)) 
-    e = np.array(e - 1, ndmin=1)
+    _, e = jnp.frexp(jnp.abs(x)) 
+    e = jnp.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([], dtype=bool)
-        k_norm = np.full(ktemp.shape, True, dtype=bool)
+        k_sub = jnp.array([], dtype=bool)
+        k_norm = jnp.full(ktemp.shape, True, dtype=bool)
 
-    w = np.power(2.0, t-1-e[k_norm])
-    x[k_norm] = round_towards_plus_inf(
+    w = jnp.power(2.0, t-1-e[k_norm])
+    x = x.at[k_norm].set(round_towards_plus_inf(
         x=x[k_norm] * w, 
         flip=flip, p=p,
         t=t,
         randfunc=randfunc
-    ) 
-
-    x[k_norm] *= 1 / w
+    ))
+    x = x.at[k_norm].set(x[k_norm] / w) 
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
-        t1 = t - np.fmax(temp, np.zeros(temp.shape))
+        t1 = t - jnp.fmax(temp, jnp.zeros(temp.shape))
         
         x[k_sub] = round_towards_plus_inf(
-            x=x[k_sub] * np.power(2, t1-1-e[k_sub]), 
+            x=x[k_sub] * jnp.power(2, t1-1-e[k_sub]), 
             flip=flip, p=p,
             t=t,
             randfunc=randfunc
-        ) * np.power(2, e[k_sub]-(t1-1))
+        ) * jnp.power(2, e[k_sub]-(t1-1))
         del temp, t1
         
     del w; gc.collect()
         
     if explim:
-        x[x > xmax] = np.inf
-        x[(x < -xmax) & (x != -np.inf)] = -xmax
+        x[x > xmax] = jnp.inf
+        x[(x < -xmax) & (x != -jnp.inf)] = -xmax
                 
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -328,7 +328,7 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = np.abs(x) < min_rep
+        k_small = jnp.abs(x) < min_rep
         
         k_round = k_small & (x > 0) & (x < min_rep)
         x[k_round] = min_rep
@@ -338,11 +338,11 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0,
 
 
 
-def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0, 
+def _chop_round_towards_minus_inf(key, x, t, emax, subnormal=1, flip=0, 
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
               
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: random.uniform(key, (n,))
         
     emin = 1 - emax                # Exponent of smallest normalized number.
     xmin = 2**emin                 # Smallest positive normalized number.
@@ -350,44 +350,45 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
-    _, e = np.frexp(np.abs(x)) 
-    e = np.array(e - 1, ndmin=1)
+    _, e = jnp.frexp(jnp.abs(x)) 
+    e = jnp.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([], dtype=bool)
-        k_norm = np.full(ktemp.shape, True, dtype=bool)
+        k_sub = jnp.array([], dtype=bool)
+        k_norm = jnp.full(ktemp.shape, True, dtype=bool)
 
-    w = np.power(2.0, t-1-e[k_norm])
-    x[k_norm] = round_towards_minus_inf(
+    w = jnp.power(2.0, t-1-e[k_norm])
+
+    x = x.at[k_norm].set(round_towards_minus_inf(
         x=x[k_norm] * w, 
         flip=flip, p=p,
         t=t,
         randfunc=randfunc
-    ) 
+    ))
 
-    x[k_norm] *= 1 / w
+    x = x.at[k_norm].set(x[k_norm] / w) 
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
-        t1 = t - np.fmax(temp, np.zeros(temp.shape))
+        t1 = t - jnp.fmax(temp, jnp.zeros(temp.shape))
         
         x[k_sub] = round_towards_minus_inf(
-            x=x[k_sub] * np.power(2, t1-1-e[k_sub]), 
+            x=x[k_sub] * jnp.power(2, t1-1-e[k_sub]), 
             flip=flip, p=p,
             t=t,
             randfunc=randfunc
-        ) * np.power(2, e[k_sub]-(t1-1))
+        ) * jnp.power(2, e[k_sub]-(t1-1))
         del temp, t1
         
     del w; gc.collect()
         
     if explim:
-        x[(x > xmax) & (x != np.inf)] = xmax
-        x[x < -xmax] = -np.inf
+        x[(x > xmax) & (x != jnp.inf)] = xmax
+        x[x < -xmax] = -jnp.inf
         
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -395,7 +396,7 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = np.abs(x) < min_rep
+        k_small = jnp.abs(x) < min_rep
 
         k_round = k_small & (x < 0) & (x > -min_rep)
         x[k_round] = -min_rep
@@ -405,11 +406,11 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0,
 
 
 
-def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0, 
+def _chop_round_towards_zero(key, x, t, emax, subnormal=1, flip=0, 
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
               
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: random.uniform(key, (n,))
         
     emin = 1 - emax                # Exponent of smallest normalized number.
     xmin = 2**emin                 # Smallest positive normalized number.
@@ -417,44 +418,45 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0,
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
-    _, e = np.frexp(np.abs(x)) 
-    e = np.array(e - 1, ndmin=1)
+    _, e = jnp.frexp(jnp.abs(x)) 
+    e = jnp.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([], dtype=bool)
-        k_norm = np.full(ktemp.shape, True, dtype=bool)
+        k_sub = jnp.array([], dtype=bool)
+        k_norm = jnp.full(ktemp.shape, True, dtype=bool)
 
-    w = np.power(2.0, t-1-e[k_norm])
-    x[k_norm] = round_towards_zero(
+    w = jnp.power(2.0, t-1-e[k_norm])
+
+    x = x.at[k_norm].set(round_towards_zero(
         x=x[k_norm] * w, 
         flip=flip, p=p,
         t=t,
         randfunc=randfunc
-    ) 
-
-    x[k_norm] *= 1 / w
+    ))
+    
+    x = x.at[k_norm].set(x[k_norm] / w) 
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
-        t1 = t - np.fmax(temp, np.zeros(temp.shape))
+        t1 = t - jnp.fmax(temp, jnp.zeros(temp.shape))
         
         x[k_sub] = round_towards_zero(
-            x=x[k_sub] * np.power(2, t1-1-e[k_sub]), 
+            x=x[k_sub] * jnp.power(2, t1-1-e[k_sub]), 
             flip=flip, p=p,
             t=t,
             randfunc=randfunc
-        ) * np.power(2, e[k_sub]-(t1-1))
+        ) * jnp.power(2, e[k_sub]-(t1-1))
         del temp, t1
         
     del w; gc.collect()
         
     if explim:
-        x[(x > xmax) & (x != np.inf)] = xmax
-        x[(x < -xmax) & (x != -np.inf)] = -xmax
+        x[(x > xmax) & (x != jnp.inf)] = xmax
+        x[(x < -xmax) & (x != -jnp.inf)] = -xmax
                 
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -462,18 +464,18 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = np.abs(x) < min_rep
+        k_small = jnp.abs(x) < min_rep
         x[k_small] = 0
                 
     return x
 
 
 
-def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0, 
+def _chop_stochastic_rounding(key, x, t, emax, subnormal=1, flip=0, 
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
               
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: random.uniform(key, (n,))
         
     emin = 1 - emax                # Exponent of smallest normalized number.
     xmin = 2**emin                 # Smallest positive normalized number.
@@ -481,44 +483,45 @@ def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0,
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     xmax = pow(2,emax) * (2-2**(1-t))
     
-    _, e = np.frexp(np.abs(x)) 
-    e = np.array(e - 1, ndmin=1)
+    _, e = jnp.frexp(jnp.abs(x)) 
+    e = jnp.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([], dtype=bool)
-        k_norm = np.full(ktemp.shape, True, dtype=bool)
+        k_sub = jnp.array([], dtype=bool)
+        k_norm = jnp.full(ktemp.shape, True, dtype=bool)
 
-    w = np.power(2.0, t-1-e[k_norm])
-    x[k_norm] = stochastic_rounding(
+    w = jnp.power(2.0, t-1-e[k_norm])
+
+    x = x.at[k_norm].set(stochastic_rounding(
         x=x[k_norm] * w, 
         flip=flip, p=p,
         t=t,
         randfunc=randfunc
-    ) 
-
-    x[k_norm] *= 1 / w
+    ))
+    
+    x = x.at[k_norm].set(x[k_norm] / w) 
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
-        t1 = t - np.fmax(temp, np.zeros(temp.shape))
+        t1 = t - jnp.fmax(temp, jnp.zeros(temp.shape))
         
         x[k_sub] = stochastic_rounding(
-            x=x[k_sub] * np.power(2, t1-1-e[k_sub]), 
+            x=x[k_sub] * jnp.power(2, t1-1-e[k_sub]), 
             flip=flip, p=p,
             t=t,
             randfunc=randfunc
-        ) * np.power(2, e[k_sub]-(t1-1))
+        ) * jnp.power(2, e[k_sub]-(t1-1))
         del temp, t1
         
     del w; gc.collect()
         
     if explim:
-        x[(x > xmax) & (x != np.inf)] = xmax
-        x[(x < -xmax) & (x != -np.inf)] = -xmax
+        x[(x > xmax) & (x != jnp.inf)] = xmax
+        x[(x < -xmax) & (x != -jnp.inf)] = -xmax
         
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -526,63 +529,64 @@ def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = np.abs(x) < min_rep
+        k_small = jnp.abs(x) < min_rep
         x[k_small] = 0
                 
     return x
 
 
 
-def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, 
+def _chop_stochastic_rounding_equal(key, x, t, emax, subnormal=1, flip=0, 
           explim=1, p=0.5, randfunc=None, *argv, **kwargs):
               
     if randfunc is None:
-        randfunc = lambda n: np.random.uniform(0, 1, n)
+        randfunc = lambda n: random.uniform(key, (n,))
         
     emin = 1 - emax                # Exponent of smallest normalized number.
     xmin = 2**emin                 # Smallest positive normalized number.
     emins = emin + 1 - t           # Exponent of smallest positive subnormal number.
     xmins = pow(2, emins)          # Smallest positive subnormal number.
     
-    _, e = np.frexp(np.abs(x)) 
-    e = np.array(e - 1, ndmin=1)
+    _, e = jnp.frexp(jnp.abs(x)) 
+    e = jnp.array(e - 1, ndmin=1)
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = np.array([], dtype=bool)
-        k_norm = np.full(ktemp.shape, True, dtype=bool)
+        k_sub = jnp.array([], dtype=bool)
+        k_norm = jnp.full(ktemp.shape, True, dtype=bool)
 
-    w = np.power(2.0, t-1-e[k_norm])
-    x[k_norm] = stochastic_rounding_equal(
+    w = jnp.power(2.0, t-1-e[k_norm])
+
+    x = x.at[k_norm].set(stochastic_rounding_equal(
         x=x[k_norm] * w, 
         flip=flip, p=p,
         t=t,
         randfunc=randfunc
-    ) 
-
-    x[k_norm] *= 1 / w
+    ))
+    
+    x = x.at[k_norm].set(x[k_norm] / w) 
     
     if k_sub.size != 0:
         temp = emin-e[k_sub]
-        t1 = t - np.fmax(temp, np.zeros(temp.shape))
+        t1 = t - jnp.fmax(temp, jnp.zeros(temp.shape))
         
         x[k_sub] = stochastic_rounding_equal(
-            x=x[k_sub] * np.power(2, t1-1-e[k_sub]), 
+            x=x[k_sub] * jnp.power(2, t1-1-e[k_sub]), 
             flip=flip, p=p,
             t=t,
             randfunc=randfunc
-        ) * np.power(2, e[k_sub]-(t1-1))
+        ) * jnp.power(2, e[k_sub]-(t1-1))
         del temp, t1
         
     del w; gc.collect()
         
     if explim:
         xboundary = 2**emax * (2- 0.5 * 2**(1-t))
-        x[x >= xboundary] = np.inf    # Overflow to +inf.
-        x[x <= -xboundary] = -np.inf  # Overflow to -inf.
+        x[x >= xboundary] = jnp.inf    # Overflow to +inf.
+        x[x <= -xboundary] = -jnp.inf  # Overflow to -inf.
                 
         # Round to smallest representable number or flush to zero.
         if subnormal == 0:
@@ -590,7 +594,7 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0,
         else:
             min_rep = xmins
 
-        k_small = np.abs(x) < min_rep
+        k_small = jnp.abs(x) < min_rep
         x[k_small] = 0
 
     return x

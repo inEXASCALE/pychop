@@ -60,7 +60,6 @@ import os
 def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
          p=0.5, randfunc=None, customs=None, random_state=0):
     if os.environ['chop_backend'] == 'numpy':
-        print(os.environ['chop_backend'])
         from .np.chop import chop
 
         return chop(prec, subnormal, rmode, flip, 

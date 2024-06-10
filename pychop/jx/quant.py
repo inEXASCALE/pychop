@@ -1,4 +1,4 @@
-import numpy as np
+import jax.numpy as jnp
 import warnings 
 
 
@@ -42,20 +42,20 @@ class quant():
         
         if bits in {8, 16, 32, 64}:
             if bits == 8:
-                self.intType = np.int8
+                self.intType = jnp.int8
                 
             elif bits == 16:
-                self.intType = np.int16
+                self.intType = jnp.int16
                 
             elif bits == 32:
-                self.intType = np.int32
+                self.intType = jnp.int32
                 
             elif bits == 64:
-                self.intType = np.int64
+                self.intType = jnp.int64
                 
         else:
             warnings.warn("Current int type not support this bitwidth, use int64 to simulate.")
-            self.intType = np.int64
+            self.intType = jnp.int64
         
         if self.sign == 1:
             if self.zpoint == 1:
@@ -73,17 +73,17 @@ class quant():
                 raise ValueError('Please set `zpoint` to 1.')
         
         if self.rd_func is None:
-            self.rd_func = lambda x: np.round(x, decimals=0)
+            self.rd_func = lambda x: jnp.round(x, decimals=0)
             
         if self.clip_range is None:
-            self.clip_func = lambda x: np.clip(x, a_min=self.alpha_q, a_max=self.beta_q)
+            self.clip_func = lambda x: jnp.clip(x, a_min=self.alpha_q, a_max=self.beta_q)
         else:
-            self.clip_func = lambda x: np.clip(x, a_min=self.clip_range[0], a_max=self.beta_q[self.clip_range[1]])
+            self.clip_func = lambda x: jnp.clip(x, a_min=self.clip_range[0], a_max=self.beta_q[self.clip_range[1]])
             
             
     def __call__(self, x):
-        x_min = np.min(x)
-        x_max = np.max(x)
+        x_min = jnp.min(x)
+        x_max = jnp.max(x)
         
         if self.sign != 1:
             abs_max = max(abs(x_min), abs(x_max))
@@ -109,7 +109,7 @@ class quant():
         return x_q
 
     def dequantization(self, x_q, s, z):
-        x_q = x_q.astype(np.float32)
+        x_q = x_q.astype(jnp.float32)
         x = s * x_q + z
         return x
 
