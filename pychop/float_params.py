@@ -1,7 +1,40 @@
+# This API follows https://github.com/higham/chop/blob/master/float_params.m
+
 import numpy as np
 
 
 def float_params(*argv):
+    """
+    Parameters
+    -----------
+     u:     the unit roundoff,
+     xmins: the smallest positive (subnormal) floating-point number,
+     xmin:  the smallest positive normalized floating-point number,
+     xmax:  the largest floating-point number,
+     p:     the number of binary digits in the significand (including the
+            implicit leading bit),
+     emins  exponent of xmins,
+     emin:  exponent of xmin,
+     emax:  exponent of xmax.
+   where prec is one of 
+    'q43', 'fp8-e4m3'       - NVIDIA quarter precision (4 exponent bits,
+                              3 significand bits)
+    'q52', 'fp8-e5m2'       - NVIDIA quarter precision (5 exponent bits,
+                              2 significand bits)
+    'b', 'bfloat16'           - bfloat16,
+    'h', 'half', 'fp16'       - IEEE half precision,
+    't', 'tf32'               - NVIDIA tf32,
+    's', 'single', 'fp32'     - IEEE single precision,
+    'd', 'double', 'fp64'     - IEEE double precision (the default),
+    'q', 'quadruple', 'fp128' - IEEE quadruple precision.
+   For all these arithmetics the floating-point numbers have the form
+   s * 2^e * d_0.d_1d_2...d_{t-1} where s = 1 or -1, e is the exponent
+   and each d_i is 0 or 1, with d_0 = 1 for normalized numbers.
+   With no input and output arguments, FLOAT_PARAMS prints a table showing
+   all the parameters for all the precisions.
+   Note: xmax and xmin are not representable in double precision for
+   'quadruple'.
+    """                                                 
     if len(argv) < 1:
         precs = 'bhtsdq'
         
