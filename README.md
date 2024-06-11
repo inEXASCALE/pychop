@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
 
-## A Python package for low bitwidth quantization
+## A Python package for simulating low precision arithmetic
 
 With the increasing availability and support of lower-precision floating-point arithmetics beyond the IEEE Standard 64-bit double and 32-bit single precisions in both hardware and software simulation, low-precision arithmetic operations as well as the number formats, e.g., 16-bit half precision,  have been widely studied and exploited in numerous applications in the modern scientific computing and machine learning algorithms. Low-precision floating point arithmetic offers greater throughput, reduced data communication, and less energy usage. ``pychop`` is a Python library for efficient quantization, it enable to convert single or double precision numbers into low-bitwidth representation. The purpose of ``pychop``, following the same function of ``chop`` in Matlab provided by Nick higham, is to simulate the low precision formats as well as fixed-point/integer quantization based on single and double precisions, which is pravalent on modern machine architecture. 
 
