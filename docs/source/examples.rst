@@ -12,24 +12,24 @@ To set backend:
 
     pychop.backend('numpy') # use NumPy as backend, other options: 'torch' and 'jax'
 
+.. list-table:: Title
+   :widths: 25 25
+   :header-rows: 1
 
-+-------------------------------------------------------+-------------------------------------------------------+
-|                       format                          |                              description               |
-+=======================================================+=======================================================+
-|                    'q43', 'fp8-e4m3'     | NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits) |
-+----------------------------------+----------------------------------+
-| 'q52', 'fp8-e5m2'         | NVIDIA quarter precision (5 exponent bits, 2 significand bits) |
-+----------------------------------+----------------------------------+
-|  'b', 'bfloat16'          |       bfloat16 |
-+----------------------------------+----------------------------------+
-|  'h', 'half', 'fp16'      | IEEE half precision (the default) |
-+----------------------------------+----------------------------------+
-|  's', 'single', 'fp32'    | IEEE single precision |
-+----------------------------------+----------------------------------+
-|  'd', 'double', 'fp64'    | IEEE double precision |
-+----------------------------------+----------------------------------+
-|  'c', 'custom'            | custom format |
-+----------------------------------+----------------------------------+
+    * - format
+      - description
+    * - 'q43' and 'fp8-e4m3'
+      - NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits)
+    * - 'b' and 'bfloat16'
+      -  bfloat16
+    * - 'h' and 'half' and 'fp16' 
+      - IEEE half precision (the default)
+    * - 's' and 'single' and 'fp32'
+      -  IEEE single precision
+    * - 'd' and 'double' and 'fp64'
+      - IEEE double precision
+    * - 'c' and 'custom'
+      - custom format
 
 
 For Torch backend:
