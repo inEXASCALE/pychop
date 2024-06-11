@@ -6,29 +6,8 @@
 
 ## A Python package for simulating low precision arithmetic
 
-With the increasing availability and support of lower-precision floating-point arithmetics beyond the IEEE Standard 64-bit double and 32-bit single precisions in both hardware and software simulation, low-precision arithmetic operations as well as the number formats, e.g., 16-bit half precision,  have been widely studied and exploited in numerous applications in the modern scientific computing and machine learning algorithms. Low-precision floating point arithmetic offers greater throughput, reduced data communication, and less energy usage. ``pychop`` is a Python library for efficient quantization, it enable to convert single or double precision numbers into low-bitwidth representation. The purpose of ``pychop``, following the same function of ``chop`` in Matlab provided by Nick higham, is to simulate the low precision formats as well as fixed-point/integer quantization based on single and double precisions, which is pravalent on modern machine architecture. 
+With the increasing availability and support of lower-precision floating-point arithmetics beyond the IEEE Standard 64-bit double and 32-bit single precisions in both hardware and software simulation, low-precision arithmetic operations as well as the number formats, e.g., 16-bit half precision,  have been widely studied and exploited in numerous applications in the modern scientific computing and machine learning algorithms. Low-precision floating point arithmetic offers greater throughput, reduced data communication, and less energy usage. ``pychop`` is a Python library for efficient quantization, it enable to convert single or double precision numbers into low-bitwidth representation. The purpose of ``pychop``, following the same function of ``chop`` in Matlab provided by Nick higham, is to simulate the low precision formats as well as fixed-point/integer quantization based on single and double precisions, which is pravalent on modern machine architecture.  ``pychop`` also provides Torch and JAX backend, which enables to simulate training Neural Network in low precision.
 
- It also provides Torch backend, which enables to simulate training Neural Network in low precision.
-
-The supported rounding modes include:
-
-1. Round to nearest using round to even last bit to break ties
-  (the default).
-
-2. Round towards plus infinity (round up).
-
-3. Round towards minus infinity (round down).
-
-4. Round towards zero.
-
-5. Stochastic rounding - round to the next larger or next smaller
-  floating-point number with probability proportional to
-  the distance to those floating-point numbers.
-
-6. Stochastic rounding - round to the next larger or next smaller 
-  floating-point number with equal probability.
-
-Subnormal numbers is supported, they are flushed to zero if it not considered (by setting `subnormal` to 0).
 
 
 This package provides consistent APIs to the chop software by Nick higham as much as possible.  For the first four rounding mode,  with the same user-specific parameters, ``pychop`` generates exactly same result as that of the chop software. For stochastic rounding (``rmode`` as 5 and 6), both output same results if random numbers is given the same. 
