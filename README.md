@@ -34,7 +34,9 @@ The code example can be found on the [quick start page](https://github.com/chenx
 ``pychop`` relies on dependencies:
 
 - numpy >=1.7.3
+- pandas >=2.0
 - torch
+- jax
 
 To install the current current release via PIP use:
 
