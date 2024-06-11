@@ -36,9 +36,7 @@ To install the current release via PIP use either of them according to one's nee
 
 .. parsed-literal::
     
-    pip install pychop (for Numpy backend)
-
-    pip install torch-chop (for Torch backend)
+    pip install pychop
 
 .. admonition:: Note
    
