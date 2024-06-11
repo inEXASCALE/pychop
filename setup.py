@@ -8,7 +8,7 @@ PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
 VERSION = "0.2.3"
 SETREQUIRES=["numpy", "torch"]
-MAINTAINER="Xinye Chen"
+MAINTAINER="Erin Caron, Xinye Chen, Cheng Kang"
 EMAIL="xinyechenai@gmail.com"
 INREUIRES=["numpy>=1.7.2"]
 
