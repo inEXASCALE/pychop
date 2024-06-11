@@ -32,35 +32,6 @@ To set backend:
       - custom format
 
 
-For Torch backend:
-
-.. code:: python
-
-    import torch
-    from pychop.torch import chop
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    x = torch.rand(size=(10000, 10000))
-    tc = chop(prec='h', rmode=3, device=device) 
-    y = tc(x)
-    print(y[0, :5])
-
-
-
-For NumPy backend:
-
-.. code:: python
-
-    import numpy as np
-    from pychop.numpy import chop
-
-    x = np.random.rand(10000, 10000)
-    nc = chop(prec='h', rmode=3) 
-    y = nc(x)
-    print(y[0, :5])
-
-
 
 One can also use customized floating point arithmetic:
 
@@ -76,6 +47,7 @@ Second, define parameter ``customs`` instead of ``prec`` for both NumPy backend 
 
 .. code:: python
 
+    from pychop import chop
     x = np.random.rand(10000, 10000) # use x = torch.rand(size=(10000, 10000)) for Torch backend
     nc = chop(customs=prec, rmode=3, flip=0) 
     y = nc(x)
