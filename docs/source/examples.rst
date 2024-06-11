@@ -1,17 +1,16 @@
 Basic examples
 =====================================================
 
-To import the package for NumPy backend:
+.. code:: python
+
+    from pychop import chop
+
+
+To set backend:
 
 .. code:: python
 
-    from pychop.numpy import chop
-
-or for Torch backend
-
-.. code:: python
-
-    from pychop.torch import chop
+    pychop.backend('numpy') # use NumPy as backend, other options: 'torch' and 'jax'
 
 
 +-------------------------------------------------------+-------------------------------------------------------+
