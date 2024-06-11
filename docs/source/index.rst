@@ -44,6 +44,22 @@ To install the current release via PIP use either of them according to one's nee
    
    The documentation is still on going.
 
+To check if the instalment is successful, one can load the package, simple use
+
+.. code:: python
+
+  import pychop
+
+
+Floating point information
+------------------------------
+To give a shot, one may print information of various precision formats:
+
+.. code:: python
+
+  from pychop import float_params
+  float_params()
+
 
 .. toctree::
    :maxdepth: 2
