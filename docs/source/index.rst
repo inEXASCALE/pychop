@@ -40,9 +40,7 @@ To install the current release via PIP use either of them according to one's nee
     
     pip install pychop
 
-.. admonition:: Note
-   
-   The documentation is still on going.
+
 
 To check if the instalment is successful, one can load the package, simple use
 
@@ -59,6 +57,11 @@ To give a shot, one may print information of various precision formats:
 
   from pychop import float_params
   float_params()
+
+.. admonition:: Note
+   
+   The documentation is still on going. We welcome the contributions in any forms. 
+
 
 
 .. toctree::
