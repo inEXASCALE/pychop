@@ -1,0 +1,50 @@
+{% set name = "pychop" %}
+{% set version = "0.2.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 
+
+build:
+  noarch: python
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+  host:
+    - python >=3.6
+    - pip
+    - numpy
+    - cython
+
+  run:
+    - python >=3.6
+    - pandas
+    - requests
+    - {{ pin_compatible('numpy') }}
+    - scipy ==1.7.0
+    - matplotlib-base
+
+test:
+  imports:
+    - classix
+
+about:
+  home: https://github.com/chenxinye/pychop
+  summary: 
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  dev_url: https://github.com/chenxinye/pychop
+
+extra:
+  recipe-maintainers:
+    - eccarson
+    - chenxinye
+    - ChengKang520
