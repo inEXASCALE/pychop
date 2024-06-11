@@ -1,13 +1,24 @@
 API Reference
 ======================================
 
-.. autosummary::
-   :toctree: _autosummary
-   :recursive:
+.. autoclass:: pychop.chop
+   :members:
+ 
+.. autoclass:: pychop.quant
+   :members:
 
-   pychop.chop
-   pychop.quant
-   pychop.to_fixed_point
-   pychop.simulate
-   pychop.float_params
+.. autoclass:: pychop.to_fixed_point
+   :members:
+
+.. autoclass:: pychop.simulate
+   :members:
+ 
+.. autoclass:: pychop.float_params
+   :members:
+
+
+   
+   
+   
+   
 
