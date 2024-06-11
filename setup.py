@@ -7,7 +7,7 @@ import logging
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
 VERSION = "0.2.3"
-SETREQUIRES=["numpy", "torch"]
+SETREQUIRES=["numpy", "torch", "jax"]
 MAINTAINER="Erin Caron, Xinye Chen, Cheng Kang"
 EMAIL="xinyechenai@gmail.com"
 INREUIRES=["numpy>=1.7.2"]
