@@ -30,7 +30,9 @@ Installation guide
 ``pychop`` has the following dependencies for its functionality:
 
    * numpy>=1.21
-   * torch (only for torch use)
+   * pandas>=2.0
+   * torch (only for Torch use)
+   * jax (only for JAX use)
     
 To install the current release via PIP use either of them according to one's need:
 
