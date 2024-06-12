@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pychop.simulate &mdash; pychop 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            pychop
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../start.html">Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pychop</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pychop.simulate</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pychop.simulate</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="simulate"><a class="viewcode-back" href="../../api.html#pychop.simulate">[docs]</a><span class="k">class</span> <span class="nc">simulate</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simulate a customised floating point system with rounding methods</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    base : int</span>
+<span class="sd">        The base (or radix) in the floating point number system.</span>
+<span class="sd">    </span>
+<span class="sd">    t : int </span>
+<span class="sd">        The precision in the floating point number system.</span>
+<span class="sd">    </span>
+<span class="sd">    emin, emax : int</span>
+<span class="sd">        The exponent range, with emin &lt; e &lt; emax.</span>
+<span class="sd">        If emin is omited, emin = 1 - emax which conform to IEEE 754 standard.</span>
+<span class="sd">        </span>
+<span class="sd">    sign : boolean, default=False</span>
+<span class="sd">        Whether or not give sign to the floating point numbers.</span>
+<span class="sd">        If ``sign=False``, then the generated floating point numbers are nonnegative.</span>
+
+<span class="sd">    subnormal : boolean, default=False</span>
+<span class="sd">        Whether or not to include subnormal numbers. </span>
+<span class="sd">        If subnormal numbers are not included, the floating point numbers are normalized. </span>
+
+<span class="sd">    rmode : int, default=1</span>
+<span class="sd">        Ways to round the values in the floating point system.</span>
+<span class="sd">        There are 6 options for rounding: </span>
+<span class="sd">        1. Round to nearest using round to even last bit to break ties (the default).</span>
+<span class="sd">        2. Round towards plus infinity (round up).</span>
+<span class="sd">        3. Round towards minus infinity (round down).</span>
+<span class="sd">        4. Round towards zero.</span>
+<span class="sd">        5. Stochastic rounding - round to the next larger or next smaller floating-point number </span>
+<span class="sd">            with probability proportional to the distance to those floating-point numbers.</span>
+<span class="sd">        6. Stochastic rounding - round to the next larger or next smaller floating-point number </span>
+<span class="sd">            with equal probability.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    ----------</span>
+<span class="sd">    generate():</span>
+<span class="sd">        Generate the floating point numbers given user specified parameters.</span>
+
+<span class="sd">    rounding(x):</span>
+<span class="sd">        Round the values ``x`` in terms of the predefined rounding mode.</span>
+<span class="sd">        </span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">emax</span><span class="p">,</span> <span class="n">emin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sign</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">subnormal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rmode</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emax</span> <span class="o">=</span> <span class="n">emax</span>
+        <span class="k">if</span> <span class="n">emin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">emin</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">emax</span> <span class="c1"># using IEEE 754 assumption by default </span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">emin</span> <span class="o">=</span> <span class="n">emin</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">sign</span> <span class="o">=</span> <span class="n">sign</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subnormal</span> <span class="o">=</span> <span class="n">subnormal</span>
+        
+        <span class="k">if</span> <span class="n">rmode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Please enter valid value.&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">rmode</span> <span class="o">=</span> <span class="n">rmode</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rmode</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rounding</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frompyfunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_round_to_plus_inf</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">rmode</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rounding</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frompyfunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_round_to_minus_inf</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">rmode</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rounding</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frompyfunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_round_to_zero</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">rmode</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rounding</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frompyfunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_round_to_stochastic_distance</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">rmode</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rounding</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frompyfunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_round_to_stochastic_uniform</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rounding</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frompyfunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_round_to_nearest</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__fit__</span> <span class="o">=</span> <span class="kc">False</span>
+        
+
+    <span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">subnormal</span><span class="p">:</span>
+            <span class="n">m_min</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">m_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">emax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">emin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_max</span> <span class="o">-</span> <span class="n">m_min</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sign</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">emin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">emax</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">m_min</span><span class="p">,</span> <span class="n">m_max</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">n</span><span class="o">+</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">**</span><span class="nb">int</span><span class="p">(</span><span class="n">e</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">m</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">**</span><span class="nb">int</span><span class="p">(</span><span class="n">e</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">emin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">emax</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">m_min</span><span class="p">,</span> <span class="n">m_max</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">**</span><span class="nb">int</span><span class="p">(</span><span class="n">e</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+                    
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">underflow_bound</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">overflow_bound</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">))</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__fit__</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span>
+    
+    
+<div class="viewcode-block" id="simulate.rounding"><a class="viewcode-back" href="../../api.html#pychop.simulate.rounding">[docs]</a>    <span class="k">def</span> <span class="nf">rounding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Simulate a customised floating point system with rounding methods</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : flaot or numpy.ndarray</span>
+<span class="sd">            The values to be rounded.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__fit__</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">generate</span><span class="p">()</span>
+            
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;__len__&quot;</span><span class="p">):</span>
+            <span class="n">x_copy</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">id_underflow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">underflow_bound</span>
+            <span class="n">id_overflow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">overflow_bound</span>
+            <span class="n">x_copy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rounding</span><span class="p">(</span><span class="n">x_copy</span><span class="p">)</span>
+            <span class="n">x_copy</span><span class="p">[</span><span class="n">id_underflow</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">x_copy</span><span class="p">[</span><span class="n">id_overflow</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="k">return</span> <span class="n">x_copy</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">underflow_bound</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span>
+            
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">overflow_bound</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rounding</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+        
+
+    <span class="k">def</span> <span class="nf">_round_to_nearest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># Round to nearest using round to even last bit to break ties</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">-</span> <span class="n">x</span><span class="p">))]</span>
+    
+
+    <span class="k">def</span> <span class="nf">_round_to_plus_inf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># Round towards plus infinity</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="p">])</span>
+    
+
+    <span class="k">def</span> <span class="nf">_round_to_minus_inf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># Round towards minus infinity</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">])</span>
+    
+
+    <span class="k">def</span> <span class="nf">_round_to_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># Round towards zero</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">])</span>
+    
+
+    <span class="k">def</span> <span class="nf">_round_to_stochastic_distance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># round to the next larger or next smaller floating-point number </span>
+        <span class="c1"># with probability proportional to the distance to those floating-point numbers</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">-</span> <span class="n">x</span><span class="p">))[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">proba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">distances</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">distances</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+        <span class="k">if</span> <span class="n">proba</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">distances</span><span class="p">[</span><span class="mi">0</span><span class="p">]]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">distances</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">distances</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+
+    <span class="k">def</span> <span class="nf">_round_to_stochastic_uniform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># round to the next larger or next smaller floating-point number with equal probability</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span> <span class="o">-</span> <span class="n">x</span><span class="p">))[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">proba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">proba</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">distances</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_numbers</span><span class="p">[</span><span class="n">distances</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, InEXASCALE computing.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

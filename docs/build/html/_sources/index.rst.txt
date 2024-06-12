@@ -1,0 +1,62 @@
+Welcome to Pychop's documentation!
+==================================
+
+Using low precesion can gain extra speedup while resulting in less storage and energy cost. 
+The intention of pychop, motivated by software ``chop`` in Matlab developed by Nick higham, 
+is to simulate the low precision formats based on single and double precisions, 
+which is pravalent on modern machine.  ``pychop`` is a Python package for simulaing low precision 
+and quantization in modern machine, it supports NumPy, Torch,  or JAX backend. 
+
+
+Installation guide
+------------------------------
+``pychop`` has the following dependencies for its functionality:
+
+   * numpy>=1.21
+   * pandas>=2.0
+   * torch (only for Torch use)
+   * jax (only for JAX use)
+    
+To install the current release via PIP use either of them according to one's need:
+
+.. parsed-literal::
+    
+    pip install pychop
+
+
+
+To check if the instalment is successful, one can load the package, simple use
+
+.. code:: python
+
+  import pychop
+
+
+Floating point information
+------------------------------
+To give a shot, one may print information of various precision formats:
+
+.. code:: python
+
+  from pychop import float_params
+  float_params()
+
+.. admonition:: Note
+   
+   The documentation is still on going. We welcome the contributions in any forms. 
+
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   start.rst
+   chop.rst
+   quant.rst
+   fix_point.rst
+   api.rst
+   license
+
+
+

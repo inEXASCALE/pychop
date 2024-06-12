@@ -6,8 +6,8 @@ import sphinx_rtd_theme
 sys.path.insert(0, os.path.abspath('../..'))
 
 project = 'pychop'
-copyright = '2023, InEXASCALE computing'
-author = 'inexascale computing'
+copyright = '2024, InEXASCALE computing'
+author = 'InEXASCALE computing'
 release = '0.0.1'
 
 extensions = [

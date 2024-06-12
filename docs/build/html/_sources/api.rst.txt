@@ -1,0 +1,24 @@
+API Reference
+======================================
+
+.. autoclass:: pychop.chop
+   :members:
+ 
+.. autoclass:: pychop.quant
+   :members:
+
+.. autoclass:: pychop.to_fixed_point
+   :members:
+
+.. autoclass:: pychop.simulate
+   :members:
+ 
+.. autoclass:: pychop.float_params
+   :members:
+
+
+   
+   
+   
+   
+
