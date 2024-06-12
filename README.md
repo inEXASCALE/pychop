@@ -1,6 +1,6 @@
 # pychop
 
-[![!pypi](https://img.shields.io/pypi/v/pychop?color=cyan)](https://pypi.org/project/pychop/)
+[![!pypi](https://img.shields.io/pypi/v/pychop?color=greenyellow)](https://pypi.org/project/pychop/)
 [![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.python.org/pypi/pychop/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
