@@ -13,7 +13,7 @@ class quant():
         Whether or not to quantize the value to symmetric integer range.
     
     zpoint : bool, default=1
-        Whether or not to set the zero point to zero. If `zpoint=0`, then the quantized range must be symmetric.
+        Whether or not to compute the zero point. If `zpoint=0`, then the quantized range must be symmetric.
         
     rd_func : function, default=None
         The rounding function used for the quantization. The default is round to nearest.
@@ -70,7 +70,7 @@ class quant():
                 self.beta_q = 2**(self.bits - 1) - 1
                 self.alpha_q = -self.beta_q
             else:
-                raise ValueError('Please set `zpoint` to 1.')
+                raise ValueError('Please set `zpoint` to 0.')
         
         if self.rd_func is None:
             self.rd_func = lambda x: np.round(x, decimals=0)

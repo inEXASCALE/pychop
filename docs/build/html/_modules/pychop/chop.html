@@ -77,7 +77,7 @@
 <span></span><span class="kn">import</span> <span class="nn">os</span>
 
 <div class="viewcode-block" id="chop"><a class="viewcode-back" href="../../api.html#pychop.chop">[docs]</a><span class="k">def</span> <span class="nf">chop</span><span class="p">(</span><span class="n">prec</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="n">subnormal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rmode</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flip</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">explim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span>
-         <span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">randfunc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">customs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+         <span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">randfunc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">customs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -90,15 +90,16 @@
 <span class="sd">        </span>
 <span class="sd">    rmode : int, default=1</span>
 <span class="sd">        The supported rounding modes include:</span>
-<span class="sd">        1. Round to nearest using round to even last bit to break ties (the default).</span>
-<span class="sd">        2. Round towards plus infinity (round up).</span>
-<span class="sd">        3. Round towards minus infinity (round down).</span>
-<span class="sd">        4. Round towards zero.</span>
-<span class="sd">        5. Stochastic rounding - round to the next larger or next smaller</span>
-<span class="sd">            floating-point number with probability proportional to the distance </span>
-<span class="sd">            to those floating-point numbers.</span>
-<span class="sd">        6. Stochastic rounding - round to the next larger or next smaller </span>
-<span class="sd">            floating-point number with equal probability.</span>
+<span class="sd">            1. Round to nearest using round to even last bit to break ties (the default).</span>
+<span class="sd">            2. Round towards plus infinity (round up).</span>
+<span class="sd">            3. Round towards minus infinity (round down).</span>
+<span class="sd">            4. Round towards zero.</span>
+<span class="sd">            5. Stochastic rounding </span>
+<span class="sd">                round to the next larger or next smaller floating-point number</span>
+<span class="sd">                with probability proportional to the distance to those floating-point numbers.</span>
+<span class="sd">            6. Stochastic rounding</span>
+<span class="sd">                round to the next larger or next smaller </span>
+<span class="sd">                floating-point number with equal probability.</span>
 
 <span class="sd">    flip : boolean, default=False</span>
 <span class="sd">        Default is False; If ``flip`` is True, then each element</span>
@@ -126,7 +127,9 @@
 <span class="sd">    random_state : int, default=0</span>
 <span class="sd">        Random seed set for stochastic rounding settings.</span>
 
-<span class="sd">    </span>
+<span class="sd">    verbose : int | bool, defaul=0</span>
+<span class="sd">        Whether or not to print out the unit-roundoff.</span>
+
 <span class="sd">    Properties</span>
 <span class="sd">    ----------</span>
 <span class="sd">    u : float,</span>
@@ -137,7 +140,6 @@
 <span class="sd">    chop(x) </span>
 <span class="sd">        Method that convert ``x`` to the user-specific arithmetic format.</span>
 <span class="sd">        </span>
-
 <span class="sd">    Returns </span>
 <span class="sd">    ----------</span>
 <span class="sd">    chop | object,</span>
@@ -148,13 +150,13 @@
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;chop_backend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">.tch.chop</span> <span class="kn">import</span> <span class="n">chop</span>
 
-        <span class="k">return</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="p">,</span> <span class="n">subnormal</span><span class="p">,</span> <span class="n">rmode</span><span class="p">,</span> <span class="n">flip</span><span class="p">,</span> 
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="p">,</span> <span class="n">subnormal</span><span class="p">,</span> <span class="n">rmode</span><span class="p">,</span> <span class="n">flip</span><span class="p">,</span> 
                 <span class="n">explim</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">randfunc</span><span class="p">,</span> <span class="n">customs</span><span class="p">,</span> <span class="n">random_state</span><span class="p">)</span>
     
     <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;chop_backend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;jax&#39;</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">.jx.chop</span> <span class="kn">import</span> <span class="n">chop</span>
 
-        <span class="k">return</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="p">,</span> <span class="n">subnormal</span><span class="p">,</span> <span class="n">rmode</span><span class="p">,</span> <span class="n">flip</span><span class="p">,</span> 
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="p">,</span> <span class="n">subnormal</span><span class="p">,</span> <span class="n">rmode</span><span class="p">,</span> <span class="n">flip</span><span class="p">,</span> 
                 <span class="n">explim</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">randfunc</span><span class="p">,</span> <span class="n">customs</span><span class="p">,</span> <span class="n">random_state</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
 
@@ -162,10 +164,14 @@
 
         <span class="n">obj</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="p">,</span> <span class="n">subnormal</span><span class="p">,</span> <span class="n">rmode</span><span class="p">,</span> <span class="n">flip</span><span class="p">,</span> 
                 <span class="n">explim</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">randfunc</span><span class="p">,</span> <span class="n">customs</span><span class="p">,</span> <span class="n">random_state</span><span class="p">)</span>
+    
+    <span class="n">obj</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">obj</span><span class="o">.</span><span class="n">t</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The floating point format is with unit-roundoff of </span><span class="si">{:e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">u</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; ≈(2^&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">pyq_f</span><span class="o">.</span><span class="n">u</span><span class="p">)))</span><span class="o">+</span><span class="s2">&quot;).&quot;</span><span class="p">)</span>
         
-        <span class="n">obj</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="mi">2</span><span class="o">^</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">obj</span><span class="o">.</span><span class="n">t</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
-        
-        <span class="k">return</span> <span class="n">obj</span></div>
+    <span class="k">return</span> <span class="n">obj</span></div>
 </pre></div>
 
            </div>
