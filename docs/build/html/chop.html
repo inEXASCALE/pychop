@@ -134,6 +134,14 @@
 <span class="nb">print</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:</span><span class="mi">5</span><span class="p">])</span>
 </pre></div>
 </div>
+<p>To print out the unit-roundoff information, simply set <code class="docutils literal notranslate"><span class="pre">verbose=1</span></code>, use</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pyq_f</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The result is:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>The<span class="w"> </span>floating<span class="w"> </span>point<span class="w"> </span>format<span class="w"> </span>is<span class="w"> </span>with<span class="w"> </span>unit-roundoff<span class="w"> </span>of<span class="w"> </span><span class="m">4</span>.882812e-04<span class="w"> </span><span class="o">(</span>≈2^-11<span class="o">)</span>.
+</pre></div>
+</div>
 <p>The above example is for bit-level simulation for a small number of values, which is not a high performance implementaion, but rather a tool for illustration.</p>
 <p>One can depoy a direct setting to floating point arithmetic:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">simulate</span>

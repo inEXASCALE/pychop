@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
          p=0.5, randfunc=None, customs=None, random_state=0, verbose=0):
@@ -93,6 +94,6 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
     
     if verbose:
         print("The floating point format is with unit-roundoff of {:e}".format(
-            obj.u)+" ≈(2^"+str(int(np.log2(pyq_f.u)))+").")
+            obj.u)+" (≈2^"+str(int(np.log2(obj.u)))+").")
         
     return obj

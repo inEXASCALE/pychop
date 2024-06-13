@@ -51,6 +51,18 @@ Second, define parameter ``customs`` instead of ``prec``,
     y = nc(x)
     print(y[0, :5])
 
+To print out the unit-roundoff information, simply set ``verbose=1``, use
+
+.. code:: python
+    
+    pyq_f = chop('h', verbose=1)
+
+The result is:
+
+.. code:: bash
+
+    The floating point format is with unit-roundoff of 4.882812e-04 (≈2^-11).
+    
 
 The above example is for bit-level simulation for a small number of values, which is not a high performance implementaion, but rather a tool for illustration.
 
