@@ -54,16 +54,15 @@ def float_params(prec=None, binary=False, *argv):
         
         data = pd.DataFrame(columns=['', 'u', 'xmins', 'xmin', 'xmax', 'p', 'emins', 'emin', 'emax'])
         for j in np.arange(-2, len(precs)):
-            match j:
-                case -2:
-                    prec = 'q43'
-                    
-                case -1:
-                    prec = 'q52'
-            
-                case _:
-                    prec = precs[j]
-            
+            if j == -2:
+                prec = 'q43'
+                
+            elif j == -1:
+                prec = 'q52'
+        
+            else:
+                prec = precs[j]
+        
             (u, xmins, xmin, xmax, p, emins, emin, emax) = float_params(prec)
             
             if binary:
@@ -78,33 +77,32 @@ def float_params(prec=None, binary=False, *argv):
         return data
     
     else:
-        match prec:
-            case 'q43' | 'fp8-e4m3':
+            if prec in {'q43', 'fp8-e4m3'}:
                 p = 4
                 emax = 7
-            case 'q52' | 'fp8-e5m2':
+            elif prec in {'q52', 'fp8-e5m2'}:
                 p = 3
                 emax = 15
-            case 'b' | 'bfloat16':
+            elif prec in {'b', 'bfloat16'}:
                 p = 8
                 emax = 127  
-            case 'h' | 'half' | 'fp16':
+            elif prec in {'h', 'half', 'fp16'}:
                 p = 11
                 emax = 15
-            case 't' | 'tf32':
+            elif prec in {'t', 'tf32'}:
                 p = 11
                 emax = 127 
-            case 's' | 'single' | 'fp32':
+            elif prec in {'s', 'single', 'fp32'}:
                 p = 24
                 emax = 127
-            case 'd' | 'double' | 'fp64':
+            elif prec in {'d', 'double', 'fp64'}:
                 p = 53
                 emax = 1023
-            case 'q' | 'quadruple' | 'fp128':
+            elif prec in {'q', 'quadruple', 'fp128'}:
                 p = 113
                 emax = 16383
 
-            case _:
+            else:
                 raise ValueError('Please specify a parameter supported by the software.')
                 
         emin = 1 - emax
