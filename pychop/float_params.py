@@ -77,33 +77,33 @@ def float_params(prec=None, binary=False, *argv):
         return data
     
     else:
-            if prec in {'q43', 'fp8-e4m3'}:
-                p = 4
-                emax = 7
-            elif prec in {'q52', 'fp8-e5m2'}:
-                p = 3
-                emax = 15
-            elif prec in {'b', 'bfloat16'}:
-                p = 8
-                emax = 127  
-            elif prec in {'h', 'half', 'fp16'}:
-                p = 11
-                emax = 15
-            elif prec in {'t', 'tf32'}:
-                p = 11
-                emax = 127 
-            elif prec in {'s', 'single', 'fp32'}:
-                p = 24
-                emax = 127
-            elif prec in {'d', 'double', 'fp64'}:
-                p = 53
-                emax = 1023
-            elif prec in {'q', 'quadruple', 'fp128'}:
-                p = 113
-                emax = 16383
+        if prec in {'q43', 'fp8-e4m3'}:
+            p = 4
+            emax = 7
+        elif prec in {'q52', 'fp8-e5m2'}:
+            p = 3
+            emax = 15
+        elif prec in {'b', 'bfloat16'}:
+            p = 8
+            emax = 127  
+        elif prec in {'h', 'half', 'fp16'}:
+            p = 11
+            emax = 15
+        elif prec in {'t', 'tf32'}:
+            p = 11
+            emax = 127 
+        elif prec in {'s', 'single', 'fp32'}:
+            p = 24
+            emax = 127
+        elif prec in {'d', 'double', 'fp64'}:
+            p = 53
+            emax = 1023
+        elif prec in {'q', 'quadruple', 'fp128'}:
+            p = 113
+            emax = 16383
 
-            else:
-                raise ValueError('Please specify a parameter supported by the software.')
+        else:
+            raise ValueError('Please specify a parameter supported by the software.')
                 
         emin = 1 - emax
         emins = emin + 1 - p   
