@@ -14,29 +14,28 @@ def main():
     format_prec = None
 
     for p in np.arange(0, 5):
-        match p:
-            case 0:
-                prec = 'custom' 
-                t = 5
-                emax = 3
-                params = customs(t, emax)
-                format_prec = prec + '  '
-                
-            case 1:
-                prec = 'bfloat16'
-                format_prec = prec + ''
-                
-            case 2:
-                prec = 'fp16'
-                format_prec = prec + '    '
-                
-            case 3:
-                prec = 'fp8-e4m3'
-                format_prec = prec + ''
-                
-            case 4:
-                prec = 'fp8-e5m2'
-                format_prec = prec + ''
+        if p == 0:
+            prec = 'custom' 
+            t = 5
+            emax = 3
+            params = customs(t, emax)
+            format_prec = prec + '  '
+            
+        elif p == 1:
+            prec = 'bfloat16'
+            format_prec = prec + ''
+            
+        elif p == 2:
+            prec = 'fp16'
+            format_prec = prec + '    '
+            
+        elif p == 3:
+            prec = 'fp8-e4m3'
+            format_prec = prec + ''
+            
+        elif p == 4:
+            prec = 'fp8-e5m2'
+            format_prec = prec + ''
 
 
         for i in np.arange(1, 7):
