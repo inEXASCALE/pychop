@@ -140,56 +140,55 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
     if randfunc is None:
         randfunc = lambda n: np.random.randint(0, 1, n)
+        
+    if rmode == 1:
+        y = np.abs(x)
+        u = np.round(y - ((y % 2) == 0.5))
+        
+        u[u == -1] = 0 # Special case, negative argument to ROUND.
             
-    match rmode:
-        case 1:
-            y = np.abs(x)
-            u = np.round(y - ((y % 2) == 0.5))
+        y = np.sign(x) * u
+        
+    elif rmode == 2:
+        y = np.ceil(x)
+        
+    elif rmode == 3:
+        y = np.floor(x)
+        
+    elif rmode == 4:
+        y = ((x >= 0) | (x == -np.inf)) * np.floor(x) + ((x < 0) | (x == np.inf)) * np.ceil(x)
+        
+    elif rmode == 5 | 6:
+        y = np.abs(x)
+        frac = y - np.floor(y)
+        k = np.nonzero(frac != 0)[0]
+        
+        if len(k) == 0:
+            y = x 
+        else:   
+            # Uniformly distributed random numbers
             
-            u[u == -1] = 0 # Special case, negative argument to ROUND.
+            rnd = randfunc(len(k))
+            
+            vals = frac[k]
+            
+            if len(vals.shape) == 2:
+                vals = return_column_order(vals)
+            else:
+                pass
+            
+            if rmode == 5: # Round up or down with probability prop. to distance.
+                j = rnd <= vals
+            elif rmode == 6: # Round up or down with equal probability.       
+                j = rnd <= 0.5
                 
-            y = np.sign(x) * u
+            y[k[j==0]] = np.ceil(y[k[j==0]])
+            y[k[j!=0]] = np.floor(y[k[j!=0]])
+            y = sign(x)*y
             
-        case 2:
-            y = np.ceil(x)
-            
-        case 3:
-            y = np.floor(x)
-            
-        case 4:
-            y = ((x >= 0) | (x == -np.inf)) * np.floor(x) + ((x < 0) | (x == np.inf)) * np.ceil(x)
-            
-        case 5 | 6:
-            y = np.abs(x)
-            frac = y - np.floor(y)
-            k = np.nonzero(frac != 0)[0]
-            
-            if len(k) == 0:
-                y = x 
-            else:   
-                # Uniformly distributed random numbers
-                
-                rnd = randfunc(len(k))
-                
-                vals = frac[k]
-                
-                if len(vals.shape) == 2:
-                    vals = return_column_order(vals)
-                else:
-                    pass
-                
-                if rmode == 5: # Round up or down with probability prop. to distance.
-                    j = rnd <= vals
-                elif rmode == 6: # Round up or down with equal probability.       
-                    j = rnd <= 0.5
-                    
-                y[k[j==0]] = np.ceil(y[k[j==0]])
-                y[k[j!=0]] = np.floor(y[k[j!=0]])
-                y = sign(x)*y
-                
-        case _:
-            raise ValueError('Unsupported value of rmode.')
-            
+    else:
+        raise ValueError('Unsupported value of rmode.')
+          
     if flip:
         sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)
