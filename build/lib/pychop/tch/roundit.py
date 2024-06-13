@@ -43,7 +43,6 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, device='cpu', **kwargs):
 
 
 def round_towards_minus_inf(x, flip=0, p=0.5, t=24, device='cpu', **kwargs):
-
     sign = lambda x: torch.sign(x) + (x==0)
     y = torch.floor(x)
             

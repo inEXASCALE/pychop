@@ -11,7 +11,7 @@ def quant(bits=8, sign=1, zpoint=1, rd_func=None, clip_range=None, epsilon=1e-12
         Whether or not to quantize the value to symmetric integer range.
 
     zpoint : bool, default=1
-        Whether or not to set the zero point to zero. If `zpoint=0`, then the quantized range must be symmetric.
+        Whether or not to compute the zero point. If `zpoint=0`, then the quantized range must be symmetric.
         
     rd_func : function, default=None
         The rounding function used for the quantization. The default is round to nearest.

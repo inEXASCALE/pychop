@@ -1,7 +1,8 @@
 import os
+import numpy as np
 
 def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
-         p=0.5, randfunc=None, customs=None, random_state=0):
+         p=0.5, randfunc=None, customs=None, random_state=0, verbose=0):
     """
     Parameters
     ----------
@@ -14,15 +15,16 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
         
     rmode : int, default=1
         The supported rounding modes include:
-        1. Round to nearest using round to even last bit to break ties (the default).
-        2. Round towards plus infinity (round up).
-        3. Round towards minus infinity (round down).
-        4. Round towards zero.
-        5. Stochastic rounding - round to the next larger or next smaller
-            floating-point number with probability proportional to the distance 
-            to those floating-point numbers.
-        6. Stochastic rounding - round to the next larger or next smaller 
-            floating-point number with equal probability.
+            1. Round to nearest using round to even last bit to break ties (the default).
+            2. Round towards plus infinity (round up).
+            3. Round towards minus infinity (round down).
+            4. Round towards zero.
+            5. Stochastic rounding 
+                round to the next larger or next smaller floating-point number
+                with probability proportional to the distance to those floating-point numbers.
+            6. Stochastic rounding
+                round to the next larger or next smaller 
+                floating-point number with equal probability.
 
     flip : boolean, default=False
         Default is False; If ``flip`` is True, then each element
@@ -50,13 +52,19 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
 
-        
+    verbose : int | bool, defaul=0
+        Whether or not to print out the unit-roundoff.
+
+    Properties
+    ----------
+    u : float,
+        Unit roundoff corresponding to the floating point format
+
     Methods
     ----------
     chop(x) 
         Method that convert ``x`` to the user-specific arithmetic format.
         
-
     Returns 
     ----------
     chop | object,
@@ -67,17 +75,25 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
     if os.environ['chop_backend'] == 'torch':
         from .tch.chop import chop
 
-        return chop(prec, subnormal, rmode, flip, 
+        obj = chop(prec, subnormal, rmode, flip, 
                 explim, device, p, randfunc, customs, random_state)
     
     elif os.environ['chop_backend'] == 'jax':
         from .jx.chop import chop
 
-        return chop(prec, subnormal, rmode, flip, 
+        obj = chop(prec, subnormal, rmode, flip, 
                 explim, p, randfunc, customs, random_state)
     else:
 
         from .np.chop import chop
 
-        return chop(prec, subnormal, rmode, flip, 
+        obj = chop(prec, subnormal, rmode, flip, 
                 explim, p, randfunc, customs, random_state)
+    
+    obj.u = 2**(1 - obj.t) / 2
+    
+    if verbose:
+        print("The floating point format is with unit-roundoff of {:e}".format(
+            obj.u)+" (≈2^"+str(int(np.log2(obj.u)))+").")
+        
+    return obj

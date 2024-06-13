@@ -7,5 +7,5 @@ from .chop import chop
 from .quant import quant
 
 
-__version__ = '0.2.3'  
+__version__ = '0.2.4'  
 backend('numpy')

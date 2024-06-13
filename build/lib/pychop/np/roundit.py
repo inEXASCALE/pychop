@@ -115,6 +115,7 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
         y = x 
     else:   
         # Uniformly distributed random numbers
+        sign = lambda x: np.sign(x) + (x==0)
         rnd = randfunc(frac.shape)
         j = rnd <= 0.5
         y[j] = np.ceil(y[j])

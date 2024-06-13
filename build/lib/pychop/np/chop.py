@@ -156,6 +156,7 @@ class chop(object):
         else:
             raise ValueError('Please enter valid prec value.')
 
+        self.u = None
     
             
     def __call__(self, x):
