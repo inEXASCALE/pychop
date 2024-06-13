@@ -13,42 +13,41 @@ def binary_mark(value):
         return str(value)
 
 def float_params(prec=None, binary=False, *argv):
-    """
+    """ Method to print a table showing all the parameters for all the precisions.
+
     Parameters
     -----------
-    prec | str, 
-        'q43', 'fp8-e4m3'         - NVIDIA quarter precision (4 exponent bits,
-                                    3 significand bits)
-        'q52', 'fp8-e5m2'         - NVIDIA quarter precision (5 exponent bits,
-                                    2 significand bits)
-        'b', 'bfloat16'           - bfloat16
-        'h', 'half', 'fp16'       - IEEE half precision
-        't', 'tf32'               - NVIDIA tf32
-        's', 'single', 'fp32'     - IEEE single precision
-        'd', 'double', 'fp64'     - IEEE double precision (the default)
-        'q', 'quadruple', 'fp128' - IEEE quadruple precision
-
-    For all these arithmetics the floating-point numbers have the form
-    s * 2^e * d_0.d_1d_2...d_{t-1} where s = 1 or -1, e is the exponent
-    and each d_i is 0 or 1, with d_0 = 1 for normalized numbers.
-    With no input and output arguments, FLOAT_PARAMS prints a table showing
-    all the parameters for all the precisions.
-    Note: xmax and xmin are not representable in double precision for
-   'quadruple'.
+    prec : str, 
+        * 'q43', 'fp8-e4m3' - NVIDIA quarter precision (4 exponent bits, 3 significand bits).
+        * 'q52', 'fp8-e5m2' - NVIDIA quarter precision (5 exponent bits, 2 significand bits).
+        * 'b', 'bfloat16' - bfloat16.
+        * 'h', 'half', 'fp16' - IEEE half precision.
+        * 't', 'tf32' - NVIDIA tf32.
+        * 's', 'single', 'fp32' - IEEE single precision.
+        * 'd', 'double', 'fp64' - IEEE double precision (the default).
+        * 'q', 'quadruple', 'fp128' - IEEE quadruple precision.
+        Note xmax and xmin are not representable in double precision for 'quadruple'.
 
     Returns
-    -----------
-     u:     the unit roundoff,
-     xmins: the smallest positive (subnormal) floating-point number,
-     xmin:  the smallest positive normalized floating-point number,
-     xmax:  the largest floating-point number,
-     p:     the number of binary digits in the significand (including the
-            implicit leading bit),
-     emins  exponent of xmins,
-     emin:  exponent of xmin,
-     emax:  exponent of xmax.
+    -------
+    u:     
+        The unit roundoff,
+    xmins: 
+        The smallest positive (subnormal) floating-point number,
+    xmin:  
+        The smallest positive normalized floating-point number,
+    xmax:  
+        The largest floating-point number,
+    p:     
+        The number of binary digits in the significand (including the implicit leading bit),
+    emins:
+        exponent of xmins,
+    emin:
+        Exponent of xmin,
+    emax:  
+        Exponent of xmax.
     
-    """                                                 
+    """                                                            
     if prec is None:
         precs = 'bhtsdq'
         
