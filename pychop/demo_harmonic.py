@@ -1,4 +1,6 @@
 import numpy as np
+from .np.chop import customs
+from .chop import chop
 import copy
 
 
@@ -46,7 +48,7 @@ def main():
 
             while 1:
                 sold = copy.deepcopy(s)
-                s = cp.chop(s + cp.chop(1/n))
+                s = cp(s + cp(1/n))
                 if s == sold:
                     break
                 n = n + 1
