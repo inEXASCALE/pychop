@@ -32,7 +32,7 @@ The code example can be found on the [quick start page](https://github.com/chenx
 
 ### Install
 
-The proper running environment of ``pychop``  should by Python 3.9, which relies on the following dependencies:
+The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies:
 - numpy >=1.7.3
 - pandas >=2.0
 - torch
