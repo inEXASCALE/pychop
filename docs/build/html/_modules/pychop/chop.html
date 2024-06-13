@@ -42,6 +42,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../start.html">Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../chop.html">Floating point simuluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quant.html">Integer quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../fix_point.html">Fixed point quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
 </ul>
@@ -123,7 +126,12 @@
 <span class="sd">    random_state : int, default=0</span>
 <span class="sd">        Random seed set for stochastic rounding settings.</span>
 
-<span class="sd">        </span>
+<span class="sd">    </span>
+<span class="sd">    Properties</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u : float,</span>
+<span class="sd">        Unit roundoff corresponding to the floating point format</span>
+
 <span class="sd">    Methods</span>
 <span class="sd">    ----------</span>
 <span class="sd">    chop(x) </span>
@@ -152,8 +160,12 @@
 
         <span class="kn">from</span> <span class="nn">.np.chop</span> <span class="kn">import</span> <span class="n">chop</span>
 
-        <span class="k">return</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="p">,</span> <span class="n">subnormal</span><span class="p">,</span> <span class="n">rmode</span><span class="p">,</span> <span class="n">flip</span><span class="p">,</span> 
-                <span class="n">explim</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">randfunc</span><span class="p">,</span> <span class="n">customs</span><span class="p">,</span> <span class="n">random_state</span><span class="p">)</span></div>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="p">,</span> <span class="n">subnormal</span><span class="p">,</span> <span class="n">rmode</span><span class="p">,</span> <span class="n">flip</span><span class="p">,</span> 
+                <span class="n">explim</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">randfunc</span><span class="p">,</span> <span class="n">customs</span><span class="p">,</span> <span class="n">random_state</span><span class="p">)</span>
+        
+        <span class="n">obj</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="mi">2</span><span class="o">^</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">obj</span><span class="o">.</span><span class="n">t</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        
+        <span class="k">return</span> <span class="n">obj</span></div>
 </pre></div>
 
            </div>
@@ -163,7 +175,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, InEXASCALE computing.</p>
+    <p>&#169; Copyright 2024, InEXASCALE computing.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -50,7 +50,12 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
 
-        
+    
+    Properties
+    ----------
+    u : float,
+        Unit roundoff corresponding to the floating point format
+
     Methods
     ----------
     chop(x) 
@@ -79,5 +84,9 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
 
         from .np.chop import chop
 
-        return chop(prec, subnormal, rmode, flip, 
+        obj = chop(prec, subnormal, rmode, flip, 
                 explim, p, randfunc, customs, random_state)
+        
+        obj.u = 2^(1 - obj.t) / 2
+        
+        return obj

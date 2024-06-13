@@ -6,14 +6,14 @@ import logging
 
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
-VERSION = "0.2.3"
+VERSION = "0.2.4"
 SETREQUIRES=["numpy", "torch", "jax"]
-MAINTAINER="Erin Caron, Xinye Chen, Cheng Kang"
+MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
 INREUIRES=["numpy>=1.7.2"]
 
 
-AUTHORS="Erin Caron, Xinye Chen, Cheng Kang"
+AUTHORS="InEXASCALE"
 
 with open("README.md", 'r') as f:
     long_description = f.read()

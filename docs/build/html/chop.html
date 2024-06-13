@@ -78,6 +78,73 @@
              
   <section id="floating-point-simuluation">
 <h1>Floating point simuluation<a class="headerlink" href="#floating-point-simuluation" title="Permalink to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">pychop</span></code> built-in method <code class="docutils literal notranslate"><span class="pre">chop</span></code> supports the following precision:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Supported floating point precisions</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>‘q43’ and ‘fp8-e4m3’</p></td>
+<td><p>NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits)</p></td>
+</tr>
+<tr class="row-odd"><td><p>‘b’ and ‘bfloat16’</p></td>
+<td><p>bfloat16</p></td>
+</tr>
+<tr class="row-even"><td><p>‘h’ and ‘half’ and ‘fp16’</p></td>
+<td><p>IEEE half precision (the default)</p></td>
+</tr>
+<tr class="row-odd"><td><p>‘s’ and ‘single’ and ‘fp32’</p></td>
+<td><p>IEEE single precision</p></td>
+</tr>
+<tr class="row-even"><td><p>‘d’ and ‘double’ and ‘fp64’</p></td>
+<td><p>IEEE double precision</p></td>
+</tr>
+<tr class="row-odd"><td><p>‘c’ and ‘custom’</p></td>
+<td><p>custom format</p></td>
+</tr>
+</tbody>
+</table>
+<p>Besides, the supported rounding modes include (user can specify it by setting the parameter <code class="docutils literal notranslate"><span class="pre">rmode</span></code> in terms of the number):</p>
+<ol class="arabic simple">
+<li><p>Round to nearest using round to even last bit to break ties (the default).</p></li>
+<li><p>Round towards plus infinity (round up).</p></li>
+<li><p>Round towards minus infinity (round down).</p></li>
+<li><p>Round towards zero.</p></li>
+<li><p>Stochastic rounding - round to the next larger or next smaller floating-point number with probability proportional to the distance to those floating-point numbers.</p></li>
+<li><p>Stochastic rounding - round to the next larger or next smaller  floating-point number with equal probability.</p></li>
+</ol>
+<p>Subnormal numbers is supported, they are flushed to zero if it not considered (by setting <code class="docutils literal notranslate"><span class="pre">subnormal</span></code> to 0).</p>
+<p><code class="docutils literal notranslate"><span class="pre">pychop</span></code> also supports customized precisions One can also use customized floating point arithmetic by defining precision:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">customs</span>
+<span class="n">prec</span> <span class="o">=</span> <span class="n">customs</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">emax</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="c1"># use precision 2 and set maximum exponenet of 10</span>
+</pre></div>
+</div>
+<p>Second, define parameter <code class="docutils literal notranslate"><span class="pre">customs</span></code> instead of <code class="docutils literal notranslate"><span class="pre">prec</span></code>,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">chop</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span> <span class="c1"># use x = torch.rand(size=(10000, 10000)) for Torch backend</span>
+<span class="n">nc</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="n">customs</span><span class="o">=</span><span class="n">prec</span><span class="p">,</span> <span class="n">rmode</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">nc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:</span><span class="mi">5</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The above example is for bit-level simulation for a small number of values, which is not a high performance implementaion, but rather a tool for illustration.</p>
+<p>One can depoy a direct setting to floating point arithmetic:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">simulate</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="n">si</span> <span class="o">=</span> <span class="n">simulate</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">emax</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">sign</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">subnormal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rmode</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">rounding</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:</span><span class="mi">5</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Note that if emin is not set, then IEEE 754 assumption is used which means emin = 1 - emax</p>
 </section>
 
 

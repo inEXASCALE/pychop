@@ -8,8 +8,14 @@ which is pravalent on modern machine.  ``pychop`` is a Python package for simula
 and quantization in modern machine, it supports NumPy, Torch,  or JAX backend. 
 
 
+``pychop`` mainly contains three modules for quantization simulation:
+
+* chop: for low precision floating point simulation
+* quant: for integer quantization
+* fixed_point: for fixed point quantization
+
 Installation guide
-------------------------------
+--------------------
 ``pychop`` has the following dependencies for its functionality:
 
    * numpy>=1.21
@@ -33,7 +39,7 @@ To check if the instalment is successful, one can load the package, simple use
 
 
 Floating point information
-------------------------------
+----------------------------
 To give a shot, one may print information of various precision formats:
 
 .. code:: python
