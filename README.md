@@ -53,6 +53,13 @@ This project is supported by the European Union (ERC, [InEXASCALE](https://www.k
  Union or the European Research Council. Neither the European Union nor the granting
  authority can be held responsible for them.
 
+
+To do 
+- Generate data using Nick's chop
+- Expand unittests for ``pychop``
+- Write quant_dot
+- Write FMA
+
 ### References
 
 [1] Nicholas J. Higham and Srikara Pranesh, Simulating Low Precision Floating-Point Arithmetic, SIAM J. Sci. Comput., 2019.
