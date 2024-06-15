@@ -41,7 +41,6 @@ To install the current current release via PIP use:
 ### The supported floating point formats
 
 
-<img src=https://github.com/chenxinye/pychop/blob/main/data/fmt2.png width=560 />
 The supported floating point arithmetic formats include:
 
 | format | description |
