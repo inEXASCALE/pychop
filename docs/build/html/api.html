@@ -249,45 +249,39 @@ There are 6 options for rounding:
 <dl class="py class">
 <dt class="sig sig-object py" id="pychop.float_params">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">float_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">argv</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/float_params.html#float_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.float_params" title="Permalink to this definition"></a></dt>
-<dd><blockquote>
-<div><dl>
-<dt>prec | str, </dt><dd><dl class="simple">
-<dt>‘q43’, ‘fp8-e4m3’         - NVIDIA quarter precision (4 exponent bits,</dt><dd><p>3 significand bits)</p>
-</dd>
-<dt>‘q52’, ‘fp8-e5m2’         - NVIDIA quarter precision (5 exponent bits,</dt><dd><p>2 significand bits)</p>
+<dd><p>Method to print a table showing all the parameters for all the precisions.</p>
+<dl>
+<dt>prec<span class="classifier">str, </span></dt><dd><ul class="simple">
+<li><p>‘q43’, ‘fp8-e4m3’ - NVIDIA quarter precision (4 exponent bits, 3 significand bits).</p></li>
+<li><p>‘q52’, ‘fp8-e5m2’ - NVIDIA quarter precision (5 exponent bits, 2 significand bits).</p></li>
+<li><p>‘b’, ‘bfloat16’ - bfloat16.</p></li>
+<li><p>‘h’, ‘half’, ‘fp16’ - IEEE half precision.</p></li>
+<li><p>‘t’, ‘tf32’ - NVIDIA tf32.</p></li>
+<li><p>‘s’, ‘single’, ‘fp32’ - IEEE single precision.</p></li>
+<li><p>‘d’, ‘double’, ‘fp64’ - IEEE double precision (the default).</p></li>
+<li><p>‘q’, ‘quadruple’, ‘fp128’ - IEEE quadruple precision.</p></li>
+</ul>
+<p>Note xmax and xmin are not representable in double precision for ‘quadruple’.</p>
 </dd>
 </dl>
-<p>‘b’, ‘bfloat16’           - bfloat16
-‘h’, ‘half’, ‘fp16’       - IEEE half precision
-‘t’, ‘tf32’               - NVIDIA tf32
-‘s’, ‘single’, ‘fp32’     - IEEE single precision
-‘d’, ‘double’, ‘fp64’     - IEEE double precision (the default)
-‘q’, ‘quadruple’, ‘fp128’ - IEEE quadruple precision</p>
+<dl class="simple">
+<dt>u:     </dt><dd><p>The unit roundoff,</p>
+</dd>
+<dt>xmins: </dt><dd><p>The smallest positive (subnormal) floating-point number,</p>
+</dd>
+<dt>xmin:  </dt><dd><p>The smallest positive normalized floating-point number,</p>
+</dd>
+<dt>xmax:  </dt><dd><p>The largest floating-point number,</p>
+</dd>
+<dt>p:     </dt><dd><p>The number of binary digits in the significand (including the implicit leading bit),</p>
+</dd>
+<dt>emins:</dt><dd><p>exponent of xmins,</p>
+</dd>
+<dt>emin:</dt><dd><p>Exponent of xmin,</p>
+</dd>
+<dt>emax:  </dt><dd><p>Exponent of xmax.</p>
 </dd>
 </dl>
-<p>For all these arithmetics the floating-point numbers have the form
-s * 2^e * d_0.d_1d_2…d_{t-1} where s = 1 or -1, e is the exponent
-and each d_i is 0 or 1, with d_0 = 1 for normalized numbers.
-With no input and output arguments, FLOAT_PARAMS prints a table showing
-all the parameters for all the precisions.
-Note: xmax and xmin are not representable in double precision for</p>
-</div></blockquote>
-<p>‘quadruple’.</p>
-<blockquote>
-<div><blockquote>
-<div><p>u:     the unit roundoff,
-xmins: the smallest positive (subnormal) floating-point number,
-xmin:  the smallest positive normalized floating-point number,
-xmax:  the largest floating-point number,
-p:     the number of binary digits in the significand (including the</p>
-<blockquote>
-<div><p>implicit leading bit),</p>
-</div></blockquote>
-<p>emins  exponent of xmins,
-emin:  exponent of xmin,
-emax:  exponent of xmax.</p>
-</div></blockquote>
-</div></blockquote>
 </dd></dl>
 
 </section>

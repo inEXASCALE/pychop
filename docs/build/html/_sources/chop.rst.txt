@@ -1,7 +1,19 @@
 Floating point simuluation
 =====================================================
 
+
+.. image:: figures/fmt.png
+
+A floating point number systems can be represented by
+
+.. math::
+
+    y = \pm m \times \beta^{e-t}
+
+
+
 ``pychop`` built-in method ``chop`` supports the following precision:
+
 
 
 .. csv-table:: Supported floating point precisions
