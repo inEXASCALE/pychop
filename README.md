@@ -35,7 +35,7 @@ The code example can be found on the [quick start page](https://github.com/chenx
 
 The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies:
 - numpy >=1.7.3 ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)
-- pandas >=2.0
+- pandas >=2.0 ![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
 - torch ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
 - jax ![jax_badge][jax_badge_link]
 
