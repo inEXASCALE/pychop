@@ -4,9 +4,7 @@
 [![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.python.org/pypi/pychop/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
-![jax_badge][jax_badge_link]
-![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
-![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)
+
 
 ## A Python package for simulating low precision arithmetic
 
@@ -36,10 +34,13 @@ The code example can be found on the [quick start page](https://github.com/chenx
 ### Install
 
 The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies:
-- numpy >=1.7.3
+- numpy >=1.7.3 ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)
 - pandas >=2.0
-- torch
-- jax
+- torch ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
+- jax ![jax_badge][jax_badge_link]
+
+
+
 
 To install the current current release via PIP use:
 
