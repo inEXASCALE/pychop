@@ -36,6 +36,10 @@ The supported floating point arithmetic formats include:
 
 The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
 
+
+<img src=https://raw.githubusercontent.com/chenxinye/pychop/main/fmt2.png width=800 />
+
+
 ### Install
 
 The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies:
