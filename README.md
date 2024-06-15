@@ -22,7 +22,7 @@ This package provides consistent APIs to the chop software by Nick higham as muc
 ### The supported floating point formats
 
 
-<img src=https://github.com/chenxinye/pychop/blob/main/data/fmt2.png width=800 />
+<img src=https://github.com/chenxinye/pychop/blob/main/data/fmt2.png width=360 />
 The supported floating point arithmetic formats include:
 
 | format | description |
