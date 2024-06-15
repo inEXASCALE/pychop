@@ -6,6 +6,7 @@
 [![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
 ![jax_badge][jax_badge_link]
 ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
+![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)
 
 ## A Python package for simulating low precision arithmetic
 
