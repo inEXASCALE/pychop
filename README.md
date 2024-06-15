@@ -37,7 +37,7 @@ The supported floating point arithmetic formats include:
 The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
 
 
-<img src=https://raw.githubusercontent.com/chenxinye/pychop/main/fmt2.png width=800 />
+<img src=https://github.com/chenxinye/pychop/blob/main/data/fmt2.png width=800 />
 
 
 ### Install
