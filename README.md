@@ -19,25 +19,6 @@ With the increasing availability and support of lower-precision floating-point a
 
 This package provides consistent APIs to the chop software by Nick higham as much as possible.  For the first four rounding mode,  with the same user-specific parameters, ``pychop`` generates exactly same result as that of the chop software. For stochastic rounding (``rmode`` as 5 and 6), both output same results if random numbers is given the same. 
 
-### The supported floating point formats
-
-
-<img src=https://github.com/chenxinye/pychop/blob/main/data/fmt2.png width=360 />
-The supported floating point arithmetic formats include:
-
-| format | description |
-| ------------- | ------------- |
-| 'q43', 'fp8-e4m3'         | NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits) |
-| 'q52', 'fp8-e5m2'         | NVIDIA quarter precision (5 exponent bits, 2 significand bits) |
-|  'b', 'bfloat16'          | bfloat16 |
-|  'h', 'half', 'fp16'      | IEEE half precision (the default) |
-|  's', 'single', 'fp32'    | IEEE single precision |
-|  'd', 'double', 'fp64'    | IEEE double precision |
-|  'c', 'custom'            | custom format |
-
-The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
-
-
 
 
 ### Install
@@ -55,6 +36,27 @@ The proper running environment of ``pychop``  should by Python 3, which relies o
 To install the current current release via PIP use:
 
 `pip install pychop`
+
+
+### The supported floating point formats
+
+
+<img src=https://github.com/chenxinye/pychop/blob/main/data/fmt2.png width=560 />
+The supported floating point arithmetic formats include:
+
+| format | description |
+| ------------- | ------------- |
+| 'q43', 'fp8-e4m3'         | NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits) |
+| 'q52', 'fp8-e5m2'         | NVIDIA quarter precision (5 exponent bits, 2 significand bits) |
+|  'b', 'bfloat16'          | bfloat16 |
+|  'h', 'half', 'fp16'      | IEEE half precision (the default) |
+|  's', 'single', 'fp32'    | IEEE single precision |
+|  'd', 'double', 'fp64'    | IEEE double precision |
+|  'c', 'custom'            | custom format |
+
+The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
+
+
 
 
 ### Contributing
