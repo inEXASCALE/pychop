@@ -22,6 +22,7 @@ This package provides consistent APIs to the chop software by Nick higham as muc
 ### The supported floating point formats
 
 
+<img src=https://github.com/chenxinye/pychop/blob/main/data/fmt2.png width=800 />
 The supported floating point arithmetic formats include:
 
 | format | description |
@@ -37,7 +38,6 @@ The supported floating point arithmetic formats include:
 The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
 
 
-<img src=https://github.com/chenxinye/pychop/blob/main/data/fmt2.png width=800 />
 
 
 ### Install
