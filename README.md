@@ -74,6 +74,7 @@ To do
 - Expand unittests for ``pychop``
 - Write quant_dot
 - Write FMA
+- BLAS
 
 ### References
 
