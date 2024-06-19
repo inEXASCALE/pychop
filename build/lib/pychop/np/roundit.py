@@ -140,7 +140,8 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
     if randfunc is None:
         randfunc = lambda n: np.random.randint(0, 1, n)
-        
+            
+
     if rmode == 1:
         y = np.abs(x)
         u = np.round(y - ((y % 2) == 0.5))
@@ -188,7 +189,7 @@ def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
             
     else:
         raise ValueError('Unsupported value of rmode.')
-          
+            
     if flip:
         sign = lambda x: np.sign(x) + (x==0)
         temp = np.random.randint(low=0, high=1, size=y.shape)

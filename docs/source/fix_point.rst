@@ -61,7 +61,7 @@ The backend of NumPy is performed by:
 .. code:: python
 
     pychop.backend('numpy')
-    pyq_f = pychop.fixed_point(ibits=4, fbits=4)
+    pyq_f = pychop.fpoint(ibits=4, fbits=4)
     pyq_f(X_np)
 
 The backend of Torch is performed by:
@@ -69,7 +69,7 @@ The backend of Torch is performed by:
 .. code:: python
 
     pychop.backend('torch')
-    pyq_f = pychop.fixed_point()
+    pyq_f = pychop.fpoint()
     pyq_f(X_th)
 
 The backend of JAX is performed by:
@@ -77,7 +77,7 @@ The backend of JAX is performed by:
 .. code:: python
 
     pychop.backend('jax')
-    pyq_f = pychop.fixed_point()
+    pyq_f = pychop.fpoint()
     pyq_f(X_jx)
 
 [1] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks for biomedical image

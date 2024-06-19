@@ -140,56 +140,55 @@ def stochastic_rounding_equal(key, x, flip=0, p=0.5, t=24, randfunc=None):
 def roundit_test(key, x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
     if randfunc is None:
         randfunc = lambda n: random.randint(key, shape=n, minval=0, maxval=1)
+        
+    if rmode == 1:
+        y = jnp.abs(x)
+        u = jnp.round(y - ((y % 2) == 0.5))
+        
+        u = u.at[u == -1].set(0) # Special case, negative argument to ROUND.
             
-    match rmode:
-        case 1:
-            y = jnp.abs(x)
-            u = jnp.round(y - ((y % 2) == 0.5))
+        y = jnp.sign(x) * u
+        
+    elif rmode == 2:
+        y = jnp.ceil(x)
+        
+    elif rmode == 3:
+        y = jnp.floor(x)
+        
+    elif rmode == 4:
+        y = ((x >= 0) | (x == -jnp.inf)) * jnp.floor(x) + ((x < 0) | (x == jnp.inf)) * jnp.ceil(x)
+        
+    elif rmode == 5 | 6:
+        y = jnp.abs(x)
+        frac = y - jnp.floor(y)
+        k = jnp.nonzero(frac != 0)[0]
+        
+        if len(k) == 0:
+            y = x 
+        else:   
+            # Uniformly distributed random numbers
             
-            u = u.at[u == -1].set(0) # Special case, negative argument to ROUND.
+            rnd = randfunc(len(k))
+            
+            vals = frac[k]
+            
+            if len(vals.shape) == 2:
+                vals = return_column_order(vals)
+            else:
+                pass
+            
+            if rmode == 5: # Round up or down with probability prop. to distance.
+                j = rnd <= vals
+            elif rmode == 6: # Round up or down with equal probability.       
+                j = rnd <= 0.5
                 
-            y = jnp.sign(x) * u
+            y = y.at[k[j==0]].set(jnp.ceil(y[k[j==0]]))
+            y = y.set[k[j!=0]].set(jnp.floor(y[k[j!=0]]))
+            y = sign(x)*y
             
-        case 2:
-            y = jnp.ceil(x)
-            
-        case 3:
-            y = jnp.floor(x)
-            
-        case 4:
-            y = ((x >= 0) | (x == -jnp.inf)) * jnp.floor(x) + ((x < 0) | (x == jnp.inf)) * jnp.ceil(x)
-            
-        case 5 | 6:
-            y = jnp.abs(x)
-            frac = y - jnp.floor(y)
-            k = jnp.nonzero(frac != 0)[0]
-            
-            if len(k) == 0:
-                y = x 
-            else:   
-                # Uniformly distributed random numbers
-                
-                rnd = randfunc(len(k))
-                
-                vals = frac[k]
-                
-                if len(vals.shape) == 2:
-                    vals = return_column_order(vals)
-                else:
-                    pass
-                
-                if rmode == 5: # Round up or down with probability prop. to distance.
-                    j = rnd <= vals
-                elif rmode == 6: # Round up or down with equal probability.       
-                    j = rnd <= 0.5
-                    
-                y = y.at[k[j==0]].set(jnp.ceil(y[k[j==0]]))
-                y = y.set[k[j!=0]].set(jnp.floor(y[k[j!=0]]))
-                y = sign(x)*y
-                
-        case _:
-            raise ValueError('Unsupported value of rmode.')
-            
+    else:
+        raise ValueError('Unsupported value of rmode.')
+        
     if flip:
         sign = lambda x: jnp.sign(x) + (x==0)
         temp = random.randint(key, shape=y.shape, minval=0, maxval=1)

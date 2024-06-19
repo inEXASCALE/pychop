@@ -6,6 +6,7 @@ pychop/chop.py
 pychop/demo_harmonic.py
 pychop/fixed_point.py
 pychop/float_params.py
+pychop/qtrain.py
 pychop/quant.py
 pychop/set_backend.py
 pychop/simulate.py

@@ -1,6 +1,6 @@
 import os
 
-class fixed_point(object):
+class fpoint(object):
     """
     Parameters
     ----------
