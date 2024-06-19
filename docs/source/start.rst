@@ -8,7 +8,18 @@ The main function of the ``pychop`` is the method ``chop``, which is loaded by
     from pychop import chop
 
 
-``pychop`` supports NumPy (default), JAX, Torch as backend for simulation. To set backend:
+
+The other two dominant modules in ``pychop`` are  ``pychop.quant`` and ``pychop.fixed_point``, one can load them various
+
+
+.. code:: python
+
+    from pychop import quant
+    from pychop import fixed_point
+
+
+    
+``pychop`` supports NumPy (default), JAX, Torch as backend for simulation. Before performing the quantization, to set backend:
 
 .. code:: python
 

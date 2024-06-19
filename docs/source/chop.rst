@@ -21,6 +21,7 @@ A floating point number systems can be represented by
    :widths: 15, 15
 
     "'q43' and 'fp8-e4m3'",  "NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits)"
+    "'q52' and 'fp8-e5m2'",	"NVIDIA quarter precision (5 exponent bits, 2 significand bits)"
     "'b' and 'bfloat16'", "bfloat16"
     "'h' and 'half' and 'fp16'", "IEEE half precision (the default)"
     "'s' and 'single' and 'fp32'", "IEEE single precision"

@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="next" title="Quantization aware training" href="nn.html" />
     <link rel="prev" title="Integer quantization" href="quant.html" /> 
 </head>
 
@@ -49,6 +49,7 @@
 <li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Fixed point quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nn.html">Quantization aware training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
@@ -91,9 +92,48 @@ Following that, a basic bitwise shift quantization function is given by:</p>
 <p>The fixed point representation for $x$ is given by</p>
 <div class="math notranslate nohighlight">
 \[Q_f{x} = \text{sign}(x) q(x_i) +  \text{sign}(x) q(x_f)\]</div>
+<p>The usage is demonstrated step by step as below.</p>
+<p>First we load the data in various format:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">pychop</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">linalg</span>
+<span class="kn">import</span> <span class="nn">jax</span>
+
+<span class="n">X_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span> <span class="c1"># Numpy array</span>
+<span class="n">X_th</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">X_np</span><span class="p">)</span> <span class="c1"># torch array</span>
+<span class="n">X_jx</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X_np</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">X_np</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The parameters that determine the fixed-point quantization is the following parameters</p>
+<div class="highlight-language notranslate"><div class="highlight"><pre><span></span>ibits : int, default=4
+    The bitwidth of integer part.
+
+fbits : int, default=4
+    The bitwidth of fractional part.
+</pre></div>
+</div>
+<p>The backend of NumPy is performed by:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pychop</span><span class="o">.</span><span class="n">backend</span><span class="p">(</span><span class="s1">&#39;numpy&#39;</span><span class="p">)</span>
+<span class="n">pyq_f</span> <span class="o">=</span> <span class="n">pychop</span><span class="o">.</span><span class="n">fixed_point</span><span class="p">(</span><span class="n">ibits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fbits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">pyq_f</span><span class="p">(</span><span class="n">X_np</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The backend of Torch is performed by:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pychop</span><span class="o">.</span><span class="n">backend</span><span class="p">(</span><span class="s1">&#39;torch&#39;</span><span class="p">)</span>
+<span class="n">pyq_f</span> <span class="o">=</span> <span class="n">pychop</span><span class="o">.</span><span class="n">fixed_point</span><span class="p">()</span>
+<span class="n">pyq_f</span><span class="p">(</span><span class="n">X_th</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The backend of JAX is performed by:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pychop</span><span class="o">.</span><span class="n">backend</span><span class="p">(</span><span class="s1">&#39;jax&#39;</span><span class="p">)</span>
+<span class="n">pyq_f</span> <span class="o">=</span> <span class="n">pychop</span><span class="o">.</span><span class="n">fixed_point</span><span class="p">()</span>
+<span class="n">pyq_f</span><span class="p">(</span><span class="n">X_jx</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>[1] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks for biomedical image
-segmentation. In Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, pages 234–241,
-Cham, 2015. Springer.</p>
+segmentation. In Medical Image Computing and Computer-Assisted Intervention, 234–241, 2015. Springer.</p>
 </section>
 
 
@@ -101,7 +141,7 @@ Cham, 2015. Springer.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="quant.html" class="btn btn-neutral float-left" title="Integer quantization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="nn.html" class="btn btn-neutral float-right" title="Quantization aware training" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

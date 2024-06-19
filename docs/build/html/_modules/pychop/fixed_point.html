@@ -76,12 +76,12 @@
   <h1>Source code for pychop.fixed_point</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os</span>
 
-<div class="viewcode-block" id="to_fixed_point"><a class="viewcode-back" href="../../api.html#pychop.to_fixed_point">[docs]</a><span class="k">def</span> <span class="nf">to_fixed_point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ibits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fbits</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<div class="viewcode-block" id="fixed_point"><a class="viewcode-back" href="../../api.html#pychop.fixed_point">[docs]</a><span class="k">class</span> <span class="nc">fixed_point</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    x : numpy.ndarray | jax.Array | torch.Tensor,</span>
-<span class="sd">        The input array.    </span>
+<span class="sd">        The input array. </span>
 <span class="sd">    </span>
 <span class="sd">    ibits : int, default=4</span>
 <span class="sd">        The bitwidth of integer part. </span>
@@ -94,14 +94,22 @@
 <span class="sd">    x_q : numpy.ndarray | jax.Array | torch.Tensor, </span>
 <span class="sd">        The quantized array.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;chop_backend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">.tch</span> <span class="kn">import</span> <span class="n">fixed_point</span>
-    <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;chop_backend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;jax&#39;</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">.jx</span> <span class="kn">import</span> <span class="n">fixed_point</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">.np</span> <span class="kn">import</span> <span class="n">fixed_point</span>
-        
-    <span class="k">return</span> <span class="n">fixed_point</span><span class="o">.</span><span class="n">to_fixed_point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ibits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fbits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ibits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fbits</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ibits</span> <span class="o">=</span> <span class="n">ibits</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">fbits</span> <span class="o">=</span> <span class="n">fbits</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;chop_backend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">.tch</span> <span class="kn">import</span> <span class="n">fixed_point</span>
+        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;chop_backend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;jax&#39;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">.jx</span> <span class="kn">import</span> <span class="n">fixed_point</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">.np</span> <span class="kn">import</span> <span class="n">fixed_point</span>
+
+        <span class="k">return</span> <span class="n">fixed_point</span><span class="o">.</span><span class="n">to_fixed_point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ibits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ibits</span><span class="p">,</span> <span class="n">fbits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fbits</span><span class="p">)</span></div>
+    
+
 </pre></div>
 
            </div>

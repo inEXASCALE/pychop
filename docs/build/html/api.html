@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="License" href="license.html" />
-    <link rel="prev" title="Fixed point quantization" href="fix_point.html" /> 
+    <link rel="prev" title="Quantization aware training" href="nn.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,6 +48,7 @@
 <li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fix_point.html">Fixed point quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nn.html">Quantization aware training</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
@@ -175,8 +176,8 @@ for mapping [a, b] to [alpha, beta].</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="pychop.to_fixed_point">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">to_fixed_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ibits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fbits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/fixed_point.html#to_fixed_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.to_fixed_point" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="pychop.fixed_point">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">fixed_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ibits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fbits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/fixed_point.html#fixed_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.fixed_point" title="Permalink to this definition"></a></dt>
 <dd><dl class="simple">
 <dt>x<span class="classifier">numpy.ndarray | jax.Array | torch.Tensor,</span></dt><dd><p>The input array.</p>
 </dd>
@@ -290,7 +291,7 @@ There are 6 options for rounding:
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="fix_point.html" class="btn btn-neutral float-left" title="Fixed point quantization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nn.html" class="btn btn-neutral float-left" title="Quantization aware training" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="license.html" class="btn btn-neutral float-right" title="License" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

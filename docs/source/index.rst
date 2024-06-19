@@ -61,6 +61,7 @@ To give a shot, one may print information of various precision formats:
    chop.rst
    quant.rst
    fix_point.rst
+   nn.rst
    api.rst
    license
 

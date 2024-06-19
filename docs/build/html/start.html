@@ -82,7 +82,12 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">chop</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">pychop</span></code> supports NumPy (default), JAX, Torch as backend for simulation. To set backend:</p>
+<p>The other two dominant modules in <code class="docutils literal notranslate"><span class="pre">pychop</span></code> are  <code class="docutils literal notranslate"><span class="pre">pychop.quant</span></code> and <code class="docutils literal notranslate"><span class="pre">pychop.fixed_point</span></code>, one can load them various</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">quant</span>
+<span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">fixed_point</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">pychop</span></code> supports NumPy (default), JAX, Torch as backend for simulation. Before performing the quantization, to set backend:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pychop</span><span class="o">.</span><span class="n">backend</span><span class="p">(</span><span class="s1">&#39;numpy&#39;</span><span class="p">)</span> <span class="c1"># use NumPy as backend, other options: &#39;torch&#39; and &#39;jax&#39;</span>
 </pre></div>
 </div>
