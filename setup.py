@@ -7,7 +7,7 @@ import warnings
 
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
-VERSION = "0.2.7"
+VERSION = "0.2.8"
 SETREQUIRES=["numpy", "torch", "jax"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
