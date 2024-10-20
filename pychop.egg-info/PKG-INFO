@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pychop
-Version: 0.2.7
+Version: 0.2.9
 Summary: Python code for simulating low precision floating-point arithmetic
 Home-page: https://github.com/chenxinye/pychop.git
 Author: Xinye Chen

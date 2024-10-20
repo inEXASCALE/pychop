@@ -160,8 +160,8 @@ class chop(object):
     
             
     def __call__(self, x):
-        if not str(x).isnumeric() and not isinstance(x, np.ndarray):
-            raise ValueError('Chop requires real input values.')
+        if str(x).isnumeric():
+            raise ValueError('Chop requires real input values (not int).')
             
         if not hasattr(x, "__len__"):
             x = np.array(x, ndmin=1)
