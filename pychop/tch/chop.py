@@ -161,9 +161,6 @@ class chop(object):
             
     def __call__(self, x):
         
-        if str(x).isnumeric():
-            raise ValueError('Chop requires real input values.')
-
         if hasattr(self, 'customs'):
             if self.rmode == 1:
                 self.maxfraction = (x.dtype == torch.float32) * 11 + (x.dtype == torch.float64) * 25
