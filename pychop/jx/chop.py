@@ -160,9 +160,6 @@ class chop(object):
         
             
     def __call__(self, x):
-        if str(x).isnumeric():
-            raise ValueError('Chop requires real ijnput values.')
-            
         if not hasattr(x, "__len__"):
             x = jnp.array(x, ndmin=1)
             
