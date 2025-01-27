@@ -6,10 +6,10 @@ import logging
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
 VERSION = "0.3.0"
-SETREQUIRES=["numpy", "torch", "jax"]
+SETREQUIRES=["numpy"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
-INREUIRES=["numpy>=1.7.2"]
+INREUIRES=["numpy>=1.7.2", "pandas"]
 
 
 AUTHORS="Xinye Chen"
