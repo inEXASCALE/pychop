@@ -5,7 +5,7 @@ import logging
 
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
-VERSION = "0.2.9"
+VERSION = "0.3.0"
 SETREQUIRES=["numpy", "torch", "jax"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
@@ -60,7 +60,7 @@ metadata = {"name":PRJECT_NAME,
             "maintainer_email":EMAIL,
             "description":"Python code for simulating low precision floating-point arithmetic",
             "long_description_content_type":'text/markdown',
-            "url":"https://github.com/chenxinye/pychop.git",
+            "url":"https://github.com/nla-group/pychop.git",
             "license":'MIT License'
 }
             
