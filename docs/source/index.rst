@@ -39,11 +39,12 @@ The optional support_denormals parameter enables handling of subnormal numbers, 
 
 * GPU Acceleration:
 
-Leveraging PyTorch’s tensor operations and device support (device parameter), ``pychop`` can run efficiently on GPUs. This allows for fast, vectorized processing of large datasets, making it suitable for large-scale experiments in machine learning and numerical optimization.
+Leveraging PyTorch's tensor operations and device support (device parameter), ``pychop`` can run efficiently on GPUs. This allows for fast, vectorized processing of large datasets, making it suitable for large-scale experiments in machine learning and numerical optimization.
 
 * Reproducible Stochastic Rounding:
 
 The seed parameter ensures reproducibility in stochastic rounding modes, critical for debugging and comparing results across runs. This is a significant advantage in research settings where consistent outcomes are needed to validate hypotheses.
+To ensure consistency with MATLAB's chop software, ``pychop`` closely follows its API. For the first four rounding modes, it produces identical results given the same user-defined parameters. For stochastic rounding modes (rmode 5 and 6), both tools yield the same output when provided with identical random numbers.
 
 * Ease of Integration:
 
