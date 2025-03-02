@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-def chop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=42, device="cpu", verbose=0):
+def bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=42, device="cpu", verbose=0):
     """
     Parameters
     ----------
@@ -47,12 +47,12 @@ def chop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=
 
     Methods
     ----------
-    chop(x) 
+    bitchop(x) 
         Method that convert ``x`` to the user-specific arithmetic format.
         
     Returns 
     ----------
-    chop | object,
+    bitchop | object,
         ``chop`` instance.
 
     """
