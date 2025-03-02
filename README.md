@@ -39,36 +39,15 @@ To install the current current release via PIP use:
 
 ## Features
 The ``pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
-Customizable Precision:
 
-* Multiple Rounding Modes:
-
-Supports a variety of rounding strategies, including deterministic (toward_zero, nearest_even, nearest_odd) and stochastic (stochastic_prop, stochastic_equal) methods. This flexibility allows experimentation with different quantization effects, which is crucial for machine learning models where rounding impacts training dynamics and inference accuracy.
-
-* Hardware-Independent Simulation:
-
-Emulates low-precision arithmetic within standard float32 or float64 precision, eliminating the need for specialized hardware. This makes it accessible for prototyping and testing on any PyTorch-supported platform, from CPUs to GPUs, without requiring custom FPGA or ASIC implementations.
-
-* Support for Denormal Numbers:
-
-The optional support_denormals parameter enables handling of subnormal numbers, extending the representable range near zero. This is particularly valuable for applications requiring high fidelity at small magnitudes, such as scientific simulations or deep learning with small gradients.
-
-* GPU Acceleration:
-
-Leveraging PyTorch’s tensor operations and device support (device parameter), ``pychop`` can run efficiently on GPUs. This allows for fast, vectorized processing of large datasets, making it suitable for large-scale experiments in machine learning and numerical optimization.
-
-* Reproducible Stochastic Rounding:
-
-The seed parameter ensures reproducibility in stochastic rounding modes, critical for debugging and comparing results across runs. This is a significant advantage in research settings where consistent outcomes are needed to validate hypotheses.
-
-* Ease of Integration:
-
-Built on PyTorch, the class integrates seamlessly with existing PyTorch workflows, including neural network training pipelines and custom numerical algorithms. The input value can be any array-like object, automatically converted to a tensor, enhancing usability.
-
-*  Error Detection:
-
-Includes overflow checking with informative error messages (e.g., OverflowError), helping users identify and handle edge cases in their custom formats.
-
+* Customizable Precision
+* Multiple Rounding Modes
+* Hardware-Independent Simulation
+* Support for Denormal Numbers
+* GPU Acceleration
+* Reproducible Stochastic Rounding
+* Ease of Integration
+*  Error Detection
 
 
 ## Use Cases
