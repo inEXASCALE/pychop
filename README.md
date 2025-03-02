@@ -18,6 +18,25 @@ Inspired by MATLAB’s chop function by Nick Higham, ``pychop`` simulates low-pr
 
 To ensure consistency with MATLAB’s chop software, ``pychop`` closely follows its API. For the first four rounding modes, it produces identical results given the same user-defined parameters. For stochastic rounding modes (rmode 5 and 6), both tools yield the same output when provided with identical random numbers.
 
+
+
+## Install
+
+The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies:
+- python > 3.8  ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+- numpy >=1.7.3  ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)
+- pandas >=2.0 ![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
+- torch ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
+- jax ![jax_badge][jax_badge_link]
+
+
+
+
+To install the current current release via PIP use:
+
+`pip install pychop`
+
+
 ## Features
 The ``pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
 Customizable Precision:
@@ -62,23 +81,6 @@ Includes overflow checking with informative error messages (e.g., OverflowError)
 
  * Education: Teach concepts of floating-point representation, rounding, and denormal numbers with a hands-on, customizable tool.
 
-
-
-## Install
-
-The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies:
-- python > 3.8  ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-- numpy >=1.7.3  ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)
-- pandas >=2.0 ![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
-- torch ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
-- jax ![jax_badge][jax_badge_link]
-
-
-
-
-To install the current current release via PIP use:
-
-`pip install pychop`
 
 
 ## The supported floating point formats
