@@ -64,15 +64,15 @@ The ``pychop`` class offers several key advantages that make it a powerful tool 
 
 The supported floating point arithmetic formats include:
 
-| format | description |
-| ------------- | ------------- |
-| 'q43', 'fp8-e4m3'         | NVIDIA quarter precision (4 exponent bits, 3 significand (mantissa) bits) |
-| 'q52', 'fp8-e5m2'         | NVIDIA quarter precision (5 exponent bits, 2 significand bits) |
-|  'b', 'bfloat16'          | bfloat16 |
-|  'h', 'half', 'fp16'      | IEEE half precision (the default) |
-|  's', 'single', 'fp32'    | IEEE single precision |
-|  'd', 'double', 'fp64'    | IEEE double precision |
-|  'c', 'custom'            | custom format |
+| format | description | bits |
+| ------------- | ------------- | ------------- |
+| 'q43', 'fp8-e4m3'         | NVIDIA quarter precision | 4 exponent bits, 3 significand  bits |
+| 'q52', 'fp8-e5m2'         | NVIDIA quarter precision | 5 exponent bits, 2 significand bits |
+|  'b', 'bfloat16'          | bfloat16 | 8 exponent bits, 7 significand bits  |
+|  'h', 'half', 'fp16'      | IEEE half precision | 5 exponent bits, 10 significand bits  |
+|  's', 'single', 'fp32'    | IEEE single precision |  8 exponent bits, 23 significand bits  |
+|  'd', 'double', 'fp64'    | IEEE double precision | 11 exponent bits, 52 significand bits |
+|  'c', 'custom'            | custom format | - - |
 
 Users can specify the number of exponent (exp_bits) and significand (sig_bits) bits, enabling precise control over the trade-off between range and precision. 
 For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (1 sign, 5 exponent, 4 significand), ideal for testing minimal precision scenarios.

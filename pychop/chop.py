@@ -10,7 +10,7 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
         The target arithmetic format.
 
     subnormal : boolean
-        Whether or not support subnormal numbers are supported.
+       Whether or not to support subnormal numbers.
         If set `subnormal=False`, subnormals are flushed to zero.
         
     rmode : int, default=1
