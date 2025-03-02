@@ -1,4 +1,4 @@
-# pychop: A Python package for simulating low precision arithmetic
+# pychop: tools for simulating low precision arithmetic
 
 [![!pypi](https://img.shields.io/pypi/v/pychop?color=greem)](https://pypi.org/project/pychop/)
 [![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.python.org/pypi/pychop/)
