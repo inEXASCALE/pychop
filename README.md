@@ -1,12 +1,10 @@
-# pychop
+# pychop: A Python package for simulating low precision arithmetic
 
 [![!pypi](https://img.shields.io/pypi/v/pychop?color=greem)](https://pypi.org/project/pychop/)
 [![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.python.org/pypi/pychop/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
 
-
-## A Python package for simulating low precision arithmetic
 
 With the increasing availability of lower-precision floating-point arithmetic beyond IEEE 64-bit double and 32-bit single precision, both in hardware and software simulation, reduced-precision formats such as 16-bit half precision have gained significant attention in scientific computing and machine learning. These formats offer higher computational throughput, reduced data transfer overhead, and lower energy consumption.
 
