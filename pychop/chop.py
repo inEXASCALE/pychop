@@ -13,18 +13,15 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
        Whether or not to support subnormal numbers.
         If set `subnormal=False`, subnormals are flushed to zero.
         
-    rmode : int, default=1
-        The supported rounding modes include:
-            1. Round to nearest using round to even last bit to break ties (the default).
-            2. Round towards plus infinity (round up).
-            3. Round towards minus infinity (round down).
-            4. Round towards zero.
-            5. Stochastic rounding 
-                round to the next larger or next smaller floating-point number
-                with probability proportional to the distance to those floating-point numbers.
-            6. Stochastic rounding
-                round to the next larger or next smaller 
-                floating-point number with equal probability.
+    rmode : int or str, default=1
+        Rounding mode to use when quantizing the significand. Options are:
+        - 1 or "nearest_even": Round to nearest value, ties to even (IEEE 754 default).
+        - 0 or "nearest_odd": Round to nearest value, ties to odd.
+        - 2 or "plus_infinity": Round towards plus infinity (round up).
+        - 3 or "minus_infinity": Round towards minus infinity (round down).
+        - 4 or "toward_zero": Truncate toward zero (no rounding up).
+        - 5 or "stochastic_prop": Stochastic rounding proportional to the fractional part.
+        - 6 or "stochastic_equal": Stochastic rounding with 50% probability.
 
     flip : boolean, default=False
         Default is False; If ``flip`` is True, then each element
@@ -71,7 +68,23 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
         ``chop`` instance.
 
     """
-
+    if rmode in {0, "nearest_odd"}:
+        rmode = 0
+    elif rmode in {1, "nearest_even"}:
+        rmode = 1
+    elif rmode in {2, "plus_infinity"}:
+        rmode = 2
+    elif rmode in {3, "minus_infinity"}:
+        rmode = 3
+    elif rmode in {4, "toward_zero"}:
+        rmode = 4
+    elif rmode in {5, "stochastic_prop"}:
+        rmode = 5
+    elif rmode in {6, "stochastic_equal"}:
+        rmode = 6
+    else:
+        raise NotImplementedError("Invalid parameter for ``rmode``.")
+    
     if os.environ['chop_backend'] == 'torch':
         from .tch.chop import chop
 

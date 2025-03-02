@@ -17,7 +17,7 @@ class chop(object):
         Whether or not support subnormal numbers are supported.
         If set `subnormal=False`, subnormals are flushed to zero.
         
-    rmode : int, default="nearest_even"
+    rmode : int or str, default="nearest_even"
         Rounding mode to use when quantizing the significand. Options are:
         - 1 or "nearest_even": Round to nearest value, ties to even (IEEE 754 default).
         - 0 or "nearest_odd": Round to nearest value, ties to odd.
@@ -29,9 +29,6 @@ class chop(object):
         
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
-
-    device : str or torch.device, optional, default="cpu" 
-        Device to perform computations on (e.g., "cpu", "cuda").
 
     subnormal (bool, optional): If True, supports denormalized numbers (subnormals) when
         the exponent underflows, shifting the significand. If False, underflows result in zero.

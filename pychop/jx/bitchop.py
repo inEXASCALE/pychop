@@ -21,7 +21,7 @@ class chop(object):
         Whether or not support subnormal numbers are supported.
         If set `subnormal=False`, subnormals are flushed to zero.
         
-    rmode : int, default="nearest_even"
+    rmode : int or str, default="nearest_even"
         Rounding mode to use when quantizing the significand. Options are:
         - 1 or "nearest_even": Round to nearest value, ties to even (IEEE 754 default).
         - 0 or "nearest_odd": Round to nearest value, ties to odd.
