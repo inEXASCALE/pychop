@@ -6,61 +6,49 @@ from jax import random, device_put
 
 
 class chop(object):
-
     """
     Parameters
     ----------
+    exp_bits : int
+        Number of bits for the exponent in the target format. Determines the range
+        of representable values (e.g., 5 bits gives a bias of 15, range -14 to 15).
+
+    sig_bits : int
+        Number of bits for the significand (mantissa) in the target format, excluding
+        the implicit leading 1 for normalized numbers (e.g., 4 bits allows 0 to 15 plus implicit 1).
+
     subnormal : boolean
         Whether or not support subnormal numbers are supported.
         If set `subnormal=False`, subnormals are flushed to zero.
         
-    rmode : int, default=1
-        The supported rounding modes include:
-        1. Round to nearest using round to even last bit to break ties (the default).
-        2. Round towards plus infinity (round up).
-        3. Round towards minus infinity (round down).
-        4. Round towards zero.
-        5. Stochastic rounding - round to the next larger or next smaller
-           floating-point number with probability proportional to the distance 
-           to those floating-point numbers.
-        6. Stochastic rounding - round to the next larger or next smaller 
-           floating-point number with equal probability.
-
-    flip : boolean, default=False
-        Default is False; If ``flip`` is True, then each element
-        of the rounded result has a randomly generated bit in its significand flipped 
-        with probability ``p``. This parameter is designed for soft error simulation. 
-
-    explim : boolean, default=True
-        Default is True; If ``explim`` is False, then the maximal exponent for
-        the specified arithmetic is ignored, thus overflow, underflow, or subnormal numbers
-        will be produced only if necessary for the data type.  
-        This option is designed for exploring low precisions independent of range limitations.
-
-    p : float, default=0.5
-        The probability ``p` for each element of the rounded result has a randomly
-        generated bit in its significand flipped  when ``flip`` is True
-
-    randfunc : callable, default=None
-        If ``randfunc`` is supplied, then the random numbers used for rounding  will be generated 
-        using that function in stochastic rounding (i.e., ``rmode`` of 5 and 6). Default is numbers
-        in uniform distribution between 0 and 1, i.e., np.random.uniform.
-
-    customs : dataclass, default=None
-        If customs is defined, then use customs.t and customs.emax for floating point arithmetic.
-
-
+    rmode : int, default="nearest_even"
+        Rounding mode to use when quantizing the significand. Options are:
+        - 1 or "nearest_even": Round to nearest value, ties to even (IEEE 754 default).
+        - 0 or "nearest_odd": Round to nearest value, ties to odd.
+        - 2 or "plus_infinity": Round towards plus infinity (round up).
+        - 3 or "minus_infinity": Round towards minus infinity (round down).
+        - 4 or "toward_zero": Truncate toward zero (no rounding up).
+        - 5 or "stochastic_prop": Stochastic rounding proportional to the fractional part.
+        - 6 or "stochastic_equal": Stochastic rounding with 50% probability.
+        
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
 
+    device : str or torch.device, optional, default="cpu" 
+        Device to perform computations on (e.g., "cpu", "cuda").
+
+    subnormal (bool, optional): If True, supports denormalized numbers (subnormals) when
+        the exponent underflows, shifting the significand. If False, underflows result in zero.
+        Defaults to True.
+
     Methods
     ----------
-    chop(x):
+    bitchop(x):
         Method that convert ``x`` to the user-specific arithmetic format.
         
     """
 
-    def __init__(self, exp_bits, sig_bits, rounding="nearest_even", support_denormals=True, rounding_value=42, device="cpu"):
+    def __init__(self, exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=42, device="cpu"):
         # Validate and set device
         # Enable 64-bit precision (optional, based on your earlier preference)
         jax.config.update("jax_enable_x64", True)
@@ -80,15 +68,32 @@ class chop(object):
         
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
-        self.rounding = rounding
-        self.support_denormals = support_denormals
+
+        if rmode in {0, "nearest_odd"}:
+            self.rmode = 0
+        elif rmode in {1, "nearest_even"}:
+            self.rmode = 1
+        elif rmode in {2, "plus_infinity"}:
+            self.rmode = 2
+        elif rmode in {3, "minus_infinity"}:
+            self.rmode = 3
+        elif rmode in {4, "toward_zero"}:
+            self.rmode = 4
+        elif rmode in {5, "stochastic_prop"}:
+            self.rmode = 5
+        elif rmode in {6, "stochastic_equal"}:
+            self.rmode = 6
+        else:
+            raise NotImplementedError("Invalid parameter for ``rmode``.")
+        
+        self.subnormal = subnormal
         self.device = target_device
         
         self.bias = (1 << (exp_bits - 1)) - 1
         self.max_exp = self.bias
         self.min_exp = -self.bias + 1
         self.mask_sig = (1 << sig_bits) - 1
-        self.rng_key = random.PRNGKey(rounding_value)  # JAX PRNG key, placed implicitly on device
+        self.rng_key = random.PRNGKey(random_state)  # JAX PRNG key, placed implicitly on device
 
 
     def __call__(self, values):
@@ -151,18 +156,31 @@ class chop(object):
         remainder = mantissa_bits & 1
         half_bit = (remainder << 1) & (mantissa_bits & 2)
 
-        if self.rounding == "toward_zero":
-            rounded = exact_mantissa
-            did_round_up = jnp.zeros_like(rounded, dtype=jnp.bool_)
-        elif self.rounding == "nearest_even":
+        if self.rmode == 1:
             round_up = (remainder != 0) & (half_bit | (exact_mantissa & 1))
             rounded = exact_mantissa + round_up.astype(jnp.int64)
             did_round_up = rounded > exact_mantissa
-        elif self.rounding == "nearest_odd":
+
+        elif self.rmode == 0:
             round_up = (remainder != 0) & (half_bit & ~(exact_mantissa & 1))
             rounded = exact_mantissa + round_up.astype(jnp.int64)
             did_round_up = rounded > exact_mantissa
-        elif self.rounding == "stochastic_prop":
+
+        elif self.rmode == 2:  # Round up
+            round_up = (remainder != 0) & (sign == 0)  # Positive numbers round up
+            rounded = exact_mantissa + round_up.astype(jnp.int64)
+            did_round_up = rounded > exact_mantissa
+            
+        elif self.rmode == 3:  # Round down
+            round_up = (remainder != 0) & (sign == 1)  # Negative numbers round down
+            rounded = exact_mantissa + round_up.astype(jnp.int64)
+            did_round_up = rounded > exact_mantissa
+        
+        elif self.rmode == 4:
+            rounded = exact_mantissa
+            did_round_up = jnp.zeros_like(rounded, dtype=jnp.bool_)
+
+        elif self.rmode == 5:
             prob = (mantissa * (1 << self.sig_bits) - exact_mantissa.astype(self.dtype))
             # Generate random values with JAX RNG
             key, subkey = random.split(self.rng)
@@ -170,14 +188,15 @@ class chop(object):
             rounded = exact_mantissa + (rand < prob).astype(jnp.int64)
             did_round_up = rounded > exact_mantissa
             self.rng = key  # Update RNG state
-        elif self.rounding == "stochastic_equal":
+
+        elif self.rmode == 6:
             key, subkey = random.split(self.rng)
             rand = random.uniform(subkey, shape=exact_mantissa.shape, dtype=self.dtype)
             rounded = exact_mantissa + (rand < 0.5).astype(jnp.int64)
             did_round_up = rounded > exact_mantissa
             self.rng = key  # Update RNG state
         else:
-            raise ValueError("Unknown rounding mode")
+            raise ValueError("Unknown rmode mode")
 
         overflow = did_round_up & (rounded >= (1 << self.sig_bits))
         rounded = jnp.where(overflow, rounded >> 1, rounded)
@@ -190,7 +209,7 @@ class chop(object):
             raise OverflowError(f"Exponent too large in {overflow_mask.sum()} elements")
         
         if underflow_mask.any():
-            if not self.support_denormals:
+            if not self.subnormal:
                 sign = jnp.where(underflow_mask, jnp.array(0, dtype=jnp.uint8), sign)
                 exp = jnp.where(underflow_mask, jnp.array(0, dtype=jnp.int32), exp)
                 rounded = jnp.where(underflow_mask, jnp.array(0, dtype=jnp.int32), rounded)
@@ -246,13 +265,13 @@ class chop(object):
 if __name__ == "__main__":
     # Test with float32 input on CPU
     values_float32 = jnp.array([3.14159, 0.1, -2.718], dtype=jnp.float32)
-    bf_float32_cpu = chop(exp_bits=5, sig_bits=4, rounding="nearest_even", device="cpu")
+    bf_float32_cpu = chop(exp_bits=5, sig_bits=4, rmode="nearest_even", device="cpu")
     emulated_values = bf_float32_cpu(values_float32)
     print("Float32 emulated input(CPU):", emulated_values)
     print()
 
     # Test with float64 input on GPU (if available)
     # values_float64 = jnp.array([3.14159, 0.1, -2.718], dtype=jnp.float64)
-    # bf_float64_gpu = BinaryFloat4(values_float64, exp_bits=5, sig_bits=4, rounding="nearest_even", device="gpu")
+    # bf_float64_gpu = BinaryFloat4(values_float64, exp_bits=5, sig_bits=4, rmode="nearest_even", device="gpu")
     # print("Float64 Input (GPU):")
     # print(bf_float64_gpu)

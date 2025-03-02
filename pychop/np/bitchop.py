@@ -2,73 +2,74 @@ import numpy as np
 import struct
 
 class chop(object):
-
     """
     Parameters
     ----------
+    exp_bits : int
+        Number of bits for the exponent in the target format. Determines the range
+        of representable values (e.g., 5 bits gives a bias of 15, range -14 to 15).
+
+    sig_bits : int
+        Number of bits for the significand (mantissa) in the target format, excluding
+        the implicit leading 1 for normalized numbers (e.g., 4 bits allows 0 to 15 plus implicit 1).
+
     subnormal : boolean
         Whether or not support subnormal numbers are supported.
         If set `subnormal=False`, subnormals are flushed to zero.
         
-    rmode : int, default=1
-        The supported rounding modes include:
-        1. Round to nearest using round to even last bit to break ties (the default).
-        2. Round towards plus infinity (round up).
-        3. Round towards minus infinity (round down).
-        4. Round towards zero.
-        5. Stochastic rounding - round to the next larger or next smaller
-           floating-point number with probability proportional to the distance 
-           to those floating-point numbers.
-        6. Stochastic rounding - round to the next larger or next smaller 
-           floating-point number with equal probability.
-
-    flip : boolean, default=False
-        Default is False; If ``flip`` is True, then each element
-        of the rounded result has a randomly generated bit in its significand flipped 
-        with probability ``p``. This parameter is designed for soft error simulation. 
-
-    explim : boolean, default=True
-        Default is True; If ``explim`` is False, then the maximal exponent for
-        the specified arithmetic is ignored, thus overflow, underflow, or subnormal numbers
-        will be produced only if necessary for the data type.  
-        This option is designed for exploring low precisions independent of range limitations.
-
-    p : float, default=0.5
-        The probability ``p` for each element of the rounded result has a randomly
-        generated bit in its significand flipped  when ``flip`` is True
-
-    randfunc : callable, default=None
-        If ``randfunc`` is supplied, then the random numbers used for rounding  will be generated 
-        using that function in stochastic rounding (i.e., ``rmode`` of 5 and 6). Default is numbers
-        in uniform distribution between 0 and 1, i.e., np.random.uniform.
-
-    customs : dataclass, default=None
-        If customs is defined, then use customs.t and customs.emax for floating point arithmetic.
-    
-    support_denormals (bool, optional): If True, supports denormalized numbers (subnormals) when
-                the exponent underflows, shifting the significand. If False, underflows result in zero.
-                Defaults to True.
-    
+    rmode : int, default="nearest_even"
+        Rounding mode to use when quantizing the significand. Options are:
+        - 1 or "nearest_even": Round to nearest value, ties to even (IEEE 754 default).
+        - 0 or "nearest_odd": Round to nearest value, ties to odd.
+        - 2 or "plus_infinity": Round towards plus infinity (round up).
+        - 3 or "minus_infinity": Round towards minus infinity (round down).
+        - 4 or "toward_zero": Truncate toward zero (no rounding up).
+        - 5 or "stochastic_prop": Stochastic rounding proportional to the fractional part.
+        - 6 or "stochastic_equal": Stochastic rounding with 50% probability.
+        
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
 
+    device : str or torch.device, optional, default="cpu" 
+        Device to perform computations on (e.g., "cpu", "cuda").
+
+    subnormal (bool, optional): If True, supports denormalized numbers (subnormals) when
+        the exponent underflows, shifting the significand. If False, underflows result in zero.
+        Defaults to True.
+
     Methods
     ----------
-    chop(x):
+    bitchop(x):
         Method that convert ``x`` to the user-specific arithmetic format.
         
     """
 
-    def __init__(self, exp_bits, sig_bits, rounding="nearest_even", support_denormals=True, rounding_value=42):
+    def __init__(self, exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=42):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
-        self.rounding = rounding
-        self.support_denormals = support_denormals
+        if rmode in {0, "nearest_odd"}:
+            self.rmode = 0
+        elif rmode in {1, "nearest_even"}:
+            self.rmode = 1
+        elif rmode in {2, "plus_infinity"}:
+            self.rmode = 2
+        elif rmode in {3, "minus_infinity"}:
+            self.rmode = 3
+        elif rmode in {4, "toward_zero"}:
+            self.rmode = 4
+        elif rmode in {5, "stochastic_prop"}:
+            self.rmode = 5
+        elif rmode in {6, "stochastic_equal"}:
+            self.rmode = 6
+        else:
+            raise NotImplementedError("Invalid parameter for ``rmode``.")
+        
+        self.subnormal = subnormal
         self.bias = (1 << (exp_bits - 1)) - 1
         self.max_exp = self.bias
         self.min_exp = -self.bias + 1
         self.mask_sig = (1 << sig_bits) - 1
-        self.rng = np.random.RandomState(rounding_value)
+        self.rng = np.random.RandomState(random_state)
         
 
     def __call__(self, values):
@@ -122,30 +123,48 @@ class chop(object):
         remainder = mantissa_bits & 1
         half_bit = (remainder << 1) & (mantissa_bits & 2)
 
-        if self.rounding == "toward_zero":
-            rounded = exact_mantissa
-            did_round_up = False
-        elif self.rounding == "nearest_even":
+        if self.rmode == 1:
             if remainder and (half_bit or exact_mantissa & 1):  # Tie to even (LSB = 0)
                 rounded = exact_mantissa + 1
             else:
                 rounded = exact_mantissa
             did_round_up = rounded > exact_mantissa
-        elif self.rounding == "nearest_odd":
+
+        elif self.rmode == 0:
             if remainder and (half_bit and not (exact_mantissa & 1)):  # Tie to odd (LSB = 1)
                 rounded = exact_mantissa + 1
             else:
                 rounded = exact_mantissa
             did_round_up = rounded > exact_mantissa
-        elif self.rounding == "stochastic_prop":
+
+        elif self.rmode == 2:  # Round up
+            if remainder and sign == 0:  # Positive numbers round up
+                rounded = exact_mantissa + 1
+            else:  # Negative numbers truncate (towards zero)
+                rounded = exact_mantissa
+            did_round_up = rounded > exact_mantissa
+
+        elif self.rmode == 3:  # Round down
+            if remainder and sign == 1:  # Negative numbers round down
+                rounded = exact_mantissa + 1
+            else:  # Positive numbers truncate (towards zero)
+                rounded = exact_mantissa
+            did_round_up = rounded > exact_mantissa
+
+        elif self.rmode == 4:
+            rounded = exact_mantissa
+            did_round_up = False
+
+        elif self.rmode == 5:
             prob = (mantissa * (1 << self.sig_bits) - exact_mantissa)
             rounded = exact_mantissa + (self.rng.random() < prob)
             did_round_up = rounded > exact_mantissa
-        elif self.rounding == "stochastic_equal":
+            
+        elif self.rmode == 6:
             rounded = exact_mantissa + (self.rng.random() < 0.5)
             did_round_up = rounded > exact_mantissa
         else:
-            raise ValueError("Unknown rounding mode")
+            raise ValueError("Unknown rmode mode")
 
         if did_round_up and rounded >= (1 << self.sig_bits):
             rounded >>= 1
@@ -154,7 +173,7 @@ class chop(object):
         if exp > self.max_exp:
             raise OverflowError(f"Exponent {exp} too large")
         elif exp < self.min_exp:
-            if not self.support_denormals:
+            if not self.subnormal:
                 return sign, 0, 0, False, 0.0
             shift = self.min_exp - exp
             rounded >>= shift
@@ -208,14 +227,14 @@ if __name__ == "__main__":
     exponent_bits = 5
 
     values_float32 = np.array([3.14159, 0.1, -2.718], dtype=np.float32)
-    bf_float32 = chop(exp_bits=exponent_bits, sig_bits=significand_bits, rounding="nearest_even")
+    bf_float32 = chop(exp_bits=exponent_bits, sig_bits=significand_bits, rmode="nearest_even")
     emulated_values = bf_float32(values_float32)
     print("Float32 emulated input:", emulated_values)
     print()
 
     # Test with float64 input
     values_float64 = np.array([3.14159, 0.1, -2.718], dtype=np.float64)
-    bf_float64 = chop(exp_bits=exponent_bits, sig_bits=significand_bits, rounding="nearest_even")
+    bf_float64 = chop(exp_bits=exponent_bits, sig_bits=significand_bits, rmode="nearest_even")
     emulated_values = bf_float64(values_float64)
     print("Float64 emulated input:", emulated_values)
   
