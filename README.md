@@ -1,27 +1,70 @@
 # pychop
 
-[![!pypi](https://img.shields.io/pypi/v/pychop?color=tomato)](https://pypi.org/project/pychop/)
+[![!pypi](https://img.shields.io/pypi/v/pychop?color=greem)](https://pypi.org/project/pychop/)
 [![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.python.org/pypi/pychop/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/xinye-chen/badge/?version=latest)](https://xinye-chen.readthedocs.io/en/latest/?badge=latest)
 
 
-
-
-
-
-
 ## A Python package for simulating low precision arithmetic
 
-With the increasing availability and support of lower-precision floating-point arithmetics beyond the IEEE Standard 64-bit double and 32-bit single precisions in both hardware and software simulation, low-precision arithmetic operations as well as the number formats, e.g., 16-bit half precision,  have been widely studied and exploited in numerous applications in the modern scientific computing and machine learning algorithms. Low-precision floating point arithmetic offers greater throughput, reduced data communication, and less energy usage. ``pychop`` is a Python library for efficient quantization, it enable to convert single or double precision numbers into low-bitwidth representation. The purpose of ``pychop``, following the same function of ``chop`` in Matlab provided by Nick higham, is to simulate the low precision formats as well as fixed-point/integer quantization based on single and double precisions, which is pravalent on modern machine architecture.  ``pychop`` also provides Torch and JAX backend, which enables to simulate training Neural Network in low precision.
+With the increasing availability of lower-precision floating-point arithmetic beyond IEEE 64-bit double and 32-bit single precision, both in hardware and software simulation, reduced-precision formats such as 16-bit half precision have gained significant attention in scientific computing and machine learning. These formats offer higher computational throughput, reduced data transfer overhead, and lower energy consumption.
+
+``pychop`` is a Python library designed for efficient quantization, enabling the conversion of single- or double-precision numbers into low-bitwidth representations. It allows users to define custom floating-point formats with a specified number of exponent and significand bits, offering fine-grained control over precision and range. The library supports multiple rounding modes, optional denormal number handling, and runs efficiently on both CPU and GPU devices. This makes it particularly useful for research, experimentation, and optimization in areas like machine learning, numerical analysis, and hardware design, where reduced precision can provide computational advantages.
+
+Inspired by MATLAB’s chop function by Nick Higham, ``pychop`` simulates low-precision floating-point formats as well as fixed-point and integer quantization based on single and double precision. It includes PyTorch and JAX backends, enabling low-precision neural network training simulations. By emulating low-precision formats within a high-precision environment (float32 or float64), ``pychop`` allows users to analyze quantization effects without requiring specialized hardware. The library supports both deterministic and stochastic rounding strategies and is optimized for vectorized operations with NumPy arrays, PyTorch tensors, and JAX arrays.
+
+``pychop`` stands out for its versatility, efficiency, and ease of integration with NumPy, PyTorch, and JAX. Its key strengths—customizability, hardware independence, GPU support, and comprehensive rounding options—make it a valuable tool for both practical applications and theoretical exploration in numerical computing.
+
+To ensure consistency with MATLAB’s chop software, ``pychop`` closely follows its API. For the first four rounding modes, it produces identical results given the same user-defined parameters. For stochastic rounding modes (rmode 5 and 6), both tools yield the same output when provided with identical random numbers.
+
+## Features
+The ``pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
+Customizable Precision:
+
+* Multiple Rounding Modes:
+
+Supports a variety of rounding strategies, including deterministic (toward_zero, nearest_even, nearest_odd) and stochastic (stochastic_prop, stochastic_equal) methods. This flexibility allows experimentation with different quantization effects, which is crucial for machine learning models where rounding impacts training dynamics and inference accuracy.
+
+* Hardware-Independent Simulation:
+
+Emulates low-precision arithmetic within standard float32 or float64 precision, eliminating the need for specialized hardware. This makes it accessible for prototyping and testing on any PyTorch-supported platform, from CPUs to GPUs, without requiring custom FPGA or ASIC implementations.
+
+* Support for Denormal Numbers:
+
+The optional support_denormals parameter enables handling of subnormal numbers, extending the representable range near zero. This is particularly valuable for applications requiring high fidelity at small magnitudes, such as scientific simulations or deep learning with small gradients.
+
+* GPU Acceleration:
+
+Leveraging PyTorch’s tensor operations and device support (device parameter), ``pychop`` can run efficiently on GPUs. This allows for fast, vectorized processing of large datasets, making it suitable for large-scale experiments in machine learning and numerical optimization.
+
+* Reproducible Stochastic Rounding:
+
+The seed parameter ensures reproducibility in stochastic rounding modes, critical for debugging and comparing results across runs. This is a significant advantage in research settings where consistent outcomes are needed to validate hypotheses.
+
+* Ease of Integration:
+
+Built on PyTorch, the class integrates seamlessly with existing PyTorch workflows, including neural network training pipelines and custom numerical algorithms. The input value can be any array-like object, automatically converted to a tensor, enhancing usability.
+
+*  Error Detection:
+
+Includes overflow checking with informative error messages (e.g., OverflowError), helping users identify and handle edge cases in their custom formats.
 
 
 
-This package provides consistent APIs to the chop software by Nick higham as much as possible.  For the first four rounding mode,  with the same user-specific parameters, ``pychop`` generates exactly same result as that of the chop software. For stochastic rounding (``rmode`` as 5 and 6), both output same results if random numbers is given the same. 
+## Use Cases
+ 
+ * Machine Learning: Test the impact of low-precision arithmetic on model accuracy and training stability, especially for resource-constrained environments like edge devices.
+
+ * Hardware Design: Simulate custom floating-point units before hardware implementation, optimizing bit allocations for specific applications.
+
+ * Numerical Analysis: Investigate quantization errors and numerical stability in scientific computations.
+
+ * Education: Teach concepts of floating-point representation, rounding, and denormal numbers with a hands-on, customizable tool.
 
 
 
-### Install
+## Install
 
 The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies:
 - python > 3.8  ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
@@ -38,7 +81,7 @@ To install the current current release via PIP use:
 `pip install pychop`
 
 
-### The supported floating point formats
+## The supported floating point formats
 
 
 The supported floating point arithmetic formats include:
@@ -53,28 +96,24 @@ The supported floating point arithmetic formats include:
 |  'd', 'double', 'fp64'    | IEEE double precision |
 |  'c', 'custom'            | custom format |
 
+Users can specify the number of exponent (exp_bits) and significand (sig_bits) bits, enabling precise control over the trade-off between range and precision. 
+For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (1 sign, 5 exponent, 4 significand), ideal for testing minimal precision scenarios.
+
 The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
 
 
 
 
-### Contributing
+## Contributing
 We welcome contributions in any form! Assistance with documentation is always welcome. To contribute, feel free to open an issue or please fork the project make your changes and submit a pull request. We will do our best to work through any issues and requests.
 
 
-### Acknowledgement
+## Acknowledgement
 This project is supported by the European Union (ERC, [InEXASCALE](https://www.karlin.mff.cuni.cz/~carson/inexascale), 101075632). Views and opinions
  expressed are those of the authors only and do not necessarily reflect those of the European
  Union or the European Research Council. Neither the European Union nor the granting
  authority can be held responsible for them.
 
-
-To do 
-- Generate data using Nick's chop
-- Expand unittests for ``pychop``
-- Write quant_dot
-- Write FMA
-- BLAS
 
 ### References
 

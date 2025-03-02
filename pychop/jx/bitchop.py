@@ -1,0 +1,258 @@
+import jax
+import jax.numpy as jnp
+from jax import random, device_put
+
+
+
+
+class chop(object):
+
+    """
+    Parameters
+    ----------
+    subnormal : boolean
+        Whether or not support subnormal numbers are supported.
+        If set `subnormal=False`, subnormals are flushed to zero.
+        
+    rmode : int, default=1
+        The supported rounding modes include:
+        1. Round to nearest using round to even last bit to break ties (the default).
+        2. Round towards plus infinity (round up).
+        3. Round towards minus infinity (round down).
+        4. Round towards zero.
+        5. Stochastic rounding - round to the next larger or next smaller
+           floating-point number with probability proportional to the distance 
+           to those floating-point numbers.
+        6. Stochastic rounding - round to the next larger or next smaller 
+           floating-point number with equal probability.
+
+    flip : boolean, default=False
+        Default is False; If ``flip`` is True, then each element
+        of the rounded result has a randomly generated bit in its significand flipped 
+        with probability ``p``. This parameter is designed for soft error simulation. 
+
+    explim : boolean, default=True
+        Default is True; If ``explim`` is False, then the maximal exponent for
+        the specified arithmetic is ignored, thus overflow, underflow, or subnormal numbers
+        will be produced only if necessary for the data type.  
+        This option is designed for exploring low precisions independent of range limitations.
+
+    p : float, default=0.5
+        The probability ``p` for each element of the rounded result has a randomly
+        generated bit in its significand flipped  when ``flip`` is True
+
+    randfunc : callable, default=None
+        If ``randfunc`` is supplied, then the random numbers used for rounding  will be generated 
+        using that function in stochastic rounding (i.e., ``rmode`` of 5 and 6). Default is numbers
+        in uniform distribution between 0 and 1, i.e., np.random.uniform.
+
+    customs : dataclass, default=None
+        If customs is defined, then use customs.t and customs.emax for floating point arithmetic.
+
+
+    random_state : int, default=0
+        Random seed set for stochastic rounding settings.
+
+    Methods
+    ----------
+    chop(x):
+        Method that convert ``x`` to the user-specific arithmetic format.
+        
+    """
+
+    def __init__(self, exp_bits, sig_bits, rounding="nearest_even", support_denormals=True, rounding_value=42, device="cpu"):
+        # Validate and set device
+        # Enable 64-bit precision (optional, based on your earlier preference)
+        jax.config.update("jax_enable_x64", True)
+        available_devices = jax.devices()
+        device_map = {d.device_kind.lower(): d for d in available_devices}
+        
+        # Handle device specification (e.g., "cpu", "gpu", "gpu:0")
+        if device.lower() == "gpu" and "gpu" in device_map:
+            target_device = device_map["gpu"]
+        elif device.lower() == "cpu" and "cpu" in device_map:
+            target_device = device_map["cpu"]
+        elif device.lower().startswith("gpu:") and "gpu" in device_map:
+            gpu_idx = int(device.split(":")[1])
+            target_device = available_devices[gpu_idx] if gpu_idx < len(available_devices) else device_map["gpu"]
+        else:
+            raise ValueError(f"Invalid or unavailable device: {device}. Available: {[d.device_kind for d in available_devices]}")
+        
+        self.exp_bits = exp_bits
+        self.sig_bits = sig_bits
+        self.rounding = rounding
+        self.support_denormals = support_denormals
+        self.device = target_device
+        
+        self.bias = (1 << (exp_bits - 1)) - 1
+        self.max_exp = self.bias
+        self.min_exp = -self.bias + 1
+        self.mask_sig = (1 << sig_bits) - 1
+        self.rng_key = random.PRNGKey(rounding_value)  # JAX PRNG key, placed implicitly on device
+
+
+    def __call__(self, values):
+
+        # Convert input to JAX array and place it on the specified device
+        self.value = device_put(jnp.asarray(values), self.device)
+        self.dtype = self.value.dtype
+        if self.dtype not in (jnp.float32, jnp.float64):
+            raise ValueError("Input must be jnp.float32 or jnp.float64")
+        
+        # Ensure value is at least 1D
+        if self.value.ndim == 0:
+            self.value = self.value[None]
+        
+        # Initialize output arrays on the specified device
+        self.sign = device_put(jnp.zeros_like(self.value, dtype=jnp.uint8), self.device)
+        self.exponent = device_put(jnp.zeros_like(self.value, dtype=jnp.int32), self.device)
+        self.significand = device_put(jnp.zeros_like(self.value, dtype=jnp.int32), self.device)
+        self.is_denormal = device_put(jnp.zeros_like(self.value, dtype=jnp.bool_), self.device)
+        self.rounding_value = device_put(jnp.zeros_like(self.value, dtype=self.dtype), self.device)
+        
+        # Perform conversion
+        self.sign, self.exponent, self.significand, self.is_denormal, self.rounding_value = self._convert()
+        return self.rounding_value
+
+    def _extract_components(self):
+        if self.dtype == jnp.float32:
+            bits = self.value.view(jnp.int32)
+            sign = (bits >> 31) & 1
+            exp = ((bits >> 23) & 0xFF) - 127
+            mantissa = bits & ((1 << 23) - 1)
+            mantissa_bits = 23
+            min_exp = -126
+            bias = 127
+        else:  # jnp.float64
+            bits = self.value.view(jnp.int64)
+            sign = (bits >> 63) & 1
+            exp = ((bits >> 52) & 0x7FF) - 1023
+            mantissa = bits & ((1 << 52) - 1)
+            mantissa_bits = 52
+            min_exp = -1022
+            bias = 1023
+        
+        is_zero = (exp == -bias) & (mantissa == 0)
+        is_denorm = (exp == -bias) & (mantissa != 0)
+        
+        mantissa_norm = jnp.where(
+            is_denorm,
+            mantissa.astype(jnp.float64) / (1 << mantissa_bits),
+            1.0 + mantissa.astype(jnp.float64) / (1 << mantissa_bits)
+        ).astype(self.dtype)
+        
+        exp = jnp.where(is_denorm, jnp.array(min_exp, dtype=jnp.int32), exp)
+        
+        return sign.astype(jnp.uint8), exp.astype(jnp.int32), mantissa_norm, is_zero
+
+    def _adjust_to_format(self, sign, exp, mantissa):
+        mantissa_bits = (mantissa * (1 << (self.sig_bits + 1))).astype(jnp.int64) & ((1 << (self.sig_bits + 1)) - 1)
+        exact_mantissa = mantissa_bits >> 1
+        remainder = mantissa_bits & 1
+        half_bit = (remainder << 1) & (mantissa_bits & 2)
+
+        if self.rounding == "toward_zero":
+            rounded = exact_mantissa
+            did_round_up = jnp.zeros_like(rounded, dtype=jnp.bool_)
+        elif self.rounding == "nearest_even":
+            round_up = (remainder != 0) & (half_bit | (exact_mantissa & 1))
+            rounded = exact_mantissa + round_up.astype(jnp.int64)
+            did_round_up = rounded > exact_mantissa
+        elif self.rounding == "nearest_odd":
+            round_up = (remainder != 0) & (half_bit & ~(exact_mantissa & 1))
+            rounded = exact_mantissa + round_up.astype(jnp.int64)
+            did_round_up = rounded > exact_mantissa
+        elif self.rounding == "stochastic_prop":
+            prob = (mantissa * (1 << self.sig_bits) - exact_mantissa.astype(self.dtype))
+            # Generate random values with JAX RNG
+            key, subkey = random.split(self.rng)
+            rand = random.uniform(subkey, shape=exact_mantissa.shape, dtype=self.dtype)
+            rounded = exact_mantissa + (rand < prob).astype(jnp.int64)
+            did_round_up = rounded > exact_mantissa
+            self.rng = key  # Update RNG state
+        elif self.rounding == "stochastic_equal":
+            key, subkey = random.split(self.rng)
+            rand = random.uniform(subkey, shape=exact_mantissa.shape, dtype=self.dtype)
+            rounded = exact_mantissa + (rand < 0.5).astype(jnp.int64)
+            did_round_up = rounded > exact_mantissa
+            self.rng = key  # Update RNG state
+        else:
+            raise ValueError("Unknown rounding mode")
+
+        overflow = did_round_up & (rounded >= (1 << self.sig_bits))
+        rounded = jnp.where(overflow, rounded >> 1, rounded)
+        exp = exp + overflow.astype(jnp.int32)
+
+        overflow_mask = exp > self.max_exp
+        underflow_mask = exp < self.min_exp
+        
+        if overflow_mask.any():
+            raise OverflowError(f"Exponent too large in {overflow_mask.sum()} elements")
+        
+        if underflow_mask.any():
+            if not self.support_denormals:
+                sign = jnp.where(underflow_mask, jnp.array(0, dtype=jnp.uint8), sign)
+                exp = jnp.where(underflow_mask, jnp.array(0, dtype=jnp.int32), exp)
+                rounded = jnp.where(underflow_mask, jnp.array(0, dtype=jnp.int32), rounded)
+                is_denormal = jnp.zeros_like(underflow_mask)
+            else:
+                shift = jnp.clip(self.min_exp - exp, min=0)
+                rounded = jnp.where(underflow_mask, rounded >> shift, rounded)
+                exp = jnp.where(underflow_mask, jnp.array(self.min_exp, dtype=jnp.int32), exp)
+                is_denormal = underflow_mask
+        else:
+            is_denormal = jnp.zeros_like(exp, dtype=jnp.bool_)
+
+        biased_exp = jnp.where(is_denormal, jnp.array(0, dtype=jnp.int32), exp + self.bias)
+        sig_int = rounded & self.mask_sig
+        reconstructed = self._reconstruct(sign, biased_exp, sig_int, is_denormal)
+        return sign, biased_exp, sig_int, is_denormal, reconstructed
+
+    def _reconstruct(self, sign, exponent, significand, is_denormal):
+        zero_mask = (exponent == 0) & (significand == 0)
+        sig_value = jnp.where(
+            is_denormal,
+            significand.astype(self.dtype) / (1 << self.sig_bits),
+            1.0 + significand.astype(self.dtype) / (1 << self.sig_bits)
+        )
+        exp_value = jnp.where(
+            is_denormal,
+            jnp.array(self.min_exp, dtype=jnp.int32),
+            exponent - self.bias
+        )
+        return jnp.where(
+            zero_mask,
+            jnp.array(0.0, dtype=self.dtype),
+            ((-1) ** sign.astype(self.dtype)) * sig_value * (2.0 ** exp_value.astype(self.dtype))
+        ).astype(self.dtype)
+
+    def _convert(self):
+        sign, exp, mantissa, is_zero = self._extract_components()
+        return self._adjust_to_format(sign, exp, mantissa)
+
+    def __str__(self):
+        lines = []
+        for i in range(self.value.size):
+            val = self.value.flatten()[i].item()
+            s = self.sign.flatten()[i].item()
+            e = self.exponent.flatten()[i].item()
+            sig = bin(self.significand.flatten()[i].item())[2:].zfill(self.sig_bits)
+            recon = self.rounding_value.flatten()[i].item()
+            denorm = self.is_denormal.flatten()[i].item()
+            lines.append(f"value: {val}, sign: {s}, exp: {e}, sig: {sig}, emulated value: {recon}, denorm: {denorm}")
+        return f"Device: {self.device.device_kind}\n" + "\n".join(lines)
+
+# Example usage
+if __name__ == "__main__":
+    # Test with float32 input on CPU
+    values_float32 = jnp.array([3.14159, 0.1, -2.718], dtype=jnp.float32)
+    bf_float32_cpu = chop(exp_bits=5, sig_bits=4, rounding="nearest_even", device="cpu")
+    emulated_values = bf_float32_cpu(values_float32)
+    print("Float32 emulated input(CPU):", emulated_values)
+    print()
+
+    # Test with float64 input on GPU (if available)
+    # values_float64 = jnp.array([3.14159, 0.1, -2.718], dtype=jnp.float64)
+    # bf_float64_gpu = BinaryFloat4(values_float64, exp_bits=5, sig_bits=4, rounding="nearest_even", device="gpu")
+    # print("Float64 Input (GPU):")
+    # print(bf_float64_gpu)

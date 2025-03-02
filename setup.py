@@ -5,7 +5,7 @@ import logging
 
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 SETREQUIRES=["numpy"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"

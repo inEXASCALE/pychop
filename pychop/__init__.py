@@ -7,5 +7,5 @@ from .chop import chop
 from .quant import quant
 from .qtrain import QuantLayer
 
-__version__ = '0.2.9'  
+__version__ = '0.3.1'  
 backend('numpy')
