@@ -46,20 +46,7 @@ The ``pychop`` class offers several key advantages that make it a powerful tool 
 * Ease of Integration
 *  Error Detection
 
-
-## Use Cases
- 
- * Machine Learning: Test the impact of low-precision arithmetic on model accuracy and training stability, especially for resource-constrained environments like edge devices.
-
- * Hardware Design: Simulate custom floating-point units before hardware implementation, optimizing bit allocations for specific applications.
-
- * Numerical Analysis: Investigate quantization errors and numerical stability in scientific computations.
-
- * Education: Teach concepts of floating-point representation, rounding, and denormal numbers with a hands-on, customizable tool.
-
-
-
-## The supported floating point formats
+### The supported floating point formats
 
 
 The supported floating point arithmetic formats include:
@@ -78,6 +65,20 @@ Users can specify the number of exponent (exp_bits) and significand (sig_bits) b
 For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (1 sign, 5 exponent, 4 significand), ideal for testing minimal precision scenarios.
 
 The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
+
+### Use Cases
+ 
+ * Machine Learning: Test the impact of low-precision arithmetic on model accuracy and training stability, especially for resource-constrained environments like edge devices.
+
+ * Hardware Design: Simulate custom floating-point units before hardware implementation, optimizing bit allocations for specific applications.
+
+ * Numerical Analysis: Investigate quantization errors and numerical stability in scientific computations.
+
+ * Education: Teach concepts of floating-point representation, rounding, and denormal numbers with a hands-on, customizable tool.
+
+
+
+
 
 
 
