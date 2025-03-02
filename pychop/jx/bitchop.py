@@ -21,15 +21,15 @@ class chop(object):
         Whether or not support subnormal numbers are supported.
         If set `subnormal=False`, subnormals are flushed to zero.
         
-    rmode : int or str, default="nearest_even"
+    rmode : int, default=1
         Rounding mode to use when quantizing the significand. Options are:
-        - 1 or "nearest_even": Round to nearest value, ties to even (IEEE 754 default).
-        - 0 or "nearest_odd": Round to nearest value, ties to odd.
-        - 2 or "plus_infinity": Round towards plus infinity (round up).
-        - 3 or "minus_infinity": Round towards minus infinity (round down).
-        - 4 or "toward_zero": Truncate toward zero (no rounding up).
-        - 5 or "stochastic_prop": Stochastic rounding proportional to the fractional part.
-        - 6 or "stochastic_equal": Stochastic rounding with 50% probability.
+        - 1: Round to nearest value, ties to even (IEEE 754 default).
+        - 0: Round to nearest value, ties to odd.
+        - 2: Round towards plus infinity (round up).
+        - 3: Round towards minus infinity (round down).
+        - 4: Truncate toward zero (no rounding up).
+        - 5: Stochastic rounding proportional to the fractional part.
+        - 6: Stochastic rounding with 50% probability.
         
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
@@ -48,7 +48,7 @@ class chop(object):
         
     """
 
-    def __init__(self, exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=42, device="cpu"):
+    def __init__(self, exp_bits, sig_bits, rmode=1, subnormal=True, random_state=42, device="cpu"):
         # Validate and set device
         # Enable 64-bit precision (optional, based on your earlier preference)
         jax.config.update("jax_enable_x64", True)
@@ -69,22 +69,7 @@ class chop(object):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
 
-        if rmode in {0, "nearest_odd"}:
-            self.rmode = 0
-        elif rmode in {1, "nearest_even"}:
-            self.rmode = 1
-        elif rmode in {2, "plus_infinity"}:
-            self.rmode = 2
-        elif rmode in {3, "minus_infinity"}:
-            self.rmode = 3
-        elif rmode in {4, "toward_zero"}:
-            self.rmode = 4
-        elif rmode in {5, "stochastic_prop"}:
-            self.rmode = 5
-        elif rmode in {6, "stochastic_equal"}:
-            self.rmode = 6
-        else:
-            raise NotImplementedError("Invalid parameter for ``rmode``.")
+        self.rmode = rmode
         
         self.subnormal = subnormal
         self.device = target_device
@@ -265,7 +250,7 @@ class chop(object):
 if __name__ == "__main__":
     # Test with float32 input on CPU
     values_float32 = jnp.array([3.14159, 0.1, -2.718], dtype=jnp.float32)
-    bf_float32_cpu = chop(exp_bits=5, sig_bits=4, rmode="nearest_even", device="cpu")
+    bf_float32_cpu = chop(exp_bits=5, sig_bits=4, rmode=1, device="cpu")
     emulated_values = bf_float32_cpu(values_float32)
     print("Float32 emulated input(CPU):", emulated_values)
     print()

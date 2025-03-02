@@ -17,15 +17,15 @@ class chop(object):
         Whether or not support subnormal numbers are supported.
         If set `subnormal=False`, subnormals are flushed to zero.
         
-    rmode : int or str, default="nearest_even"
+    rmode : int, default=1
         Rounding mode to use when quantizing the significand. Options are:
-        - 1 or "nearest_even": Round to nearest value, ties to even (IEEE 754 default).
-        - 0 or "nearest_odd": Round to nearest value, ties to odd.
-        - 2 or "plus_infinity": Round towards plus infinity (round up).
-        - 3 or "minus_infinity": Round towards minus infinity (round down).
-        - 4 or "toward_zero": Truncate toward zero (no rounding up).
-        - 5 or "stochastic_prop": Stochastic rounding proportional to the fractional part.
-        - 6 or "stochastic_equal": Stochastic rounding with 50% probability.
+        - 1: Round to nearest value, ties to even (IEEE 754 default).
+        - 0: Round to nearest value, ties to odd.
+        - 2: Round towards plus infinity (round up).
+        - 3: Round towards minus infinity (round down).
+        - 4: Truncate toward zero (no rounding up).
+        - 5: Stochastic rounding proportional to the fractional part.
+        - 6: Stochastic rounding with 50% probability.
         
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
@@ -41,25 +41,10 @@ class chop(object):
         
     """
 
-    def __init__(self, exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=42):
+    def __init__(self, exp_bits, sig_bits, rmode=1, subnormal=True, random_state=42):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
-        if rmode in {0, "nearest_odd"}:
-            self.rmode = 0
-        elif rmode in {1, "nearest_even"}:
-            self.rmode = 1
-        elif rmode in {2, "plus_infinity"}:
-            self.rmode = 2
-        elif rmode in {3, "minus_infinity"}:
-            self.rmode = 3
-        elif rmode in {4, "toward_zero"}:
-            self.rmode = 4
-        elif rmode in {5, "stochastic_prop"}:
-            self.rmode = 5
-        elif rmode in {6, "stochastic_equal"}:
-            self.rmode = 6
-        else:
-            raise NotImplementedError("Invalid parameter for ``rmode``.")
+        self.rmode = rmode
         
         self.subnormal = subnormal
         self.bias = (1 << (exp_bits - 1)) - 1
@@ -224,14 +209,14 @@ if __name__ == "__main__":
     exponent_bits = 5
 
     values_float32 = np.array([3.14159, 0.1, -2.718], dtype=np.float32)
-    bf_float32 = chop(exp_bits=exponent_bits, sig_bits=significand_bits, rmode="nearest_even")
+    bf_float32 = chop(exp_bits=exponent_bits, sig_bits=significand_bits, rmode=1)
     emulated_values = bf_float32(values_float32)
     print("Float32 emulated input:", emulated_values)
     print()
 
     # Test with float64 input
     values_float64 = np.array([3.14159, 0.1, -2.718], dtype=np.float64)
-    bf_float64 = chop(exp_bits=exponent_bits, sig_bits=significand_bits, rmode="nearest_even")
+    bf_float64 = chop(exp_bits=exponent_bits, sig_bits=significand_bits, rmode=1)
     emulated_values = bf_float64(values_float64)
     print("Float64 emulated input:", emulated_values)
   
