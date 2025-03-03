@@ -5,7 +5,7 @@ from jax import random, device_put
 
 
 
-class chop(object):
+class bitchop(object):
     """
     Parameters
     ----------
@@ -250,7 +250,7 @@ class chop(object):
 if __name__ == "__main__":
     # Test with float32 input on CPU
     values_float32 = jnp.array([3.14159, 0.1, -2.718], dtype=jnp.float32)
-    bf_float32_cpu = chop(exp_bits=5, sig_bits=4, rmode=1, device="cpu")
+    bf_float32_cpu = bitchop(exp_bits=5, sig_bits=4, rmode=1, device="cpu")
     emulated_values = bf_float32_cpu(values_float32)
     print("Float32 emulated input(CPU):", emulated_values)
     print()

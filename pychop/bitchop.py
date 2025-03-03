@@ -58,17 +58,17 @@ def bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_sta
     """
 
     if os.environ['chop_backend'] == 'torch':
-        from .tch.chop import chop
-        obj = chop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
+        from .tch.bitchop import bitchop
+        obj = bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
                    random_state=random_state, rmode=rmode)
         
     elif os.environ['chop_backend'] == 'jax':
-        from .jx.chop import chop
-        obj = chop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
+        from .jx.bitchop import bitchop
+        obj = bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
                    random_state=random_state, rmode=rmode)
     else:
-        from .np.chop import chop
-        obj = chop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, random_state=random_state, rmode=rmode)
+        from .np.bitchop import bitchop
+        obj = bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, random_state=random_state, rmode=rmode)
     
     obj.u = 2**sig_bits / 2
     

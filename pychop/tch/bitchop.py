@@ -67,7 +67,7 @@ class bitchop(object):
         list, NumPy array, or PyTorch tensor. Automatically converted to a PyTorch tensor.
     
         """
-        self.value = torch.as_tensor(values, device=device)
+        self.value = torch.as_tensor(values, device=self.device)
         self.dtype = self.value.dtype
         if self.dtype not in (torch.float32, torch.float64):
             raise ValueError("Input must be torch.float32 or torch.float64")
@@ -75,11 +75,11 @@ class bitchop(object):
         if self.value.dim() == 0:
             self.value = self.value.unsqueeze(0)
         
-        self.sign = torch.zeros_like(self.value, dtype=torch.uint8, device=device)
-        self.exponent = torch.zeros_like(self.value, dtype=torch.int32, device=device)
-        self.significand = torch.zeros_like(self.value, dtype=torch.int32, device=device)
-        self.is_denormal = torch.zeros_like(self.value, dtype=torch.bool, device=device)
-        self.rounding_value = torch.zeros_like(self.value, dtype=self.dtype, device=device)
+        self.sign = torch.zeros_like(self.value, dtype=torch.uint8, device=self.device)
+        self.exponent = torch.zeros_like(self.value, dtype=torch.int32, device=self.device)
+        self.significand = torch.zeros_like(self.value, dtype=torch.int32, device=self.device)
+        self.is_denormal = torch.zeros_like(self.value, dtype=torch.bool, device=self.device)
+        self.rounding_value = torch.zeros_like(self.value, dtype=self.dtype, device=self.device)
         self._convert()
         return self.rounding_value
 
