@@ -67,7 +67,7 @@ The code example can be found on the [quick start page](https://github.com/chenx
 
 ### Examples
 
-#### I. Chop
+#### (I). Chop
 Rounding the values with specified precision format:
 
 ```Python
@@ -80,7 +80,7 @@ ch = chop('h') # Standard IEEE 754 half precision
 Xq = ch(X) # Rounding values
 ```
 
-#### II. Train Neural Network
+#### (II). Train Neural Network
 Set quantized layer:
 
 ```Python
