@@ -2,7 +2,6 @@ import unittest
 import pychop
 from pychop import demo_harmonic
 
-
 class TestClassix(unittest.TestCase):
     
     def check_demo(self):
