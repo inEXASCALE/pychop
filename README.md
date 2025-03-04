@@ -70,7 +70,7 @@ The code example can be found on the [quick start page](https://github.com/chenx
 #### I. Chop
 Rounding the values with specified precision format:
 
-```
+```Python
 from pychop.chop import chop
 import numpy as np
 np.random.seed(0)
