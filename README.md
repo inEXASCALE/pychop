@@ -47,7 +47,6 @@ The ``pychop`` class offers several key advantages that make it a powerful tool 
 
 ### The supported floating point formats
 
-
 The supported floating point arithmetic formats include:
 
 | format | description | bits |
@@ -64,6 +63,22 @@ Users can specify the number of exponent (exp_bits) and significand (sig_bits) b
 For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (1 sign, 5 exponent, 4 significand), ideal for testing minimal precision scenarios.
 
 The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
+
+
+### Examples
+
+```Python
+import torch
+
+x = torch.tensor([0.1, 0.3, 1.7, 3.9, -2.5])
+mp = Rounding(5, 10) # Standard IEEE 754 float16
+result = mp.quantize(x, "nearest")
+
+layer = QuantizedLayer(4, 2, 5, 10, rounding_mode="nearest")
+input_tensor = torch.randn(3, 4)
+output = layer(input_tensor)
+print("\nLayer output shape:", output.shape)
+```
 
 ### Use Cases
  
