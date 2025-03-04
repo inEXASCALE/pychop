@@ -21,99 +21,69 @@ class options:
 class chop(object):
     def __init__(self, prec='h', subnormal=None, rmode=1, flip=False, explim=1,
                  p=0.5, randfunc=None, customs=None, random_state=0):
-        
         torch.manual_seed(random_state)
         
         self.prec = prec
-        
-        if subnormal is not None:
-            self.subnormal = subnormal
-        else:
-            if self.prec in {'b', 'bfloat16'}:
-                self.subnormal = False
-            else:
-                self.subnormal = True
-            
+        self.subnormal = subnormal if subnormal is not None else (prec not in {'b', 'bfloat16'})
         self.rmode = rmode
         self.flip = flip
         self.explim = explim
         self.p = p
-        
-        self.randfunc = randfunc
-        if self.rmode == 1:
-            self._chop = _chop_round_to_nearest
-        elif self.rmode == 2:
-            self._chop = _chop_round_towards_plus_inf
-        elif self.rmode == 3:
-            self._chop = _chop_round_towards_minus_inf
-        elif self.rmode == 4:
-            self._chop = _chop_round_towards_zero
-        elif self.rmode == 5:
-            self._chop = _chop_stochastic_rounding
-        elif self.rmode == 6:
-            self._chop = _chop_stochastic_rounding_equal
-        else:
-            raise ValueError('Unsupported value of rmode.')
+        self.randfunc = randfunc or (lambda n: torch.rand(n))
 
+        self._chop_funcs = {
+            1: _chop_round_to_nearest,
+            2: _chop_round_towards_plus_inf,
+            3: _chop_round_towards_minus_inf,
+            4: _chop_round_towards_zero,
+            5: _chop_stochastic_rounding,
+            6: _chop_stochastic_rounding_equal
+        }
+        if rmode not in self._chop_funcs:
+            raise ValueError('Unsupported value of rmode.')
+        self._chop = self._chop_funcs[rmode]
+
+        prec_map = {
+            'q43': (4, 7), 'fp8-e4m3': (4, 7), 'q52': (3, 15), 'fp8-e5m2': (3, 15),
+            'h': (11, 15), 'half': (11, 15), 'fp16': (11, 15),
+            'b': (8, 127), 'bfloat16': (8, 127),
+            's': (24, 127), 'single': (24, 127), 'fp32': (24, 127),
+            'd': (53, 1023), 'double': (53, 1023), 'fp64': (53, 1023)
+        }
         if customs is not None:
-            self.t = customs.t
-            self.emax = customs.emax
-        elif self.prec in {'h', 'half', 'fp16', 'b', 'bfloat16', 's',
-                           'single', 'fp32', 'd', 'double', 'fp64',
-                           'q43', 'fp8-e4m3', 'q52', 'fp8-e5m2'}:
-            if self.prec in {'q43', 'fp8-e4m3'}:
-                self.t = 4
-                self.emax = 7
-            elif self.prec in {'q52', 'fp8-e5m2'}:
-                self.t = 3
-                self.emax = 15
-            elif self.prec in {'h', 'half', 'fp16'}:
-                self.t = 11
-                self.emax = 15
-            elif self.prec in {'b', 'bfloat16'}:
-                self.t = 8
-                self.emax = 127  
-            elif self.prec in {'s', 'single', 'fp32'}:
-                self.t = 24
-                self.emax = 127
-            elif self.prec in {'d', 'double', 'fp64'}:
-                self.t = 53
-                self.emax = 1023
+            self.t, self.emax = customs.t, customs.emax
+        elif prec in prec_map:
+            self.t, self.emax = prec_map[prec]
         else:
             raise ValueError('Please enter valid prec value.')
+        
+        self._emin = 1 - self.emax
+        self._xmin = torch.tensor(2.0 ** self._emin, dtype=torch.float32)
+        self._emins = self._emin + 1 - self.t
+        self._xmins = torch.tensor(2.0 ** self._emins, dtype=torch.float32)
 
-        self.u = None
-    
     def __call__(self, x):
         if isinstance(x, (int, str)) and str(x).isnumeric():
             raise ValueError('Chop requires real input values (not int).')
             
         if not torch.is_tensor(x):
             x = torch.tensor(x, dtype=torch.float32)
-        elif x.dtype == torch.int32 or x.dtype == torch.int64:
-            x = x.float()
+        elif x.dtype in (torch.int32, torch.int64):
+            x = x.to(torch.float32)
             
         if not x.ndim:
             x = x.unsqueeze(0)
             
-        if hasattr(self, 'customs'):
-            if self.rmode == 1:
-                self.maxfraction = (x.dtype == torch.float32) * 11 + (x.dtype == torch.float64) * 25
-            else:
-                self.maxfraction = (x.dtype == torch.float32) * 23 + (x.dtype == torch.float64) * 52
-            if self.t > self.maxfraction:
-                raise ValueError('Precision of the custom format must be at most')
-                
-        y = self.chop_wrapper(x.clone())
-        return y
+        return self.chop_wrapper(x.clone())
 
     def chop_wrapper(self, x):
         return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
-                         explim=self.explim, p=self.p)
+                         explim=self.explim, p=self.p, randfunc=self.randfunc)
 
     @property
     def options(self):
         return options(self.t, self.emax, self.prec, self.subnormal, self.rmode, self.flip, self.explim, self.p)
+
 
 def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, randfunc=None, *argv, **kwargs):
     if randfunc is None:
