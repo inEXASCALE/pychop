@@ -69,8 +69,6 @@ class InvalidVersion(ValueError):
     """raise invalid version error"""
 
     
-
-
 if __name__ == "__main__":
     try:
         setuptools.setup(

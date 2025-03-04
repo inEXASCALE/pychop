@@ -88,20 +88,16 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
     if os.environ['chop_backend'] == 'torch':
         from .tch.chop import chop
 
-        obj = chop(prec, subnormal, rmode, flip, 
-                explim, device, p, randfunc, customs, random_state)
+        obj = chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
     
     elif os.environ['chop_backend'] == 'jax':
         from .jx.chop import chop
 
-        obj = chop(prec, subnormal, rmode, flip, 
-                explim, p, randfunc, customs, random_state)
+        obj = chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
     else:
-
         from .np.chop import chop
 
-        obj = chop(prec, subnormal, rmode, flip, 
-                explim, p, randfunc, customs, random_state)
+        obj = chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
     
     obj.u = 2**(1 - obj.t) / 2
     
