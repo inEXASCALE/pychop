@@ -6,7 +6,8 @@ from .fixed_point import fpoint
 from .chop import chop
 from .bitchop import bitchop
 from .quant import quant
-from .qtrain import QuantLayer
+from .iqlayer import IntQuantizedLayer
+from .qlayer import QuantizedLayer, Rounding
 
 __version__ = '0.3.1'  
 backend('numpy')

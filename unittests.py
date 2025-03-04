@@ -5,10 +5,11 @@ import sys
 # appending a path
 sys.path.append('../')
 
-from pychop.chop import chop
-from scipy.io import loadmat
 import pychop
 
+from pychop.chop import chop
+from scipy.io import loadmat
+from pychop import Rounding
 
 import torch
 import jax
@@ -689,5 +690,36 @@ class TestClassix(unittest.TestCase):
         assert np.array_equal(emulated, groud_truth), print("error rmode 4")
 
 
+    def test_layer(self):
+        # Test values
+        values = torch.tensor([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
+
+        # FP16 simulator (5 exponent bits, 10 mantissa bits)
+        fp16_sim = Rounding(5, 10)
+
+        # Test all rounding modes
+        rounding_modes = ["nearest", "up", "down", "towards_zero", 
+                            "stochastic_equal", "stochastic_proportional"]
+
+        # Compare with PyTorch's native FP16
+        fp16_native = values.to(dtype=torch.float16).to(dtype=torch.float32)
+
+        print("Input values:      ", values)
+        print("PyTorch FP16:      ", fp16_native)
+        print()
+
+        print()
+        rounding_modes_num = [1, 2, 3, 4, "stochastic_equal", "stochastic_proportional"]
+
+        print("Correct ones:")
+        for mode in rounding_modes_num[:4]:
+            pyq_f = chop('h', rmode=mode)
+            groud_truth = pyq_f(values)
+            emulated = fp16_sim.quantize(values, rounding_modes[mode-1])
+            assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+            
+            print(f"{rounding_modes[mode-1]:12}, ", "Truth:", f"   {emulated}")
+            print(f"{rounding_modes[mode-1]:12}, ", "Emulated:", f"{groud_truth}")
+    
 if __name__ == '__main__':
     unittest.main()

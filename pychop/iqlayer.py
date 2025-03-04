@@ -1,6 +1,6 @@
 import torch
 
-class QuantLayer(torch.nn.Module):
+class IntQuantizedLayer(torch.nn.Module):
     """
     __init__(config)
         Apply ``pychop`` to quantization aware training, 
@@ -9,7 +9,7 @@ class QuantLayer(torch.nn.Module):
     """
 
     def __init__(self, config):
-        super(QuantLayer, self).__init__()
+        super(IntQuantizedLayer, self).__init__()
         self.quant = config
         
     def forward(self, x):
