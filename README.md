@@ -67,17 +67,34 @@ The code example can be found on the [quick start page](https://github.com/chenx
 
 ### Examples
 
+#### Chop
+Rounding the values with specified precision format:
+
+```
+from pychop.chop import chop
+import numpy as np
+np.random.seed(0)
+
+X = np.random.randn(5000, 5000) 
+ch = chop('h') # Standard IEEE 754 half precision
+Xq = ch(X) # Rounding values
+```
+
+#### Train Neural Network
+Set quantized layer:
+
 ```Python
 import torch
+from pychop import QuantizedLayer, Rounding
 
 x = torch.tensor([0.1, 0.3, 1.7, 3.9, -2.5])
-mp = Rounding(5, 10) # Standard IEEE 754 float16
+mp = Rounding(5, 10) # Standard IEEE 754 half precision
 result = mp.quantize(x, "nearest")
 
 layer = QuantizedLayer(4, 2, 5, 10, rounding_mode="nearest")
 input_tensor = torch.randn(3, 4)
 output = layer(input_tensor)
-print("\nLayer output shape:", output.shape)
+print("\nLayer output shape:", output.shape) # Output: torch.Size([3, 2])
 ```
 
 ### Use Cases
