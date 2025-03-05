@@ -313,7 +313,6 @@ class chop(object):
         return self.chop_wrapper(result)
 
     def diff(self, x, n=1):
-        
         x = self.chop_wrapper(x)
         result = np.diff(x, n=n)
         return self.chop_wrapper(result)
@@ -330,7 +329,6 @@ class chop(object):
         return self.chop_wrapper(fractional), self.chop_wrapper(integer)
 
     def ldexp(self, x, i):
-        
         i = np.array(i, dtype=np.int32)  # Exponent not chopped
         x = self.chop_wrapper(x)
         result = np.ldexp(x, i)
@@ -507,7 +505,6 @@ class chop(object):
 
     # Special Functions
     def erf(self, x):
-        
         x = self.chop_wrapper(x)
         result = np.special.erf(x)
         return self.chop_wrapper(result)
@@ -532,7 +529,6 @@ class chop(object):
 
     def logaddexp(self, x, y):
         """Logarithm of sum of exponentials with chopping."""
-        
         
         x = self.chop_wrapper(x)
         y = self.chop_wrapper(y)
@@ -562,7 +558,7 @@ class chop(object):
 
     def radians(self, x):
         """Convert degrees to radians with chopping."""
-        
+
         x = self.chop_wrapper(x)
         result = np.radians(x)
         return self.chop_wrapper(result)

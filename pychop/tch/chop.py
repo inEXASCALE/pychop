@@ -63,6 +63,9 @@ class chop(object):
         self._xmins = torch.tensor(2.0 ** self._emins, dtype=torch.float32)
 
     def __call__(self, x):
+        return self.chop_wrapper(x.clone())
+
+    def chop_wrapper(self, x):
         if isinstance(x, (int, str)) and str(x).isnumeric():
             raise ValueError('Chop requires real input values (not int).')
             
@@ -74,11 +77,402 @@ class chop(object):
         if not x.ndim:
             x = x.unsqueeze(0)
             
-        return self.chop_wrapper(x.clone())
-
-    def chop_wrapper(self, x):
         return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
                          explim=self.explim, p=self.p, randfunc=self.randfunc)
+
+
+    # Trigonometric Functions
+    def sin(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.sin(x)
+        return self.chop_wrapper(result)
+
+    def cos(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.cos(x)
+        return self.chop_wrapper(result)
+
+    def tan(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.tan(x)
+        return self.chop_wrapper(result)
+
+    def arcsin(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(torch.abs(x) <= 1):
+            raise ValueError("arcsin input must be in [-1, 1]")
+        result = torch.asin(x)
+        return self.chop_wrapper(result)
+
+    def arccos(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(torch.abs(x) <= 1):
+            raise ValueError("arccos input must be in [-1, 1]")
+        result = torch.acos(x)
+        return self.chop_wrapper(result)
+
+    def arctan(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.atan(x)
+        return self.chop_wrapper(result)
+
+    # Hyperbolic Functions
+    def sinh(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.sinh(x)
+        return self.chop_wrapper(result)
+
+    def cosh(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.cosh(x)
+        return self.chop_wrapper(result)
+
+    def tanh(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.tanh(x)
+        return self.chop_wrapper(result)
+
+    def arcsinh(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.asinh(x)
+        return self.chop_wrapper(result)
+
+    def arccosh(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(x >= 1):
+            raise ValueError("arccosh input must be >= 1")
+        result = torch.acosh(x)
+        return self.chop_wrapper(result)
+
+    def arctanh(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(torch.abs(x) < 1):
+            raise ValueError("arctanh input must be in (-1, 1)")
+        result = torch.atanh(x)
+        return self.chop_wrapper(result)
+
+    # Exponential and Logarithmic Functions
+    def exp(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.exp(x)
+        return self.chop_wrapper(result)
+
+    def expm1(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.expm1(x)
+        return self.chop_wrapper(result)
+
+    def log(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(x > 0):
+            raise ValueError("log input must be positive")
+        result = torch.log(x)
+        return self.chop_wrapper(result)
+
+    def log10(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(x > 0):
+            raise ValueError("log10 input must be positive")
+        result = torch.log10(x)
+        return self.chop_wrapper(result)
+
+    def log2(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(x > 0):
+            raise ValueError("log2 input must be positive")
+        result = torch.log2(x)
+        return self.chop_wrapper(result)
+
+    def log1p(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(x > -1):
+            raise ValueError("log1p input must be > -1")
+        result = torch.log1p(x)
+        return self.chop_wrapper(result)
+
+    # Power and Root Functions
+    def sqrt(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(x >= 0):
+            raise ValueError("sqrt input must be non-negative")
+        result = torch.sqrt(x)
+        return self.chop_wrapper(result)
+
+    def cbrt(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.pow(x, 1/3)
+        return self.chop_wrapper(result)
+
+    # Miscellaneous Functions
+    def abs(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.abs(x)
+        return self.chop_wrapper(result)
+
+    def reciprocal(self, x):
+        x = self.chop_wrapper(x)
+        if not torch.all(x != 0):
+            raise ValueError("reciprocal input must not be zero")
+        result = torch.reciprocal(x)
+        return self.chop_wrapper(result)
+
+    def square(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.square(x)
+        return self.chop_wrapper(result)
+
+    # Additional Mathematical Functions
+    def frexp(self, x):
+        x = self.chop_wrapper(x)
+        mantissa, exponent = torch.frexp(x)
+        return self.chop_wrapper(mantissa), exponent  # Exponent typically not chopped
+
+    def hypot(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.hypot(x, y)
+        return self.chop_wrapper(result)
+
+    def diff(self, x, n=1):
+        x = self.chop_wrapper(x)
+        for _ in range(n):
+            x = torch.diff(x)
+        return self.chop_wrapper(x)
+
+    def power(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.pow(x, y)
+        return self.chop_wrapper(result)
+
+    def modf(self, x):
+        x = self.chop_wrapper(x)
+        fractional, integer = torch.modf(x)
+        return self.chop_wrapper(fractional), self.chop_wrapper(integer)
+
+    def ldexp(self, x, i):
+        x = self.chop_wrapper(x)
+        i = torch.tensor(i, dtype=torch.int32, device=x.device)  # Exponent not chopped
+        result = x * torch.pow(2.0, i)
+        return self.chop_wrapper(result)
+
+    def angle(self, x):
+        if torch.is_complex(x):
+            x = self.chop_wrapper(x)
+            result = torch.angle(x)
+        else:
+            x = self.chop_wrapper(x)
+            result = torch.atan2(x, torch.zeros_like(x))
+        return self.chop_wrapper(result)
+
+    def real(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.real(x) if torch.is_complex(x) else x
+        return self.chop_wrapper(result)
+
+    def imag(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.imag(x) if torch.is_complex(x) else torch.zeros_like(x)
+        return self.chop_wrapper(result)
+
+    def conj(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.conj(x) if torch.is_complex(x) else x
+        return self.chop_wrapper(result)
+
+    def maximum(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.maximum(x, y)
+        return self.chop_wrapper(result)
+
+    def minimum(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.minimum(x, y)
+        return self.chop_wrapper(result)
+
+    # Binary Arithmetic Functions
+    def multiply(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.mul(x, y)
+        return self.chop_wrapper(result)
+
+    def mod(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        if not torch.all(y != 0):
+            raise ValueError("mod divisor must not be zero")
+        result = torch.fmod(x, y)
+        return self.chop_wrapper(result)
+
+    def divide(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        if not torch.all(y != 0):
+            raise ValueError("divide divisor must not be zero")
+        result = torch.div(x, y)
+        return self.chop_wrapper(result)
+
+    def add(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.add(x, y)
+        return self.chop_wrapper(result)
+
+    def subtract(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.sub(x, y)
+        return self.chop_wrapper(result)
+
+    def floor_divide(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        if not torch.all(y != 0):
+            raise ValueError("floor_divide divisor must not be zero")
+        result = torch.div(x, y, rounding_mode='floor')
+        return self.chop_wrapper(result)
+
+    def bitwise_and(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.bitwise_and(x.to(torch.int32), y.to(torch.int32)).to(torch.float32)
+        return self.chop_wrapper(result)
+
+    def bitwise_or(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.bitwise_or(x.to(torch.int32), y.to(torch.int32)).to(torch.float32)
+        return self.chop_wrapper(result)
+
+    def bitwise_xor(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.bitwise_xor(x.to(torch.int32), y.to(torch.int32)).to(torch.float32)
+        return self.chop_wrapper(result)
+
+    # Aggregation and Linear Algebra Functions
+    def sum(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = torch.sum(x, dim=axis)
+        return self.chop_wrapper(result)
+
+    def prod(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = torch.prod(x, dim=axis)
+        return self.chop_wrapper(result)
+
+    def mean(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = torch.mean(x, dim=axis)
+        return self.chop_wrapper(result)
+
+    def std(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = torch.std(x, dim=axis)
+        return self.chop_wrapper(result)
+
+    def var(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = torch.var(x, dim=axis)
+        return self.chop_wrapper(result)
+
+    def dot(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.dot(x, y)
+        return self.chop_wrapper(result)
+
+    def matmul(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.matmul(x, y)
+        return self.chop_wrapper(result)
+
+    # Rounding and Clipping Functions
+    def floor(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.floor(x)
+        return self.chop_wrapper(result)
+
+    def ceil(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.ceil(x)
+        return self.chop_wrapper(result)
+
+    def round(self, x, decimals=0):
+        x = self.chop_wrapper(x)
+        if decimals == 0:
+            result = torch.round(x)
+        else:
+            factor = 10 ** decimals
+            result = torch.round(x * factor) / factor
+        return self.chop_wrapper(result)
+
+    def sign(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.sign(x)
+        return self.chop_wrapper(result)
+
+    def clip(self, x, a_min, a_max):
+        a_min = torch.tensor(a_min, dtype=torch.float32, device=x.device)
+        a_max = torch.tensor(a_max, dtype=torch.float32, device=x.device)
+        x = self.chop_wrapper(x)
+        chopped_a_min = self.chop_wrapper(a_min)
+        chopped_a_max = self.chop_wrapper(a_max)
+        result = torch.clamp(x, min=chopped_a_min, max=chopped_a_max)
+        return self.chop_wrapper(result)
+
+    # Special Functions
+    def erf(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.erf(x)
+        return self.chop_wrapper(result)
+
+    def erfc(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.erfc(x)
+        return self.chop_wrapper(result)
+
+    def gamma(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.special.gamma(x)
+        return self.chop_wrapper(result)
+
+    # New Mathematical Functions
+    def fabs(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.abs(x)
+        return self.chop_wrapper(result)
+
+    def logaddexp(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = torch.logaddexp(x, y)
+        return self.chop_wrapper(result)
+
+    def cumsum(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = torch.cumsum(x, dim=axis)
+        return self.chop_wrapper(result)
+
+    def cumprod(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = torch.cumprod(x, dim=axis)
+        return self.chop_wrapper(result)
+
+    def degrees(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.deg2rad(x) * (180 / torch.pi)
+        return self.chop_wrapper(result)
+
+    def radians(self, x):
+        x = self.chop_wrapper(x)
+        result = torch.rad2deg(x) * (torch.pi / 180)
+        return self.chop_wrapper(result)
+    
 
     @property
     def options(self):

@@ -64,6 +64,9 @@ class chop(object):
         self._xmins = 2.0 ** self._emins
 
     def __call__(self, x):
+        return self.chop_wrapper(x)
+
+    def chop_wrapper(self, x):
         if isinstance(x, (int, str)) and str(x).isnumeric():
             raise ValueError('Chop requires real input values (not int).')
             
@@ -74,14 +77,550 @@ class chop(object):
             
         if not x.ndim:
             x = x[None]
-            
+        
         self.key, subkey = random.split(self.key)
-        return self.chop_wrapper(x, subkey)
-
-    def chop_wrapper(self, x, key):
         return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
-                         explim=self.explim, p=self.p, key=key)
+                         explim=self.explim, p=self.p, key=subkey)
 
+    # Trigonometric Functions
+    def sin(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.sin(x)
+        return self.chop_wrapper(result)
+
+    def cos(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.cos(x)
+        return self.chop_wrapper(result)
+
+    def tan(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.tan(x)
+        return self.chop_wrapper(result)
+
+    def arcsin(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(jnp.abs(x) <= 1):
+            raise ValueError("arcsin input must be in [-1, 1]")
+        
+        result = jnp.arcsin(x)
+        return self.chop_wrapper(result)
+
+    def arccos(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(jnp.abs(x) <= 1):
+            raise ValueError("arccos input must be in [-1, 1]")
+        
+        result = jnp.arccos(x)
+        return self.chop_wrapper(result)
+
+    def arctan(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.arctan(x)
+        return self.chop_wrapper(result)
+
+    # Hyperbolic Functions
+    def sinh(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.sinh(x)
+        return self.chop_wrapper(result)
+
+    def cosh(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.cosh(x)
+        return self.chop_wrapper(result)
+
+    def tanh(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.tanh(x)
+        return self.chop_wrapper(result)
+
+    def arcsinh(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.arcsinh(x)
+        return self.chop_wrapper(result)
+
+    def arccosh(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(x >= 1):
+            raise ValueError("arccosh input must be >= 1")
+        
+        result = jnp.arccosh(x)
+        return self.chop_wrapper(result)
+
+    def arctanh(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(jnp.abs(x) < 1):
+            raise ValueError("arctanh input must be in (-1, 1)")
+        
+        result = jnp.arctanh(x)
+        return self.chop_wrapper(result)
+
+    # Exponential and Logarithmic Functions
+    def exp(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.exp(x)
+        return self.chop_wrapper(result)
+
+    def expm1(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.expm1(x)
+        return self.chop_wrapper(result)
+
+    def log(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(x > 0):
+            raise ValueError("log input must be positive")
+        
+        result = jnp.log(x)
+        return self.chop_wrapper(result)
+
+    def log10(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(x > 0):
+            raise ValueError("log10 input must be positive")
+        
+        result = jnp.log10(x)
+        return self.chop_wrapper(result)
+
+    def log2(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(x > 0):
+            raise ValueError("log2 input must be positive")
+        
+        result = jnp.log2(x)
+        return self.chop_wrapper(result)
+
+    def log1p(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(x > -1):
+            raise ValueError("log1p input must be > -1")
+        
+        result = jnp.log1p(x)
+        return self.chop_wrapper(result)
+
+    # Power and Root Functions
+    def sqrt(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(x >= 0):
+            raise ValueError("sqrt input must be non-negative")
+        
+        result = jnp.sqrt(x)
+        return self.chop_wrapper(result)
+
+    def cbrt(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.cbrt(x)
+        return self.chop_wrapper(result)
+
+    # Miscellaneous Functions
+    def abs(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.abs(x)
+        return self.chop_wrapper(result)
+
+    def reciprocal(self, x):
+        
+        x = self.chop_wrapper(x)
+        if not jnp.all(x != 0):
+            raise ValueError("reciprocal input must not be zero")
+        
+        result = jnp.reciprocal(x)
+        return self.chop_wrapper(result)
+
+    def square(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.square(x)
+        return self.chop_wrapper(result)
+
+    # Additional Mathematical Functions
+    def frexp(self, x):
+        
+        x = self.chop_wrapper(x)
+        mantissa, exponent = jnp.frexp(x)
+        
+        return self.chop_wrapper(mantissa), exponent  # Exponent typically not chopped
+
+    def hypot(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.hypot(x, y)
+        return self.chop_wrapper(result)
+
+    def diff(self, x, n=1):
+        
+        x = self.chop_wrapper(x)
+        for _ in range(n):
+            x = jnp.diff(x)
+        
+        return self.chop_wrapper(x)
+
+    def power(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.power(x, y)
+        return self.chop_wrapper(result)
+
+    def modf(self, x):
+        
+        x = self.chop_wrapper(x)
+        fractional, integer = jnp.modf(x)
+        
+        fractional = self.chop_wrapper(fractional)
+        
+        integer = self.chop_wrapper(integer)
+        return fractional, integer
+
+    def ldexp(self, x, i):
+        
+        x = self.chop_wrapper(x)
+        i = jnp.array(i, dtype=jnp.int32)  # Exponent not chopped
+        
+        result = jnp.ldexp(x, i)
+        return self.chop_wrapper(result)
+
+    def angle(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.angle(x) if jnp.iscomplexobj(x) else jnp.arctan2(x, jnp.zeros_like(x))
+        return self.chop_wrapper(result)
+
+    def real(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.real(x) if jnp.iscomplexobj(x) else x
+        return self.chop_wrapper(result)
+
+    def imag(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.imag(x) if jnp.iscomplexobj(x) else jnp.zeros_like(x)
+        return self.chop_wrapper(result)
+
+    def conj(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.conj(x) if jnp.iscomplexobj(x) else x
+        return self.chop_wrapper(result)
+
+    def maximum(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.maximum(x, y)
+        return self.chop_wrapper(result)
+
+    def minimum(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.minimum(x, y)
+        return self.chop_wrapper(result)
+
+    # Binary Arithmetic Functions
+    def multiply(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.multiply(x, y)
+        return self.chop_wrapper(result)
+
+    def mod(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        if not jnp.all(y != 0):
+            raise ValueError("mod divisor must not be zero")
+        
+        result = jnp.mod(x, y)
+        return self.chop_wrapper(result)
+
+    def divide(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        if not jnp.all(y != 0):
+            raise ValueError("divide divisor must not be zero")
+        
+        result = jnp.divide(x, y)
+        return self.chop_wrapper(result)
+
+    def add(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.add(x, y)
+        return self.chop_wrapper(result)
+
+    def subtract(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.subtract(x, y)
+        return self.chop_wrapper(result)
+
+    def floor_divide(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        if not jnp.all(y != 0):
+            raise ValueError("floor_divide divisor must not be zero")
+        
+        result = jnp.floor_divide(x, y)
+        return self.chop_wrapper(result)
+
+    def bitwise_and(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.bitwise_and(x.astype(jnp.int32), y.astype(jnp.int32)).astype(jnp.float32)
+        return self.chop_wrapper(result)
+
+    def bitwise_or(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.bitwise_or(x.astype(jnp.int32), y.astype(jnp.int32)).astype(jnp.float32)
+        return self.chop_wrapper(result)
+
+    def bitwise_xor(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.bitwise_xor(x.astype(jnp.int32), y.astype(jnp.int32)).astype(jnp.float32)
+        return self.chop_wrapper(result)
+
+    # Aggregation and Linear Algebra Functions
+    def sum(self, x, axis=None):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.sum(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def prod(self, x, axis=None):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.prod(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def mean(self, x, axis=None):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.mean(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def std(self, x, axis=None):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.std(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def var(self, x, axis=None):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.var(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def dot(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.dot(x, y)
+        return self.chop_wrapper(result)
+
+    def matmul(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jnp.matmul(x, y)
+        return self.chop_wrapper(result)
+
+    # Rounding and Clipping Functions
+    def floor(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.floor(x)
+        return self.chop_wrapper(result)
+
+    def ceil(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.ceil(x)
+        return self.chop_wrapper(result)
+
+    def round(self, x, decimals=0):
+        
+        x = self.chop_wrapper(x)
+        if decimals == 0:
+            result = jnp.round(x)
+        else:
+            factor = 10 ** decimals
+            result = jnp.round(x * factor) / factor
+        
+        return self.chop_wrapper(result)
+
+    def sign(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.sign(x)
+        return self.chop_wrapper(result)
+
+    def clip(self, x, a_min, a_max):
+        
+        x = self.chop_wrapper(x)
+        a_min = jnp.array(a_min, dtype=jnp.float32)
+        a_max = jnp.array(a_max, dtype=jnp.float32)
+        
+        chopped_a_min = self.chop_wrapper(a_min)
+        
+        chopped_a_max = self.chop_wrapper(a_max)
+        
+        result = jnp.clip(x, chopped_a_min, chopped_a_max)
+        return self.chop_wrapper(result)
+
+    # Special Functions
+    def erf(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jax.scipy.special.erf(x)
+        return self.chop_wrapper(result)
+
+    def erfc(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jax.scipy.special.erfc(x)
+        return self.chop_wrapper(result)
+
+    def gamma(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jax.scipy.special.gamma(x)
+        return self.chop_wrapper(result)
+
+    # New Mathematical Functions
+    def fabs(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.fabs(x)
+        return self.chop_wrapper(result)
+
+    def logaddexp(self, x, y):
+        
+        x = self.chop_wrapper(x)
+        
+        y = self.chop_wrapper(y)
+        
+        result = jax.scipy.special.logsumexp(jnp.stack([x, y]), axis=0)
+        return self.chop_wrapper(result)
+
+    def cumsum(self, x, axis=None):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.cumsum(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def cumprod(self, x, axis=None):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.cumprod(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def degrees(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.degrees(x)
+        return self.chop_wrapper(result)
+
+    def radians(self, x):
+        
+        x = self.chop_wrapper(x)
+        
+        result = jnp.radians(x)
+        return self.chop_wrapper(result)
+    
     @property
     def options(self):
         return options(self.t, self.emax, self.prec, self.subnormal, self.rmode, self.flip, self.explim, self.p)
