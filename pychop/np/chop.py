@@ -107,54 +107,30 @@ class chop(object):
         self.p = p
         
         self.randfunc = randfunc
-        if self.rmode == 1:
-            self._chop = _chop_round_to_nearest
-            
-        elif self.rmode == 2:
-            self._chop = _chop_round_towards_plus_inf
-            
-        elif self.rmode == 3:
-            self._chop = _chop_round_towards_minus_inf
-            
-        elif self.rmode == 4:
-            self._chop = _chop_round_towards_zero
-            
-        elif self.rmode == 5:
-            self._chop = _chop_stochastic_rounding
-            
-        elif self.rmode == 6:
-            self._chop = _chop_stochastic_rounding_equal
+        # Set rounding function
+        self._chop = {
+            1: _chop_round_to_nearest,
+            2: _chop_round_towards_plus_inf,
+            3: _chop_round_towards_minus_inf,
+            4: _chop_round_towards_zero,
+            5: _chop_stochastic_rounding,
+            6: _chop_stochastic_rounding_equal
+        }.get(rmode, lambda *args: raise_value_error('Unsupported rmode'))
 
+        # Set precision parameters
+        if customs:
+            self.t, self.emax = customs.t, customs.emax
         else:
-            raise ValueError('Unsupported value of rmode.')
-
-        if customs is not None:
-            self.t = customs.t
-            self.emax = customs.emax
-            
-        elif self.prec in {'h','half','fp16','b','bfloat16','s',
-                   'single','fp32','d','double','fp64',
-                   'q43','fp8-e4m3','q52','fp8-e5m2'}:
-            if self.prec in {'q43','fp8-e4m3'}:
-                self.t = 4
-                self.emax = 7
-            elif self.prec in {'q52','fp8-e5m2'}:
-                self.t = 3
-                self.emax = 15
-            elif self.prec in {'h','half','fp16'}:
-                self.t = 11
-                self.emax = 15
-            elif self.prec in {'b','bfloat16'}:
-                self.t = 8
-                self.emax = 127  
-            elif self.prec in {'s','single','fp32'}:
-                self.t = 24
-                self.emax = 127
-            elif self.prec in {'d','double','fp64'}:
-                self.t = 53
-                self.emax = 1023
-        else:
-            raise ValueError('Please enter valid prec value.')
+            prec_map = {
+                'q43': (4, 7), 'fp8-e4m3': (4, 7), 'q52': (3, 15), 'fp8-e5m2': (3, 15),
+                'h': (11, 15), 'half': (11, 15), 'fp16': (11, 15),
+                'b': (8, 127), 'bfloat16': (8, 127),
+                's': (24, 127), 'single': (24, 127), 'fp32': (24, 127),
+                'd': (53, 1023), 'double': (53, 1023), 'fp64': (53, 1023)
+            }
+            if prec not in prec_map:
+                raise ValueError('Invalid prec value')
+            self.t, self.emax = prec_map[prec]
 
         self.u = None
     
@@ -596,3 +572,6 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0,
 
     return x
 
+
+def raise_value_error(msg):
+    raise ValueError(msg)
