@@ -136,6 +136,10 @@ class chop(object):
     
             
     def __call__(self, x):
+        y = self.chop_wrapper(x.copy())
+        return y
+        
+    def chop_wrapper(self, x):
         if str(x).isnumeric():
             raise ValueError('Chop requires real input values (not int).')
             
@@ -151,15 +155,417 @@ class chop(object):
             if self.t > self.maxfraction:
                 raise ValueError('Precision of the custom format must be at most')
                 
-        y = self.chop_wrapper(x.copy())
-        return y
-        
-
-    
-    def chop_wrapper(self, x):
         return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
                                 explim=self.explim, p=self.p)
     
+
+    # Trigonometric Functions
+    def sin(self, x):
+        x = self.chop_wrapper(x)
+        result = np.sin(x)
+        return self.chop_wrapper(result)
+
+    def cos(self, x):
+        x = self.chop_wrapper(x)
+        result = np.cos(x)
+        return self.chop_wrapper(result)
+
+    def tan(self, x):
+        x = self.chop_wrapper(x)
+        result = np.tan(x)
+        return self.chop_wrapper(result)
+
+    def arcsin(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(np.abs(x) <= 1):
+            raise ValueError("arcsin input must be in [-1, 1]")
+        result = np.arcsin(x)
+        return self.chop_wrapper(result)
+
+    def arccos(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(np.abs(x) <= 1):
+            raise ValueError("arccos input must be in [-1, 1]")
+        result = np.arccos(x)
+        return self.chop_wrapper(result)
+
+    def arctan(self, x):
+        x = self.chop_wrapper(x)
+        result = np.arctan(x)
+        return self.chop_wrapper(result)
+
+    # Hyperbolic Functions
+    def sinh(self, x):
+        
+        x = self.chop_wrapper(x)
+        result = np.sinh(x)
+        return self.chop_wrapper(result)
+
+    def cosh(self, x):
+        x = self.chop_wrapper(x)
+        result = np.cosh(x)
+        return self.chop_wrapper(result)
+
+    def tanh(self, x):
+        x = self.chop_wrapper(x)
+        result = np.tanh(x)
+        return self.chop_wrapper(result)
+
+    def arcsinh(self, x):
+        x = self.chop_wrapper(x)
+        result = np.arcsinh(x)
+        return self.chop_wrapper(result)
+
+    def arccosh(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(x >= 1):
+            raise ValueError("arccosh input must be >= 1")
+        result = np.arccosh(x)
+        return self.chop_wrapper(result)
+
+    def arctanh(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(np.abs(x) < 1):
+            raise ValueError("arctanh input must be in (-1, 1)")
+        result = np.arctanh(x)
+        return self.chop_wrapper(result)
+
+    # Exponential and Logarithmic Functions
+    def exp(self, x):
+        x = self.chop_wrapper(x)
+        result = np.exp(x)
+        return self.chop_wrapper(result)
+
+    def expm1(self, x):
+        x = self.chop_wrapper(x)
+        result = np.expm1(x)
+        return self.chop_wrapper(result)
+
+    def log(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(x > 0):
+            raise ValueError("log input must be positive")
+        result = np.log(x)
+        return self.chop_wrapper(result)
+
+    def log10(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(x > 0):
+            raise ValueError("log10 input must be positive")
+        result = np.log10(x)
+        return self.chop_wrapper(result)
+
+    def log2(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(x > 0):
+            raise ValueError("log2 input must be positive")
+        result = np.log2(x)
+        return self.chop_wrapper(result)
+
+    def log1p(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(x > -1):
+            raise ValueError("log1p input must be > -1")
+        result = np.log1p(x)
+        return self.chop_wrapper(result)
+
+    # Power and Root Functions
+    def sqrt(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(x >= 0):
+            raise ValueError("sqrt input must be non-negative")
+        result = np.sqrt(x)
+        return self.chop_wrapper(result)
+
+    def cbrt(self, x):
+        x = self.chop_wrapper(x)
+        result = np.cbrt(x)
+        return self.chop_wrapper(result)
+
+    # Miscellaneous Functions
+    def abs(self, x):
+        x = self.chop_wrapper(x)
+        result = np.abs(x)
+        return self.chop_wrapper(result)
+
+    def reciprocal(self, x):
+        x = self.chop_wrapper(x)
+        if not np.all(x != 0):
+            raise ValueError("reciprocal input must not be zero")
+        result = np.reciprocal(x)
+        return self.chop_wrapper(result)
+
+    def square(self, x):
+        x = self.chop_wrapper(x)
+        result = np.square(x)
+        return self.chop_wrapper(result)
+
+    # Additional Mathematical Functions
+    def frexp(self, x):
+        x = self.chop_wrapper(x)
+        mantissa, exponent = np.frexp(x)
+        return self.chop_wrapper(mantissa), self.chop_wrapper(exponent)
+
+    def hypot(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.hypot(x, y)
+        return self.chop_wrapper(result)
+
+    def diff(self, x, n=1):
+        
+        x = self.chop_wrapper(x)
+        result = np.diff(x, n=n)
+        return self.chop_wrapper(result)
+
+    def power(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.power(x, y)
+        return self.chop_wrapper(result)
+
+    def modf(self, x):
+        x = self.chop_wrapper(x)
+        fractional, integer = np.modf(x)
+        return self.chop_wrapper(fractional), self.chop_wrapper(integer)
+
+    def ldexp(self, x, i):
+        
+        i = np.array(i, dtype=np.int32)  # Exponent not chopped
+        x = self.chop_wrapper(x)
+        result = np.ldexp(x, i)
+        return self.chop_wrapper(result)
+
+    def angle(self, x):
+        x = np.array(x, dtype=np.complex128 if np.iscomplexobj(x) else np.float64)
+        x = self.chop_wrapper(x)
+        result = np.angle(x)
+        return self.chop_wrapper(result)
+
+    def real(self, x):
+        x = np.array(x, dtype=np.complex128 if np.iscomplexobj(x) else np.float64)
+        x = self.chop_wrapper(x)
+        result = np.real(x)
+        return self.chop_wrapper(result)
+
+    def imag(self, x):
+        x = np.array(x, dtype=np.complex128 if np.iscomplexobj(x) else np.float64)
+        x = self.chop_wrapper(x)
+        result = np.imag(x)
+        return self.chop_wrapper(result)
+
+    def conj(self, x):
+        x = np.array(x, dtype=np.complex128 if np.iscomplexobj(x) else np.float64)
+        x = self.chop_wrapper(x)
+        result = np.conj(x)
+        return self.chop_wrapper(result)
+
+    def maximum(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.maximum(x, y)
+        return self.chop_wrapper(result)
+
+    def minimum(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.minimum(x, y)
+        return self.chop_wrapper(result)
+
+    # Binary Arithmetic Functions
+    def multiply(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.multiply(x, y)
+        return self.chop_wrapper(result)
+
+    def mod(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        if not np.all(y != 0):
+            raise ValueError("mod divisor must not be zero")
+        result = np.mod(x, y)
+        return self.chop_wrapper(result)
+
+    def divide(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        if not np.all(y != 0):
+            raise ValueError("divide divisor must not be zero")
+        result = np.divide(x, y)
+        return self.chop_wrapper(result)
+
+    def add(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.add(x, y)
+        return self.chop_wrapper(result)
+
+    def subtract(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.subtract(x, y)
+        return self.chop_wrapper(result)
+
+    def floor_divide(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        if not np.all(y != 0):
+            raise ValueError("floor_divide divisor must not be zero")
+        result = np.floor_divide(x, y)
+        return self.chop_wrapper(result)
+
+    def bitwise_and(self, x, y):
+        
+        
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.bitwise_and(x, y)
+        return self.chop_wrapper(result)
+
+    def bitwise_or(self, x, y):
+        
+        
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.bitwise_or(x, y)
+        return self.chop_wrapper(result)
+
+    def bitwise_xor(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.bitwise_xor(x, y)
+        return self.chop_wrapper(result)
+
+    # Aggregation and Linear Algebra Functions
+    def sum(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = np.sum(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def prod(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = np.prod(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def mean(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = np.mean(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def std(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = np.std(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def var(self, x, axis=None):
+        x = self.chop_wrapper(x)
+        result = np.var(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def dot(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.dot(x, y)
+        return self.chop_wrapper(result)
+
+    def matmul(self, x, y):
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.matmul(x, y)
+        return self.chop_wrapper(result)
+
+    # Rounding and Clipping Functions
+    def floor(self, x):
+        x = self.chop_wrapper(x)
+        result = np.floor(x)
+        return self.chop_wrapper(result)
+
+    def ceil(self, x):
+        x = self.chop_wrapper(x)
+        result = np.ceil(x)
+        return self.chop_wrapper(result)
+
+    def round(self, x, decimals=0):
+        x = self.chop_wrapper(x)
+        result = np.round(x, decimals=decimals)
+        return self.chop_wrapper(result)
+
+    def sign(self, x):
+        x = self.chop_wrapper(x)
+        result = np.sign(x)
+        return self.chop_wrapper(result)
+
+    def clip(self, x, a_min, a_max):
+        a_min = np.array(a_min, dtype=np.float64)
+        a_max = np.array(a_max, dtype=np.float64)
+        x = self.chop_wrapper(x)
+        chopped_a_min = self.chop_wrapper(a_min)
+        chopped_a_max = self.chop_wrapper(a_max)
+        result = np.clip(x, chopped_a_min, chopped_a_max)
+        return self.chop_wrapper(result)
+
+    # Special Functions
+    def erf(self, x):
+        
+        x = self.chop_wrapper(x)
+        result = np.special.erf(x)
+        return self.chop_wrapper(result)
+
+    def erfc(self, x):
+        x = self.chop_wrapper(x)
+        result = np.special.erfc(x)
+        return self.chop_wrapper(result)
+
+    def gamma(self, x):
+        x = self.chop_wrapper(x)
+        result = np.special.gamma(x)
+        return self.chop_wrapper(result)
+
+    # New Mathematical Functions
+    def fabs(self, x):
+        """Floating-point absolute value with chopping."""
+        
+        x = self.chop_wrapper(x)
+        result = np.fabs(x)
+        return self.chop_wrapper(result)
+
+    def logaddexp(self, x, y):
+        """Logarithm of sum of exponentials with chopping."""
+        
+        
+        x = self.chop_wrapper(x)
+        y = self.chop_wrapper(y)
+        result = np.logaddexp(x, y)
+        return self.chop_wrapper(result)
+
+    def cumsum(self, x, axis=None):
+        """Cumulative sum with chopping."""
+        
+        x = self.chop_wrapper(x)
+        result = np.cumsum(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def cumprod(self, x, axis=None):
+        """Cumulative product with chopping."""
+        
+        x = self.chop_wrapper(x)
+        result = np.cumprod(x, axis=axis)
+        return self.chop_wrapper(result)
+
+    def degrees(self, x):
+        """Convert radians to degrees with chopping."""
+
+        x = self.chop_wrapper(x)
+        result = np.degrees(x)
+        return self.chop_wrapper(result)
+
+    def radians(self, x):
+        """Convert degrees to radians with chopping."""
+        
+        x = self.chop_wrapper(x)
+        result = np.radians(x)
+        return self.chop_wrapper(result)
 
     @property
     def options(self):
