@@ -1,5 +1,5 @@
 import numpy as np
-from .np.chop import customs
+from . import customs
 from .chop import chop
 import copy
 

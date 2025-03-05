@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from .roundit import (round_to_nearest, 
                       round_towards_plus_inf, 
                       round_towards_minus_inf, 
@@ -7,29 +6,9 @@ from .roundit import (round_to_nearest,
                       stochastic_rounding_equal)
 import numpy as np
 import gc
-
-@dataclass
-class customs:
-    t: int
-    emax: int
-        
-        
-@dataclass
-class options:
-    t: int
-    emax: int
-    prec: int
-    subnormal: bool
-    rmode: bool
-    flip: bool
-    explim: bool
-    p: float
-
-        
-from time import time
+   
 
 class chop(object):
-
     """
     Parameters
     ----------
@@ -74,7 +53,9 @@ class chop(object):
 
     customs : dataclass, default=None
         If customs is defined, then use customs.t and customs.emax for floating point arithmetic.
-
+        where t is the number of bits in the significand (including the hidden bit) and emax
+        is the maximum value of the exponent.
+    
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
 
