@@ -6,12 +6,12 @@ class Rounding:
     A class to simulate different floating-point precisions and rounding modes
     for PyTorch tensors.
     """
-    def __init__(self, exponent_bits: int, mantissa_bits: int):
-        self.exponent_bits = exponent_bits
-        self.mantissa_bits = mantissa_bits
-        self.max_exp = 2 ** (exponent_bits - 1) - 1
+    def __init__(self, exp_bits: int, sig_bits: int):
+        self.exp_bits = exp_bits
+        self.sig_bits = sig_bits
+        self.max_exp = 2 ** (exp_bits - 1) - 1
         self.min_exp = -self.max_exp + 1
-        self.bias = 2 ** (exponent_bits - 1) - 1  # Bias for IEEE 754
+        self.bias = 2 ** (exp_bits - 1) - 1  # Bias for IEEE 754
         
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -20,8 +20,8 @@ class Rounding:
         Convert to custom float representation with proper IEEE 754 handling
         
         Args:
-            exponent_bits: Number of bits for exponent
-            mantissa_bits: Number of bits for mantissa (significant digits)
+            exp_bits: Number of bits for exponent
+            sig_bits: Number of bits for significand (significant digits)
         """
         sign = torch.sign(x)
         abs_x = torch.abs(x)
@@ -31,25 +31,25 @@ class Rounding:
         inf_mask = torch.isinf(x)
         nan_mask = torch.isnan(x)
         
-        # Calculate raw exponent and mantissa
+        # Calculate raw exponent and significand
         exponent = torch.floor(torch.log2(abs_x.clamp(min=2.0**-24)))  # Minimum denormal
         
-        # Normalize mantissa to [1, 2)
-        mantissa = abs_x / (2.0 ** exponent)
+        # Normalize significand to [1, 2)
+        significand = abs_x / (2.0 ** exponent)
         
         # Handle subnormals
         subnormal_mask = (exponent < self.min_exp)
         if torch.any(subnormal_mask):
-            mantissa[subnormal_mask] = abs_x[subnormal_mask] / (2.0 ** self.min_exp)
+            significand[subnormal_mask] = abs_x[subnormal_mask] / (2.0 ** self.min_exp)
             exponent[subnormal_mask] = self.min_exp
         
-        return sign, exponent + self.bias, mantissa, zero_mask, inf_mask, nan_mask
+        return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
     
     def _quantize_components(self, 
                            x: torch.Tensor,
                            sign: torch.Tensor, 
                            exponent: torch.Tensor, 
-                           mantissa: torch.Tensor,
+                           significand: torch.Tensor,
                            zero_mask: torch.Tensor,
                            inf_mask: torch.Tensor,
                            nan_mask: torch.Tensor,
@@ -58,66 +58,66 @@ class Rounding:
         
         # Clamp exponent to representable range (including bias)
         exp_min = 0  # 0 represents subnormals
-        exp_max = 2**self.exponent_bits - 1  # 31 for FP16
+        exp_max = 2**self.exp_bits - 1  # 31 for FP16
         exponent = exponent.clamp(min=exp_min, max=exp_max)
         
-        # Quantize mantissa
-        mantissa_steps = 2 ** self.mantissa_bits
+        # Quantize significand
+        significand_steps = 2 ** self.sig_bits
         normal_mask = (exponent > 0) & (exponent < exp_max)
         subnormal_mask = (exponent == 0)
-        mantissa_normal = mantissa - 1.0  # Remove implicit leading 1 for normal numbers
+        significand_normal = significand - 1.0  # Remove implicit leading 1 for normal numbers
         
         # Apply rounding mode
         if rounding_mode == "nearest":
-            mantissa_q = torch.round(mantissa_normal * mantissa_steps) / mantissa_steps
+            significand_q = torch.round(significand_normal * significand_steps) / significand_steps
             if torch.any(subnormal_mask):
-                mantissa_q[subnormal_mask] = torch.round(mantissa[subnormal_mask] * 
-                                                       mantissa_steps) / mantissa_steps
+                significand_q[subnormal_mask] = torch.round(significand[subnormal_mask] * 
+                                                       significand_steps) / significand_steps
         elif rounding_mode == "up":
-            mantissa_q = torch.where(sign > 0, 
-                                   torch.ceil(mantissa_normal * mantissa_steps),
-                                   torch.floor(mantissa_normal * mantissa_steps)) / mantissa_steps
+            significand_q = torch.where(sign > 0, 
+                                   torch.ceil(significand_normal * significand_steps),
+                                   torch.floor(significand_normal * significand_steps)) / significand_steps
             if torch.any(subnormal_mask):
-                mantissa_q[subnormal_mask] = torch.where(sign[subnormal_mask] > 0,
-                                                       torch.ceil(mantissa[subnormal_mask] * mantissa_steps),
-                                                       torch.floor(mantissa[subnormal_mask] * mantissa_steps)) / mantissa_steps
+                significand_q[subnormal_mask] = torch.where(sign[subnormal_mask] > 0,
+                                                       torch.ceil(significand[subnormal_mask] * significand_steps),
+                                                       torch.floor(significand[subnormal_mask] * significand_steps)) / significand_steps
         elif rounding_mode == "down":
-            mantissa_q = torch.where(sign > 0,
-                                   torch.floor(mantissa_normal * mantissa_steps),
-                                   torch.ceil(mantissa_normal * mantissa_steps)) / mantissa_steps
+            significand_q = torch.where(sign > 0,
+                                   torch.floor(significand_normal * significand_steps),
+                                   torch.ceil(significand_normal * significand_steps)) / significand_steps
             if torch.any(subnormal_mask):
-                mantissa_q[subnormal_mask] = torch.where(sign[subnormal_mask] > 0,
-                                                       torch.floor(mantissa[subnormal_mask] * mantissa_steps),
-                                                       torch.ceil(mantissa[subnormal_mask] * mantissa_steps)) / mantissa_steps
+                significand_q[subnormal_mask] = torch.where(sign[subnormal_mask] > 0,
+                                                       torch.floor(significand[subnormal_mask] * significand_steps),
+                                                       torch.ceil(significand[subnormal_mask] * significand_steps)) / significand_steps
         elif rounding_mode == "towards_zero":
-            mantissa_q = torch.trunc(mantissa_normal * mantissa_steps) / mantissa_steps
+            significand_q = torch.trunc(significand_normal * significand_steps) / significand_steps
             if torch.any(subnormal_mask):
-                mantissa_q[subnormal_mask] = torch.trunc(mantissa[subnormal_mask] * 
-                                                       mantissa_steps) / mantissa_steps
+                significand_q[subnormal_mask] = torch.trunc(significand[subnormal_mask] * 
+                                                       significand_steps) / significand_steps
         elif rounding_mode == "stochastic_equal":
-            mantissa_scaled = mantissa_normal * mantissa_steps
-            floor_val = torch.floor(mantissa_scaled)
-            prob = torch.rand_like(mantissa_scaled)
-            mantissa_q = torch.where(prob < 0.5, floor_val, floor_val + 1) / mantissa_steps
+            significand_scaled = significand_normal * significand_steps
+            floor_val = torch.floor(significand_scaled)
+            prob = torch.rand_like(significand_scaled)
+            significand_q = torch.where(prob < 0.5, floor_val, floor_val + 1) / significand_steps
             if torch.any(subnormal_mask):
-                mantissa_scaled = mantissa[subnormal_mask] * mantissa_steps
-                floor_val = torch.floor(mantissa_scaled)
-                prob = torch.rand_like(mantissa_scaled)
-                mantissa_q[subnormal_mask] = torch.where(prob < 0.5, floor_val, 
-                                                       floor_val + 1) / mantissa_steps
+                significand_scaled = significand[subnormal_mask] * significand_steps
+                floor_val = torch.floor(significand_scaled)
+                prob = torch.rand_like(significand_scaled)
+                significand_q[subnormal_mask] = torch.where(prob < 0.5, floor_val, 
+                                                       floor_val + 1) / significand_steps
         elif rounding_mode == "stochastic_proportional":
-            mantissa_scaled = mantissa_normal * mantissa_steps
-            floor_val = torch.floor(mantissa_scaled)
-            fraction = mantissa_scaled - floor_val
-            prob = torch.rand_like(mantissa_scaled)
-            mantissa_q = torch.where(prob < fraction, floor_val + 1, floor_val) / mantissa_steps
+            significand_scaled = significand_normal * significand_steps
+            floor_val = torch.floor(significand_scaled)
+            fraction = significand_scaled - floor_val
+            prob = torch.rand_like(significand_scaled)
+            significand_q = torch.where(prob < fraction, floor_val + 1, floor_val) / significand_steps
             if torch.any(subnormal_mask):
-                mantissa_scaled = mantissa[subnormal_mask] * mantissa_steps
-                floor_val = torch.floor(mantissa_scaled)
-                fraction = mantissa_scaled - floor_val
-                prob = torch.rand_like(mantissa_scaled)
-                mantissa_q[subnormal_mask] = torch.where(prob < fraction, floor_val + 1, 
-                                                       floor_val) / mantissa_steps
+                significand_scaled = significand[subnormal_mask] * significand_steps
+                floor_val = torch.floor(significand_scaled)
+                fraction = significand_scaled - floor_val
+                prob = torch.rand_like(significand_scaled)
+                significand_q[subnormal_mask] = torch.where(prob < fraction, floor_val + 1, 
+                                                       floor_val) / significand_steps
         else:
             raise ValueError(f"Unsupported rounding mode: {rounding_mode}")
         
@@ -126,12 +126,12 @@ class Rounding:
         
         # Normal numbers
         if torch.any(normal_mask):
-            result[normal_mask] = sign[normal_mask] * (1.0 + mantissa_q[normal_mask]) * \
+            result[normal_mask] = sign[normal_mask] * (1.0 + significand_q[normal_mask]) * \
                                 (2.0 ** (exponent[normal_mask] - self.bias))
         
         # Subnormal numbers
         if torch.any(subnormal_mask):
-            result[subnormal_mask] = sign[subnormal_mask] * mantissa_q[subnormal_mask] * \
+            result[subnormal_mask] = sign[subnormal_mask] * significand_q[subnormal_mask] * \
                                    (2.0 ** self.min_exp)
         
         # Special cases
@@ -150,8 +150,8 @@ class Rounding:
             rounding_mode: One of 'nearest', 'up', 'down', 'towards_zero', 
                           'stochastic_equal', 'stochastic_proportional'
         """
-        sign, exponent, mantissa, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-        return self._quantize_components(x, sign, exponent, mantissa, zero_mask, inf_mask, nan_mask, rounding_mode)
+        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
+        return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, rounding_mode)
 
 
 class QuantizedLayer(torch.nn.Module):
@@ -159,12 +159,12 @@ class QuantizedLayer(torch.nn.Module):
     def __init__(self, 
                  in_features: int, 
                  out_features: int,
-                 exponent_bits: int,
-                 mantissa_bits: int,
+                 exp_bits: int,
+                 sig_bits: int,
                  rounding_mode: str = "nearest"):
         
         super().__init__()
-        self.quantizer = Rounding(exponent_bits, mantissa_bits)
+        self.quantizer = Rounding(exp_bits, sig_bits)
         self.weight = torch.nn.Parameter(torch.randn(out_features, in_features))
         self.bias = torch.nn.Parameter(torch.randn(out_features))
         self.rounding_mode = rounding_mode
