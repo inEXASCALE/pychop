@@ -694,7 +694,7 @@ class TestClassix(unittest.TestCase):
         # Test values
         values = torch.tensor([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
 
-        # FP16 simulator (5 exponent bits, 10 mantissa bits)
+        # Half precision simulator (5 exponent bits, 10 significand bits)
         fp16_sim = Rounding(5, 10)
 
         # Test all rounding modes
