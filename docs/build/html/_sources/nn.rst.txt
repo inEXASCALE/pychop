@@ -29,7 +29,7 @@ The usage of QuantLayer simply extended by the ``quant``, ``chop``, and ``fixed_
 
     from pychop import quant
     from pychop import chop
-    from pychop import fixed_point
+    from pychop import fpoint
 
 
 The quantization-aware training simply perform by plugging the ``QuantLayer`` into neural network building. We illustrate its usage in fully connected layer training:
@@ -40,7 +40,7 @@ The quantization-aware training simply perform by plugging the ``QuantLayer`` in
     class NeuralNet(nn.Module):
         def __init__(self, input_size, hidden_size, num_classes):
             super(NeuralNet, self).__init__()
-            self.quant1 = QuantLayer(fixed_point(4, 4)) 
+            self.quant1 = QuantLayer(fpoint(4, 4)) 
             self.quant2 = QuantLayer(chop('h'))
             self.quant3 = QuantLayer(quant())
             self.fc1 = nn.Linear(input_size, hidden_size) 

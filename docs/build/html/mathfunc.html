@@ -1,0 +1,714 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mathematical Functions in the Chop Class &mdash; pychop 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=53e15035" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Integer quantization" href="quant.html" />
+    <link rel="prev" title="Floating point simuluation" href="chop.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pychop
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="start.html">Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Mathematical Functions in the Chop Class</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#trigonometric-functions">Trigonometric Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sin"><code class="docutils literal notranslate"><span class="pre">sin()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cos"><code class="docutils literal notranslate"><span class="pre">cos()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tan"><code class="docutils literal notranslate"><span class="pre">tan()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arcsin"><code class="docutils literal notranslate"><span class="pre">arcsin()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arccos"><code class="docutils literal notranslate"><span class="pre">arccos()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arctan"><code class="docutils literal notranslate"><span class="pre">arctan()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#hyperbolic-functions">Hyperbolic Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sinh"><code class="docutils literal notranslate"><span class="pre">sinh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cosh"><code class="docutils literal notranslate"><span class="pre">cosh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tanh"><code class="docutils literal notranslate"><span class="pre">tanh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arcsinh"><code class="docutils literal notranslate"><span class="pre">arcsinh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arccosh"><code class="docutils literal notranslate"><span class="pre">arccosh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arctanh"><code class="docutils literal notranslate"><span class="pre">arctanh()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#exponential-and-logarithmic-functions">Exponential and Logarithmic Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#exp"><code class="docutils literal notranslate"><span class="pre">exp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#expm1"><code class="docutils literal notranslate"><span class="pre">expm1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#log"><code class="docutils literal notranslate"><span class="pre">log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#log10"><code class="docutils literal notranslate"><span class="pre">log10()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#log2"><code class="docutils literal notranslate"><span class="pre">log2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#log1p"><code class="docutils literal notranslate"><span class="pre">log1p()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#power-and-root-functions">Power and Root Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sqrt"><code class="docutils literal notranslate"><span class="pre">sqrt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cbrt"><code class="docutils literal notranslate"><span class="pre">cbrt()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#miscellaneous-functions">Miscellaneous Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#abs"><code class="docutils literal notranslate"><span class="pre">abs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reciprocal"><code class="docutils literal notranslate"><span class="pre">reciprocal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#square"><code class="docutils literal notranslate"><span class="pre">square()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#additional-mathematical-functions">Additional Mathematical Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#frexp"><code class="docutils literal notranslate"><span class="pre">frexp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hypot"><code class="docutils literal notranslate"><span class="pre">hypot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#diff"><code class="docutils literal notranslate"><span class="pre">diff()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#power"><code class="docutils literal notranslate"><span class="pre">power()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fix_point.html">Fixed point quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nn.html">Quantization aware training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pychop</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Mathematical Functions in the Chop Class</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/mathfunc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="mathematical-functions-in-the-chop-class">
+<h1>Mathematical Functions in the Chop Class<a class="headerlink" href="#mathematical-functions-in-the-chop-class" title="Link to this heading"></a></h1>
+<p>The <cite>chop</cite> class provides a suite of mathematical functions that operate on floating-point numbers with custom precision chopping. These functions apply the chopping mechanism (via <cite>chop_wrapper</cite>) to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32). Implementations are available for NumPy, PyTorch, and JAX, with slight variations noted below. Functions are categorized for clarity.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>All functions use the <cite>chop_wrapper</cite> method to apply precision chopping before and after computation.</p></li>
+<li><p><strong>NumPy</strong>: Uses <cite>numpy</cite> (<cite>np</cite>) operations, operates on <cite>np.ndarray</cite>, and assumes a stateless implementation.</p></li>
+<li><p><strong>PyTorch</strong>: Uses <cite>torch</cite> operations, operates on <cite>torch.Tensor</cite>, and supports GPU acceleration.</p></li>
+<li><p><strong>JAX</strong>: Uses <cite>jax.numpy</cite> (<cite>jnp</cite>) operations, operates on <cite>jax.Array</cite>, requires a random key for chopping, and is JIT-compatible.</p></li>
+<li><p>Examples assume a <cite>chop</cite> instance with half-precision (<cite>prec=’h’</cite>) unless stated otherwise.</p></li>
+</ul>
+</div>
+<section id="trigonometric-functions">
+<h2>Trigonometric Functions<a class="headerlink" href="#trigonometric-functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="sin">
+<span class="sig-name descname"><span class="pre">sin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sin" title="Link to this definition"></a></dt>
+<dd><p>Compute the sine of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped sine of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+<p><strong>Example (NumPy):</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">chopper</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.5708</span><span class="p">])</span>  <span class="c1"># ~[0, pi/2]</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">chopper</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>  <span class="c1"># Expected: ~[0.0, 1.0] with chopping</span>
+</pre></div>
+</div>
+<p><strong>Example (PyTorch):</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="n">chopper</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.5708</span><span class="p">])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">chopper</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>  <span class="c1"># Expected: ~[0.0, 1.0] with chopping</span>
+</pre></div>
+</div>
+<p><strong>Example (JAX):</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
+<span class="n">chopper</span> <span class="o">=</span> <span class="n">chop</span><span class="p">(</span><span class="n">prec</span><span class="o">=</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.5708</span><span class="p">])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">chopper</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>  <span class="c1"># Expected: ~[0.0, 1.0] with chopping</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cos">
+<span class="sig-name descname"><span class="pre">cos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cos" title="Link to this definition"></a></dt>
+<dd><p>Compute the cosine of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped cosine of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tan">
+<span class="sig-name descname"><span class="pre">tan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tan" title="Link to this definition"></a></dt>
+<dd><p>Compute the tangent of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped tangent of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="arcsin">
+<span class="sig-name descname"><span class="pre">arcsin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arcsin" title="Link to this definition"></a></dt>
+<dd><p>Compute the arcsine of <cite>x</cite> with chopping. Input must be in [-1, 1].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor in [-1, 1].</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped arcsine of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is not in [-1, 1].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="arccos">
+<span class="sig-name descname"><span class="pre">arccos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arccos" title="Link to this definition"></a></dt>
+<dd><p>Compute the arccosine of <cite>x</cite> with chopping. Input must be in [-1, 1].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor in [-1, 1].</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped arccosine of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is not in [-1, 1].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="arctan">
+<span class="sig-name descname"><span class="pre">arctan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arctan" title="Link to this definition"></a></dt>
+<dd><p>Compute the arctangent of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped arctangent of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="hyperbolic-functions">
+<h2>Hyperbolic Functions<a class="headerlink" href="#hyperbolic-functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="sinh">
+<span class="sig-name descname"><span class="pre">sinh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sinh" title="Link to this definition"></a></dt>
+<dd><p>Compute the hyperbolic sine of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped hyperbolic sine of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cosh">
+<span class="sig-name descname"><span class="pre">cosh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cosh" title="Link to this definition"></a></dt>
+<dd><p>Compute the hyperbolic cosine of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped hyperbolic cosine of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tanh">
+<span class="sig-name descname"><span class="pre">tanh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tanh" title="Link to this definition"></a></dt>
+<dd><p>Compute the hyperbolic tangent of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped hyperbolic tangent of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="arcsinh">
+<span class="sig-name descname"><span class="pre">arcsinh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arcsinh" title="Link to this definition"></a></dt>
+<dd><p>Compute the inverse hyperbolic sine of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped inverse hyperbolic sine of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="arccosh">
+<span class="sig-name descname"><span class="pre">arccosh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arccosh" title="Link to this definition"></a></dt>
+<dd><p>Compute the inverse hyperbolic cosine of <cite>x</cite> with chopping. Input must be &gt;= 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (&gt;= 1).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped inverse hyperbolic cosine of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is &lt; 1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="arctanh">
+<span class="sig-name descname"><span class="pre">arctanh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arctanh" title="Link to this definition"></a></dt>
+<dd><p>Compute the inverse hyperbolic tangent of <cite>x</cite> with chopping. Input must be in (-1, 1).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor in (-1, 1).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped inverse hyperbolic tangent of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is not in (-1, 1).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="exponential-and-logarithmic-functions">
+<h2>Exponential and Logarithmic Functions<a class="headerlink" href="#exponential-and-logarithmic-functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="exp">
+<span class="sig-name descname"><span class="pre">exp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#exp" title="Link to this definition"></a></dt>
+<dd><p>Compute the exponential of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped exponential of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="expm1">
+<span class="sig-name descname"><span class="pre">expm1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#expm1" title="Link to this definition"></a></dt>
+<dd><p>Compute exp(x) - 1 with chopping, optimized for small <cite>x</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped exp(x) - 1.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#log" title="Link to this definition"></a></dt>
+<dd><p>Compute the natural logarithm of <cite>x</cite> with chopping. Input must be positive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (&gt; 0).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped natural logarithm of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is &lt;= 0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="log10">
+<span class="sig-name descname"><span class="pre">log10</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#log10" title="Link to this definition"></a></dt>
+<dd><p>Compute the base-10 logarithm of <cite>x</cite> with chopping. Input must be positive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (&gt; 0).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped base-10 logarithm of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is &lt;= 0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="log2">
+<span class="sig-name descname"><span class="pre">log2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#log2" title="Link to this definition"></a></dt>
+<dd><p>Compute the base-2 logarithm of <cite>x</cite> with chopping. Input must be positive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (&gt; 0).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped base-2 logarithm of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is &lt;= 0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="log1p">
+<span class="sig-name descname"><span class="pre">log1p</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#log1p" title="Link to this definition"></a></dt>
+<dd><p>Compute log(1 + x) with chopping, optimized for small <cite>x</cite>. Input must be &gt; -1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (&gt; -1).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped log(1 + x).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is &lt;= -1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="power-and-root-functions">
+<h2>Power and Root Functions<a class="headerlink" href="#power-and-root-functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="sqrt">
+<span class="sig-name descname"><span class="pre">sqrt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sqrt" title="Link to this definition"></a></dt>
+<dd><p>Compute the square root of <cite>x</cite> with chopping. Input must be non-negative.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (&gt;= 0).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped square root of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is &lt; 0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cbrt">
+<span class="sig-name descname"><span class="pre">cbrt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cbrt" title="Link to this definition"></a></dt>
+<dd><p>Compute the cube root of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped cube root of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="miscellaneous-functions">
+<h2>Miscellaneous Functions<a class="headerlink" href="#miscellaneous-functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="abs">
+<span class="sig-name descname"><span class="pre">abs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#abs" title="Link to this definition"></a></dt>
+<dd><p>Compute the absolute value of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real or complex).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped absolute value of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="reciprocal">
+<span class="sig-name descname"><span class="pre">reciprocal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#reciprocal" title="Link to this definition"></a></dt>
+<dd><p>Compute the reciprocal (1/x) of <cite>x</cite> with chopping. Input must not be zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (!= 0).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped reciprocal of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any element of <cite>x</cite> is 0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="square">
+<span class="sig-name descname"><span class="pre">square</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#square" title="Link to this definition"></a></dt>
+<dd><p>Compute the square of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped square of <cite>x</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="additional-mathematical-functions">
+<h2>Additional Mathematical Functions<a class="headerlink" href="#additional-mathematical-functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="frexp">
+<span class="sig-name descname"><span class="pre">frexp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#frexp" title="Link to this definition"></a></dt>
+<dd><p>Decompose <cite>x</cite> into mantissa and exponent with chopping applied to mantissa.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of (chopped mantissa, exponent).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple (np.ndarray, np.ndarray) (NumPy), (torch.Tensor, torch.Tensor) (PyTorch), or (jax.Array, jax.Array) (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hypot">
+<span class="sig-name descname"><span class="pre">hypot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hypot" title="Link to this definition"></a></dt>
+<dd><p>Compute the Euclidean norm sqrt(x^2 + y^2) with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – First input array/tensor (real-valued).</p></li>
+<li><p><strong>y</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Second input array/tensor (real-valued).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped Euclidean norm.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diff">
+<span class="sig-name descname"><span class="pre">diff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diff" title="Link to this definition"></a></dt>
+<dd><p>Compute the n-th order difference of <cite>x</cite> with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Input array/tensor (real-valued).</p></li>
+<li><p><strong>n</strong> (<em>int</em>) – Order of difference (default: 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped n-th order difference.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="power">
+<span class="sig-name descname"><span class="pre">power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#power" title="Link to this definition"></a></dt>
+<dd><p>Compute x raised to the power y with chopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Base array/tensor (real-valued).</p></li>
+<li><p><strong>y</strong> (<em>np.ndarray</em><em> (</em><em>NumPy</em><em>)</em><em>, </em><em>torch.Tensor</em><em> (</em><em>PyTorch</em><em>)</em><em>, or </em><em>jax.Array</em><em> (</em><em>JAX</em><em>)</em>) – Exponent array/tensor (real-valued).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Chopped x^y.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="chop.html" class="btn btn-neutral float-left" title="Floating point simuluation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quant.html" class="btn btn-neutral float-right" title="Integer quantization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, InEXASCALE computing.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

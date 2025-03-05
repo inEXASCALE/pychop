@@ -26,14 +26,14 @@ class simulate():
     rmode : int, default=1
         Ways to round the values in the floating point system.
         There are 6 options for rounding: 
-        1. Round to nearest using round to even last bit to break ties (the default).
-        2. Round towards plus infinity (round up).
-        3. Round towards minus infinity (round down).
-        4. Round towards zero.
-        5. Stochastic rounding - round to the next larger or next smaller floating-point number 
-            with probability proportional to the distance to those floating-point numbers.
-        6. Stochastic rounding - round to the next larger or next smaller floating-point number 
-            with equal probability.
+            1. Round to nearest using round to even last bit to break ties (the default).
+            2. Round towards plus infinity (round up).
+            3. Round towards minus infinity (round down).
+            4. Round towards zero.
+            5. Stochastic rounding - round to the next larger or next smaller floating-point number 
+                with probability proportional to the distance to those floating-point numbers.
+            6. Stochastic rounding - round to the next larger or next smaller floating-point number 
+                with equal probability.
 
     Methods
     ----------

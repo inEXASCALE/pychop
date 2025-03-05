@@ -1,21 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quantization aware training &mdash; pychop 0.0.1 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=53e15035" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -46,6 +46,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="start.html">Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions in the Chop Class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fix_point.html">Fixed point quantization</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quantization aware training</a></li>
@@ -78,7 +79,7 @@
            <div itemprop="articleBody">
              
   <section id="quantization-aware-training">
-<h1>Quantization aware training<a class="headerlink" href="#quantization-aware-training" title="Permalink to this heading"></a></h1>
+<h1>Quantization aware training<a class="headerlink" href="#quantization-aware-training" title="Link to this heading"></a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">pychop</span></code> provides easy-to-use API for quantization aware training.</p>
 <p>Simply load the module via:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">QuantLayer</span>
@@ -96,14 +97,14 @@ which is often referred to as quantization-aware training.</p>
 <p>The usage of QuantLayer simply extended by the <code class="docutils literal notranslate"><span class="pre">quant</span></code>, <code class="docutils literal notranslate"><span class="pre">chop</span></code>, and <code class="docutils literal notranslate"><span class="pre">fixed_point</span></code>, therefore, we need to first load the corresponding modules via:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">quant</span>
 <span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">chop</span>
-<span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">fixed_point</span>
+<span class="kn">from</span> <span class="nn">pychop</span> <span class="kn">import</span> <span class="n">fpoint</span>
 </pre></div>
 </div>
 <p>The quantization-aware training simply perform by plugging the <code class="docutils literal notranslate"><span class="pre">QuantLayer</span></code> into neural network building. We illustrate its usage in fully connected layer training:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">NeuralNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">NeuralNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">quant1</span> <span class="o">=</span> <span class="n">QuantLayer</span><span class="p">(</span><span class="n">fixed_point</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">quant1</span> <span class="o">=</span> <span class="n">QuantLayer</span><span class="p">(</span><span class="n">fpoint</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">quant2</span> <span class="o">=</span> <span class="n">QuantLayer</span><span class="p">(</span><span class="n">chop</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">quant3</span> <span class="o">=</span> <span class="n">QuantLayer</span><span class="p">(</span><span class="n">quant</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>

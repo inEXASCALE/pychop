@@ -7,7 +7,7 @@ API Reference
 .. autoclass:: pychop.quant
    :members:
 
-.. autoclass:: pychop.fixed_point
+.. autoclass:: pychop.fpoint
    :members:
 
 .. autoclass:: pychop.simulate

@@ -100,6 +100,7 @@ To give a shot, one may print information of various precision formats:
 
    start.rst
    chop.rst
+   mathfunc.rst
    quant.rst
    fix_point.rst
    nn.rst

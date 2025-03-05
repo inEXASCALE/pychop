@@ -15,7 +15,7 @@ The other two dominant modules in ``pychop`` are  ``pychop.quant`` and ``pychop.
 .. code:: python
 
     from pychop import quant
-    from pychop import fixed_point
+    from pychop import fpoint
 
 
     
