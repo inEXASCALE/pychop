@@ -546,7 +546,7 @@ class Chop(object):
 
     @property
     def options(self):
-        return options(self.t, 
+        return Options(self.t, 
                        self.emax,
                        self.prec,
                        self.subnormal,

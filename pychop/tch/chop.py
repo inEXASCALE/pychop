@@ -515,7 +515,7 @@ class Chop(object):
 
     @property
     def options(self):
-        return options(self.t, self.emax, self.prec, self.subnormal, self.rmode, self.flip, self.explim, self.p)
+        return Options(self.t, self.emax, self.prec, self.subnormal, self.rmode, self.flip, self.explim, self.p)
 
 
 def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, randfunc=None, *argv, **kwargs):

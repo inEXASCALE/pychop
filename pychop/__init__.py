@@ -16,14 +16,14 @@ from dataclasses import dataclass
 from typing import Optional
 
 @dataclass
-class customs:
+class Customs:
     emax: Optional[int] = None
     t: Optional[int] = None
     exp_bits: Optional[int] = None
     sig_bits: Optional[int] = None
 
 @dataclass
-class options:
+class Options:
     t: int
     emax: int
     prec: int

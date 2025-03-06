@@ -83,7 +83,7 @@ Xq = ch(X) # Rounding values
 One can also customize the precision via:
 ```Python
 pychop.backend('numpy', 1)
-ct1 = customs(emax=15, t=11)
+ct1 = Customs(emax=15, t=11)
 # half precision,  t is the number of bits in the significand 
 # (including the hidden bit) and emax is the maximum value of the exponent
 
@@ -91,7 +91,7 @@ ch = Chop(customs=ct1, rmode=3)
 Xq = ch(X)
 print(Xq[:10, 0])
 
-ct2 = customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
+ct2 = Customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
 ch = Chop(customs=ct2, rmode=3)
 Xq = ch(X)
 print(Xq[:10, 0])
