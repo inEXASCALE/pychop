@@ -71,12 +71,12 @@ The code example can be found on the [quick start page](https://github.com/chenx
 Rounding the values with specified precision format:
 
 ```Python
-from pychop.chop import chop
+from pychop import Chop
 import numpy as np
 np.random.seed(0)
 
 X = np.random.randn(5000, 5000) 
-ch = chop('h') # Standard IEEE 754 half precision
+ch = Chop('h') # Standard IEEE 754 half precision
 Xq = ch(X) # Rounding values
 ```
 
@@ -87,7 +87,7 @@ ct1 = customs(emax=15, t=11)
 # half precision,  t is the number of bits in the significand 
 # (including the hidden bit) and emax is the maximum value of the exponent
 
-ch = chop(customs=ct1, rmode=3) 
+ch = Chop(customs=ct1, rmode=3) 
 Xq = ch(X)
 print(Xq[:10, 0])
 
