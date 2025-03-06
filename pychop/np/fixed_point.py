@@ -32,15 +32,21 @@ def to_fixed_point(x, ibits=4, fbits=4):
 
 
 
-class FPRounding:
+class FPRound:
     def __init__(self, integer_bits: int, fractional_bits: int):
         """
-        Initialize fixed-point simulator with Qm.n format.
+        Initialize fixed-point simulator.
         
-        Args:
-            integer_bits: Number of bits for integer part (including sign bit), m in Qm.n
-            fractional_bits: Number of bits for fractional part, n in Qm.n
+        Parameters
+        ----------  
+        integer_bits : int, default=4
+            The bitwidth of integer part. 
+    
+        fractional_bit : int, default=4
+            The bitwidth of fractional part. 
+            
         """
+        
         self.integer_bits = integer_bits
         self.fractional_bits = fractional_bits
         self.total_bits = integer_bits + fractional_bits
@@ -49,7 +55,20 @@ class FPRounding:
         self.resolution = 2 ** (-fractional_bits)
 
     def _to_fixed_point_components(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Extract sign and magnitude from floating-point input."""
+        """
+        Extract sign and magnitude from floating-point input.
+        
+        Parameters
+        ----------  
+        x : numpy.ndarray
+            Input tensor
+        
+        Returns
+        ----------  
+        sign: Tensor of signs (+1 or -1)
+            abs_x: Tensor of absolute values
+        """
+        
         sign = np.sign(x)  # 1, -1, or 0
         abs_x = np.abs(x)
         return sign, abs_x
@@ -59,7 +78,30 @@ class FPRounding:
                   sign: np.ndarray,
                   abs_x: np.ndarray,
                   rounding_mode: str) -> np.ndarray:
-        """Quantize to fixed-point Qm.n with specified rounding mode."""
+        """
+        Quantize to fixed-point with specified rounding mode.
+        
+        Parameters
+        ----------  
+        x : numpy.ndarray
+            Input tensor
+            
+        sign : numpy.ndarray
+            Signs of input values
+            
+        abs_x : numpy.ndarray
+            Absolute values of input
+            
+        rounding_mode : str
+            One of 'nearest', 'up', 'down', 'towards_zero', 
+            'stochastic_equal', 'stochastic_proportional'
+        
+        Returns
+        ----------  
+        result : numpy.ndarray
+            Quantized tensor in fixed-point representation
+        """
+        
         scaled = abs_x / self.resolution
 
         if rounding_mode == "nearest":
@@ -91,6 +133,32 @@ class FPRounding:
         return result
 
     def quantize(self, x: np.ndarray, rounding_mode: str = "nearest") -> np.ndarray:
-        """Convert floating-point array to fixed-point Qm.n representation."""
+        """
+        Convert floating-point tensor to fixed-point representation with specified rounding method.
+        
+        Parameters
+        ----------  
+        x : numpy.ndarray
+            Input tensor
+                        
+        rounding_mode : str
+            One of 'nearest', 'up', 'down', 'towards_zero', 
+            'stochastic_equal', 'stochastic_proportional'
+        
+        Returns
+        ----------  
+        result : numpy.ndarray
+            Quantized tensor in fixed-point representation
+        """
         sign, abs_x = self._to_fixed_point_components(x)
         return self._quantize(x, sign, abs_x, rounding_mode)
+
+    
+    def get_format_info(self) -> dict:
+        """Return information about the fixed-point format."""
+        return {
+            "format": f"Q{self.integer_bits}.{self.fractional_bits}",
+            "total_bits": self.total_bits,
+            "range": (self.min_value, self.max_value),
+            "resolution": self.resolution
+        }
