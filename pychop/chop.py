@@ -44,8 +44,10 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
         in uniform distribution between 0 and 1, i.e., np.random.uniform.
 
     customs : dataclass, default=None
-        If customs is defined, then use customs.t and customs.emax or (customs.t and customs.emax) 
-        for floating point arithmetic.
+        If customs is defined, then use customs.t and customs.emax or (customs.exp_bits and customs.sig_bits) 
+        for floating point arithmetic. t is the number of bits in the significand (including the hidden bit) 
+        and emax is the maximum value of the exponent customs.exp_bits refers to the exponent bits and sig_bits 
+        refers to the significand bits.
 
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
@@ -89,7 +91,7 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
             customs.emax = (1 << customs.exp_bits) - 1
 
         if customs.sig_bits is not None:
-            customs.t = customs.sig_bits
+            customs.t = customs.sig_bits + 1
     
     if os.environ['chop_backend'] == 'torch':
         from .tch.chop import chop

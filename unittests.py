@@ -689,6 +689,18 @@ class TestClassix(unittest.TestCase):
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 4")
 
+    def test_custom_precs(self):
+        from pychop import customs
+        pychop.backend('numpy', 1) 
+
+        ct1 = customs(emax=15, t=11) 
+        pyq_f = chop(customs=ct1, rmode=3) 
+        emulated1 = pyq_f(X_np)
+        
+        ct2 = customs(exp_bits=5, sig_bits=10) 
+        pyq_f = chop(customs=ct2, rmode=3)
+        emulated2 = pyq_f(X_np)
+        assert np.array_equal(emulated1, emulated2)
 
     def test_layer(self):
         # Test values

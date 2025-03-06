@@ -16,10 +16,10 @@ from typing import Optional
 
 @dataclass
 class customs:
-    t: Optional[int] = None
     emax: Optional[int] = None
-    exp_bits: int = None
-    ig_bits: int = None
+    t: Optional[int] = None
+    exp_bits: Optional[int] = None
+    sig_bits: Optional[int] = None
 
 @dataclass
 class options:
