@@ -88,13 +88,13 @@ ct1 = customs(emax=15, t=11)
 # (including the hidden bit) and emax is the maximum value of the exponent
 
 ch = chop(customs=ct1, rmode=3) 
-emulated = ch(X_np)
-print(emulated[:10, 0])
+Xq = ch(X)
+print(Xq[:10, 0])
 
 ct2 = customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
 ch = chop(customs=ct2, rmode=3)
-emulated = ch(X_np)
-print(emulated[:10, 0])
+Xq = ch(X)
+print(Xq[:10, 0])
 ```
 
 #### (II). Train Neural Network
