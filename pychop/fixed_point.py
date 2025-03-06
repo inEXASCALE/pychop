@@ -1,6 +1,6 @@
 import os
 import torch.nn as nn
-from .tch import FPRounding
+from .tch import FPRound
 import torch
 
 class FPoint(object):
@@ -28,16 +28,16 @@ class FPoint(object):
     def __init__(self, ibits=4, fbits=4, rmode: str = "nearest",):
         if os.environ['chop_backend'] == 'torch':
             # from .tch import fixed_point
-            from .tch import FPRounding
+            from .tch import FPRound
         elif os.environ['chop_backend'] == 'jax':
             # from .jx import fixed_point
-            from .jx import FPRounding
+            from .jx import FPRound
         else:
             # from .np import fixed_point
-            from .np import FPRounding
+            from .np import FPRound
 
         self.rmode = rmode
-        self.fpr = FPRounding(ibits, fbits)
+        self.fpr = FPRound(ibits, fbits)
 
     def __call__(self, x):
         return self.fpr.quantize(x, self.rmode)
@@ -68,7 +68,7 @@ class FQuantizedLayer(nn.Module):
         super(FQuantizedLayer, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.quantizer = FPRounding(integer_bits, fractional_bits)
+        self.quantizer = FPRound(integer_bits, fractional_bits)
         self.rmode = rmode
 
         # Initialize weights and bias as floating-point parameters
