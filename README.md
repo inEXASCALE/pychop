@@ -80,6 +80,23 @@ ch = chop('h') # Standard IEEE 754 half precision
 Xq = ch(X) # Rounding values
 ```
 
+One can also customize the precision via:
+```Python
+pychop.backend('numpy', 1)
+ct1 = customs(emax=15, t=11)
+# half precision,  t is the number of bits in the significand 
+# (including the hidden bit) and emax is the maximum value of the exponent
+
+pyq_f = chop(customs=ct1, rmode=3) 
+X_bit = pyq_f(X_np)
+print(X_bit[:10, 0])
+
+ct2 = customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
+pyq_f = chop(customs=ct2, rmode=3)
+X_bit = pyq_f(X_np)
+print(X_bit[:10, 0])
+```
+
 #### (II). Train Neural Network
 Set quantized layer:
 
