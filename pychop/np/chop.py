@@ -8,7 +8,7 @@ import numpy as np
 import gc
    
 
-class chop(object):
+class Chop(object):
     """
     Parameters
     ----------
@@ -62,7 +62,7 @@ class chop(object):
         
     Methods
     ----------
-    chop(x):
+    Chop(x):
         Method that convert ``x`` to the user-specific arithmetic format.
         
     """

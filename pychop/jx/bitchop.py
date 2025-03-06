@@ -5,7 +5,7 @@ from jax import random, device_put
 
 
 
-class bitchop(object):
+class Bitchop(object):
     """
     Parameters
     ----------

@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-def bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=42, device="cpu", verbose=0):
+def Bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_state=42, device="cpu", verbose=0):
     """
     Parameters
     ----------
@@ -47,28 +47,28 @@ def bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_sta
 
     Methods
     ----------
-    bitchop(x) 
+    Bitchop(x) 
         Method that convert ``x`` to the user-specific arithmetic format.
         
     Returns 
     ----------
-    bitchop | object,
-        ``chop`` instance.
+    Bitchop | object,
+        ``Chop`` instance.
 
     """
 
     if os.environ['chop_backend'] == 'torch':
-        from .tch.bitchop import bitchop
-        obj = bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
+        from .tch.bitchop import Bitchop
+        obj = Bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
                    random_state=random_state, rmode=rmode)
         
     elif os.environ['chop_backend'] == 'jax':
-        from .jx.bitchop import bitchop
-        obj = bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
+        from .jx.bitchop import Bitchop
+        obj = Bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
                    random_state=random_state, rmode=rmode)
     else:
-        from .np.bitchop import bitchop
-        obj = bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, random_state=random_state, rmode=rmode)
+        from .np.bitchop import Bitchop
+        obj = Bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, random_state=random_state, rmode=rmode)
     
     obj.u = 2**sig_bits / 2
     

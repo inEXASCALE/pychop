@@ -1,4 +1,4 @@
-from .chop import chop
+from .chop import Chop
 from .quant import *
 from .fixed_point import *
-from .bitchop import bitchop
+from .bitchop import Bitchop

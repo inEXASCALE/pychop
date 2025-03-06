@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
+def Chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
          p=0.5, randfunc=None, customs=None, random_state=0, verbose=0):
     """
     Parameters
@@ -62,13 +62,13 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
 
     Methods
     ----------
-    chop(x) 
+    Chop(x) 
         Method that convert ``x`` to the user-specific arithmetic format.
         
     Returns 
     ----------
-    chop | object,
-        ``chop`` instance.
+    Chop | object,
+        ``Chop`` instance.
 
     """
     rmode_map = {
@@ -94,18 +94,18 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
             customs.t = customs.sig_bits + 1
     
     if os.environ['chop_backend'] == 'torch':
-        from .tch.chop import chop
+        from .tch.chop import Chop
 
-        obj = chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
+        obj = Chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
     
     elif os.environ['chop_backend'] == 'jax':
-        from .jx.chop import chop
+        from .jx.chop import Chop
 
-        obj = chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
+        obj = Chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
     else:
-        from .np.chop import chop
+        from .np.chop import Chop
 
-        obj = chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
+        obj = Chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
     
     obj.u = 2**(1 - obj.t) / 2
     

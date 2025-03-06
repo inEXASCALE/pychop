@@ -7,9 +7,9 @@ sys.path.append('../')
 
 import pychop
 
-from pychop.chop import chop
+from pychop.chop import Chop
 from scipy.io import loadmat
-from pychop import Rounding
+from pychop import Round
 
 import torch
 import jax
@@ -44,25 +44,25 @@ class TestClassix(unittest.TestCase):
 
     def test_q52(self):
         pychop.backend('numpy', 1)
-        ch = chop('q52', rmode=1, subnormal=0)
+        ch = Chop('q52', rmode=1, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/q52/q52_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q52', rmode=2, subnormal=0)
+        ch = Chop('q52', rmode=2, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/q52/q52_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q52', rmode=3, subnormal=0)
+        ch = Chop('q52', rmode=3, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/q52/q52_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q52', rmode=4, subnormal=0)
+        ch = Chop('q52', rmode=4, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/q52/q52_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -71,25 +71,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_np_scaling = X_np / scaling
 
-        ch = chop('q52', rmode=1, subnormal=1)
+        ch = Chop('q52', rmode=1, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q52', rmode=2, subnormal=1)
+        ch = Chop('q52', rmode=2, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q52', rmode=3, subnormal=1)
+        ch = Chop('q52', rmode=3, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q52', rmode=4, subnormal=1)
+        ch = Chop('q52', rmode=4, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -97,25 +97,25 @@ class TestClassix(unittest.TestCase):
 
     def test_43(self):
         pychop.backend('numpy', 1)
-        ch = chop('q43', rmode=1, subnormal=0)
+        ch = Chop('q43', rmode=1, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/q43/q43_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q43', rmode=2, subnormal=0)
+        ch = Chop('q43', rmode=2, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/q43/q43_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q43', rmode=3, subnormal=0)
+        ch = Chop('q43', rmode=3, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/q43/q43_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q43', rmode=4, subnormal=0)
+        ch = Chop('q43', rmode=4, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/q43/q43_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -124,25 +124,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_np_scaling = X_np / scaling
 
-        ch = chop('q43', rmode=1, subnormal=1)
+        ch = Chop('q43', rmode=1, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q43', rmode=2, subnormal=1)
+        ch = Chop('q43', rmode=2, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q43', rmode=3, subnormal=1)
+        ch = Chop('q43', rmode=3, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q43', rmode=4, subnormal=1)
+        ch = Chop('q43', rmode=4, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -151,25 +151,25 @@ class TestClassix(unittest.TestCase):
 
     def test_half(self):
         pychop.backend('numpy', 1)
-        ch = chop('h', rmode=1, subnormal=0)
+        ch = Chop('h', rmode=1, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/half/half_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('h', rmode=2, subnormal=0)
+        ch = Chop('h', rmode=2, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/half/half_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('h', rmode=3, subnormal=0)
+        ch = Chop('h', rmode=3, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/half/half_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('h', rmode=4, subnormal=0)
+        ch = Chop('h', rmode=4, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/half/half_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -178,25 +178,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_np_scaling = X_np / scaling
 
-        ch = chop('h', rmode=1, subnormal=1)
+        ch = Chop('h', rmode=1, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('h', rmode=2, subnormal=1)
+        ch = Chop('h', rmode=2, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('h', rmode=3, subnormal=1)
+        ch = Chop('h', rmode=3, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('h', rmode=4, subnormal=1)
+        ch = Chop('h', rmode=4, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -206,25 +206,25 @@ class TestClassix(unittest.TestCase):
 
     def test_bfloat16(self):
         pychop.backend('numpy', 1)
-        ch = chop('b', rmode=1, subnormal=0)
+        ch = Chop('b', rmode=1, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('b', rmode=2, subnormal=0)
+        ch = Chop('b', rmode=2, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('b', rmode=3, subnormal=0)
+        ch = Chop('b', rmode=3, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('b', rmode=4, subnormal=0)
+        ch = Chop('b', rmode=4, subnormal=0)
         emulated= ch(X_np)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -233,25 +233,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_np_scaling = X_np / scaling
 
-        ch = chop('bfloat16', rmode=1, subnormal=1)
+        ch = Chop('bfloat16', rmode=1, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('b', rmode=2, subnormal=1)
+        ch = Chop('b', rmode=2, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('b', rmode=3, subnormal=1)
+        ch = Chop('b', rmode=3, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('b', rmode=4, subnormal=1)
+        ch = Chop('b', rmode=4, subnormal=1)
         emulated= ch(X_np_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -260,25 +260,25 @@ class TestClassix(unittest.TestCase):
     # pytorch
     def test_q52_th(self): 
         pychop.backend('torch')
-        ch = chop('q52', rmode=1, subnormal=0)
+        ch = Chop('q52', rmode=1, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/q52/q52_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q52', rmode=2, subnormal=0)
+        ch = Chop('q52', rmode=2, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/q52/q52_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q52', rmode=3, subnormal=0)
+        ch = Chop('q52', rmode=3, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/q52/q52_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q52', rmode=4, subnormal=0)
+        ch = Chop('q52', rmode=4, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/q52/q52_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -287,25 +287,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_th_scaling = X_th / scaling
 
-        ch = chop('q52', rmode=1, subnormal=1)
+        ch = Chop('q52', rmode=1, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q52', rmode=2, subnormal=1)
+        ch = Chop('q52', rmode=2, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q52', rmode=3, subnormal=1)
+        ch = Chop('q52', rmode=3, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q52', rmode=4, subnormal=1)
+        ch = Chop('q52', rmode=4, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -313,25 +313,25 @@ class TestClassix(unittest.TestCase):
 
     def test_43_th(self):
         pychop.backend('torch')
-        ch = chop('q43', rmode=1, subnormal=0)
+        ch = Chop('q43', rmode=1, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/q43/q43_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q43', rmode=2, subnormal=0)
+        ch = Chop('q43', rmode=2, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/q43/q43_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q43', rmode=3, subnormal=0)
+        ch = Chop('q43', rmode=3, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/q43/q43_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q43', rmode=4, subnormal=0)
+        ch = Chop('q43', rmode=4, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/q43/q43_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -340,25 +340,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_th_scaling = X_th / scaling
 
-        ch = chop('q43', rmode=1, subnormal=1)
+        ch = Chop('q43', rmode=1, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q43', rmode=2, subnormal=1)
+        ch = Chop('q43', rmode=2, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q43', rmode=3, subnormal=1)
+        ch = Chop('q43', rmode=3, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q43', rmode=4, subnormal=1)
+        ch = Chop('q43', rmode=4, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -367,25 +367,25 @@ class TestClassix(unittest.TestCase):
 
     def test_half_th(self):
         pychop.backend('torch')
-        ch = chop('h', rmode=1, subnormal=0)
+        ch = Chop('h', rmode=1, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/half/half_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('h', rmode=2, subnormal=0)
+        ch = Chop('h', rmode=2, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/half/half_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('h', rmode=3, subnormal=0)
+        ch = Chop('h', rmode=3, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/half/half_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('h', rmode=4, subnormal=0)
+        ch = Chop('h', rmode=4, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/half/half_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -394,25 +394,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_th_scaling = X_th / scaling
 
-        ch = chop('h', rmode=1, subnormal=1)
+        ch = Chop('h', rmode=1, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('h', rmode=2, subnormal=1)
+        ch = Chop('h', rmode=2, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('h', rmode=3, subnormal=1)
+        ch = Chop('h', rmode=3, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('h', rmode=4, subnormal=1)
+        ch = Chop('h', rmode=4, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -421,26 +421,26 @@ class TestClassix(unittest.TestCase):
 
     def test_bfloat16_th(self):
         pychop.backend('torch')
-        ch = chop('b', rmode=1, subnormal=0)
+        ch = Chop('b', rmode=1, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('b', rmode=2, subnormal=0)
+        ch = Chop('b', rmode=2, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
 
-        ch = chop('b', rmode=3, subnormal=0)
+        ch = Chop('b', rmode=3, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('b', rmode=4, subnormal=0)
+        ch = Chop('b', rmode=4, subnormal=0)
         emulated= ch(X_th)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -449,25 +449,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_th_scaling = X_th / scaling
 
-        ch = chop('b', rmode=1, subnormal=1)
+        ch = Chop('b', rmode=1, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('b', rmode=2, subnormal=1)
+        ch = Chop('b', rmode=2, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('b', rmode=3, subnormal=1)
+        ch = Chop('b', rmode=3, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('b', rmode=4, subnormal=1)
+        ch = Chop('b', rmode=4, subnormal=1)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -476,25 +476,25 @@ class TestClassix(unittest.TestCase):
     # jax
     def test_q52_jx(self): 
         pychop.backend('jax')
-        ch = chop('q52', rmode=1, subnormal=0)
+        ch = Chop('q52', rmode=1, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/q52/q52_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q52', rmode=2, subnormal=0)
+        ch = Chop('q52', rmode=2, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/q52/q52_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q52', rmode=3, subnormal=0)
+        ch = Chop('q52', rmode=3, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/q52/q52_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q52', rmode=4, subnormal=0)
+        ch = Chop('q52', rmode=4, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/q52/q52_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -503,25 +503,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_jx_scaling = X_jx / scaling
 
-        ch = chop('q52', rmode=1, subnormal=1)
+        ch = Chop('q52', rmode=1, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q52', rmode=2, subnormal=1)
+        ch = Chop('q52', rmode=2, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q52', rmode=3, subnormal=1)
+        ch = Chop('q52', rmode=3, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q52', rmode=4, subnormal=1)
+        ch = Chop('q52', rmode=4, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/q52/q52_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -530,25 +530,25 @@ class TestClassix(unittest.TestCase):
 
     def test_bfloat16_jx(self):
         pychop.backend('jax')
-        ch = chop('b', rmode=1, subnormal=0)
+        ch = Chop('b', rmode=1, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('b', rmode=2, subnormal=0)
+        ch = Chop('b', rmode=2, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('b', rmode=3, subnormal=0)
+        ch = Chop('b', rmode=3, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('b', rmode=4, subnormal=0)
+        ch = Chop('b', rmode=4, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -557,25 +557,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_jx_scaling = X_jx / scaling
 
-        ch = chop('b', rmode=1, subnormal=1)
+        ch = Chop('b', rmode=1, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('b', rmode=2, subnormal=1)
+        ch = Chop('b', rmode=2, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('b', rmode=3, subnormal=1)
+        ch = Chop('b', rmode=3, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('b', rmode=4, subnormal=1)
+        ch = Chop('b', rmode=4, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -584,25 +584,25 @@ class TestClassix(unittest.TestCase):
 
     def test_half_jx(self):
         pychop.backend('jax')
-        ch = chop('h', rmode=1, subnormal=0)
+        ch = Chop('h', rmode=1, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/half/half_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('h', rmode=2, subnormal=0)
+        ch = Chop('h', rmode=2, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/half/half_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('h', rmode=3, subnormal=0)
+        ch = Chop('h', rmode=3, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/half/half_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('h', rmode=4, subnormal=0)
+        ch = Chop('h', rmode=4, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/half/half_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -611,25 +611,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_jx_scaling = X_jx / scaling
 
-        ch = chop('h', rmode=1, subnormal=1)
+        ch = Chop('h', rmode=1, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('h', rmode=2, subnormal=1)
+        ch = Chop('h', rmode=2, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('h', rmode=3, subnormal=1)
+        ch = Chop('h', rmode=3, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('h', rmode=4, subnormal=1)
+        ch = Chop('h', rmode=4, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -638,25 +638,25 @@ class TestClassix(unittest.TestCase):
 
     def test_43_jx(self):
         pychop.backend('jax')
-        ch = chop('q43', rmode=1, subnormal=0)
+        ch = Chop('q43', rmode=1, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/q43/q43_rmode_1_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q43', rmode=2, subnormal=0)
+        ch = Chop('q43', rmode=2, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/q43/q43_rmode_2_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q43', rmode=3, subnormal=0)
+        ch = Chop('q43', rmode=3, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/q43/q43_rmode_3_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q43', rmode=4, subnormal=0)
+        ch = Chop('q43', rmode=4, subnormal=0)
         emulated= ch(X_jx)
         groud_truth = loadmat("tests/q43/q43_rmode_4_subnormal_0.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -665,25 +665,25 @@ class TestClassix(unittest.TestCase):
         scaling = 1000
         X_jx_scaling = X_jx / scaling
 
-        ch = chop('q43', rmode=1, subnormal=1)
+        ch = Chop('q43', rmode=1, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
 
-        ch = chop('q43', rmode=2, subnormal=1)
+        ch = Chop('q43', rmode=2, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
 
-        ch = chop('q43', rmode=3, subnormal=1)
+        ch = Chop('q43', rmode=3, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-        ch = chop('q43', rmode=4, subnormal=1)
+        ch = Chop('q43', rmode=4, subnormal=1)
         emulated= ch(X_jx_scaling)
         groud_truth = loadmat("tests/q43/q43_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
@@ -694,11 +694,11 @@ class TestClassix(unittest.TestCase):
         pychop.backend('numpy', 1) 
 
         ct1 = customs(emax=15, t=11) 
-        pyq_f = chop(customs=ct1, rmode=3) 
+        pyq_f = Chop(customs=ct1, rmode=3) 
         emulated1 = pyq_f(X_np)
         
         ct2 = customs(exp_bits=5, sig_bits=10) 
-        pyq_f = chop(customs=ct2, rmode=3)
+        pyq_f = Chop(customs=ct2, rmode=3)
         emulated2 = pyq_f(X_np)
         assert np.array_equal(emulated1, emulated2)
 
@@ -707,7 +707,7 @@ class TestClassix(unittest.TestCase):
         values = torch.tensor([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
 
         # Half precision simulator (5 exponent bits, 10 significand bits)
-        fp16_sim = Rounding(5, 10)
+        fp16_sim = Round(5, 10)
 
         # Test all rounding modes
         rounding_modes = ["nearest", "up", "down", "towards_zero", 
@@ -725,7 +725,7 @@ class TestClassix(unittest.TestCase):
 
         print("Correct ones:")
         for mode in rounding_modes_num[:4]:
-            pyq_f = chop('h', rmode=mode)
+            pyq_f = Chop('h', rmode=mode)
             groud_truth = pyq_f(values)
             emulated = fp16_sim.quantize(values, rounding_modes[mode-1])
             assert np.array_equal(emulated, groud_truth), print("error rmode 3")

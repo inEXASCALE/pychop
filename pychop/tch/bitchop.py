@@ -1,6 +1,6 @@
 import torch
 
-class bitchop(object):
+class Bitchop(object):
     """
     Parameters
     ----------

@@ -1,7 +1,7 @@
 import numpy as np
 import struct
 
-class bitchop(object):
+class Bitchop(object):
     """
     Parameters
     ----------
