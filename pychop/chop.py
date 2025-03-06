@@ -84,11 +84,12 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
     except KeyError:
         raise NotImplementedError("Invalid parameter for ``rmode``.")
     
-    if customs.exp_bits is not None:
-        customs.emax = (1 << customs.exp_bits) - 1
+    if customs is not None:
+        if customs.exp_bits is not None:
+            customs.emax = (1 << customs.exp_bits) - 1
 
-    if customs.sig_bits is not None:
-        customs.t = customs.sig_bits
+        if customs.sig_bits is not None:
+            customs.t = customs.sig_bits
     
     if os.environ['chop_backend'] == 'torch':
         from .tch.chop import chop
