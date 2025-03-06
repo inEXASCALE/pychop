@@ -92,7 +92,7 @@ Xq = ch(X)
 print(Xq[:10, 0])
 
 ct2 = customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
-ch = chop(customs=ct2, rmode=3)
+ch = Chop(customs=ct2, rmode=3)
 Xq = ch(X)
 print(Xq[:10, 0])
 ```
@@ -102,10 +102,10 @@ Set quantized layer:
 
 ```Python
 import torch
-from pychop import QuantizedLayer, Rounding
+from pychop import QuantizedLayer, Round
 
 x = torch.tensor([0.1, 0.3, 1.7, 3.9, -2.5])
-mp = Rounding(5, 10) # Standard IEEE 754 half precision
+mp = Round(5, 10) # Standard IEEE 754 half precision
 result = mp.quantize(x, "nearest")
 
 layer = QuantizedLayer(4, 2, 5, 10, rounding_mode="nearest")
