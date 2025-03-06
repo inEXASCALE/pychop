@@ -1,41 +1,21 @@
 import torch
-
 from typing import Tuple
 
-def round_clamp(x, bits=8):
-    x = x.clamp(0,2**(bits)-1)
-    x = x.mul(2**(bits)).round().div(2**(bits))
-    return x
-    
-def to_fixed_point(x, ibits=4, fbits=4):
-    """
-    Parameters
-    ----------
-    x : torch.Tensor,
-        The input array.    
-    
-    ibits : int, default=4
-        The bitwidth of integer part. 
-
-    fbits : int, default=4
-        The bitwidth of fractional part. 
+class FPRound:
+    def __init__(self, integer_bits: int=4, fractional_bits: int=4):
+        """
+        Initialize fixed-point simulator.
         
-    Methods
-    ----------
-    x_q : torch.Tensor,
-        The quantized array.
-    """
-
-    x_f = x.sign()*round_clamp(torch.abs(x) - torch.abs(x).floor(), fbits)
-    x_i = x.sign()*round_clamp(x.abs().floor(), ibits)
-    return (x_i + x_f)
-
-
-
-
-class FPRounding:
-    def __init__(self, integer_bits: int, fractional_bits: int):
-        """Initialize fixed-point simulator with Qm.n format."""
+        Parameters
+        ----------  
+        integer_bits : int, default=4
+            The bitwidth of integer part. 
+    
+        fractional_bit : int, default=4
+            The bitwidth of fractional part. 
+            
+        """
+        
         self.integer_bits = integer_bits
         self.fractional_bits = fractional_bits
         self.total_bits = integer_bits + fractional_bits
@@ -44,8 +24,21 @@ class FPRounding:
         self.resolution = 2 ** (-fractional_bits)
 
     def _to_fixed_point_components(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Extract sign and magnitude from floating-point input."""
-        sign = torch.sign(x)
+        """
+        Extract sign and magnitude from floating-point input.
+        
+        Parameters
+        ----------  
+        x : torch.Tensor
+            Input tensor
+        
+        Returns
+        ----------  
+        sign: Tensor of signs (+1 or -1)
+            abs_x: Tensor of absolute values
+        """
+        
+        sign = torch.sign(x)  # 1, -1, or 0
         abs_x = torch.abs(x)
         return sign, abs_x
 
@@ -54,7 +47,30 @@ class FPRounding:
                   sign: torch.Tensor,
                   abs_x: torch.Tensor,
                   rounding_mode: str) -> torch.Tensor:
-        """Quantize to fixed-point Qm.n with specified rounding mode."""
+        """
+        Quantize to fixed-point with specified rounding mode.
+        
+        Parameters
+        ----------  
+        x : torch.Tensor
+            Input tensor
+            
+        sign : torch.Tensor
+            Signs of input values
+            
+        abs_x : torch.Tensor
+            Absolute values of input
+            
+        rounding_mode : str
+            One of 'nearest', 'up', 'down', 'towards_zero', 
+            'stochastic_equal', 'stochastic_proportional'
+        
+        Returns
+        ----------  
+        result : torch.Tensor
+            Quantized tensor in fixed-point representation
+        """
+        
         scaled = abs_x / self.resolution
 
         if rounding_mode == "nearest":
@@ -86,7 +102,35 @@ class FPRounding:
         return result
 
     def quantize(self, x: torch.Tensor, rounding_mode: str = "nearest") -> torch.Tensor:
-        """Convert floating-point tensor to fixed-point Qm.n representation."""
+        """
+        Convert floating-point tensor to fixed-point representation with specified rounding method.
+        
+        Parameters
+        ----------  
+        x : torch.Tensor
+            Input tensor
+                        
+        rounding_mode : str
+            One of 'nearest', 'up', 'down', 'towards_zero', 
+            'stochastic_equal', 'stochastic_proportional'
+        
+        Returns
+        ----------  
+        result : torch.Tensor
+            Quantized tensor in fixed-point representation
+        """
+        
         sign, abs_x = self._to_fixed_point_components(x)
         return self._quantize(x, sign, abs_x, rounding_mode)
+        
+    def get_format_info(self) -> dict:
+        """Return information about the fixed-point format."""
+        return {
+            "format": f"Q{self.integer_bits}.{self.fractional_bits}",
+            "total_bits": self.total_bits,
+            "range": (self.min_value, self.max_value),
+            "resolution": self.resolution
+        }
+
+
 
