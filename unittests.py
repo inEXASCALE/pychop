@@ -690,7 +690,7 @@ class TestClassix(unittest.TestCase):
         assert np.array_equal(emulated, groud_truth), print("error rmode 4")
 
     def test_custom_precs(self):
-        from pychop import customs
+        from pychop import Customs
         pychop.backend('numpy', 1) 
 
         ct1 = customs(emax=15, t=11) 
