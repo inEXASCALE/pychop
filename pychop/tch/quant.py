@@ -1,5 +1,6 @@
 
 import torch
+import warnings 
 
 class quant():
     """
@@ -117,3 +118,7 @@ class quant():
         z = (alpha * beta_q - beta * alpha_q) / (beta_q - alpha_q)
 
         return s, z
+    
+
+
+

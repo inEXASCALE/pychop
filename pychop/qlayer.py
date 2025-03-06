@@ -157,28 +157,13 @@ class Rounding:
 class QuantizedLayer(torch.nn.Module):
     """Example of a quantized linear layer"""
     def __init__(self, 
-                 in_features: int, 
-                 out_features: int,
                  exp_bits: int,
                  sig_bits: int,
                  rounding_mode: str = "nearest"):
         
         super().__init__()
         self.quantizer = Rounding(exp_bits, sig_bits)
-        self.weight = torch.nn.Parameter(torch.randn(out_features, in_features))
-        self.bias = torch.nn.Parameter(torch.randn(out_features))
         self.rounding_mode = rounding_mode
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Quantize weights and input
-        q_weight = self.quantizer.quantize(self.weight, self.rounding_mode)
-        q_input = self.quantizer.quantize(x, self.rounding_mode)
-        
-        # Perform computation
-        output = torch.matmul(q_input, q_weight.t())
-        
-        # Quantize bias and add
-        q_bias = self.quantizer.quantize(self.bias, self.rounding_mode)
-        output = output + q_bias
-        
-        return output
+        return self.quantizer.quantize(x, self.rounding_mode)
