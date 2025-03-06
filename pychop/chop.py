@@ -44,7 +44,8 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
         in uniform distribution between 0 and 1, i.e., np.random.uniform.
 
     customs : dataclass, default=None
-        If customs is defined, then use customs.t and customs.emax for floating point arithmetic.
+        If customs is defined, then use customs.t and customs.emax or (customs.t and customs.emax) 
+        for floating point arithmetic.
 
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
@@ -68,22 +69,26 @@ def chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
         ``chop`` instance.
 
     """
-    if rmode in {0, "nearest_odd"}:
-        rmode = 0
-    elif rmode in {1, "nearest_even"}:
-        rmode = 1
-    elif rmode in {2, "plus_infinity"}:
-        rmode = 2
-    elif rmode in {3, "minus_infinity"}:
-        rmode = 3
-    elif rmode in {4, "toward_zero"}:
-        rmode = 4
-    elif rmode in {5, "stochastic_prop"}:
-        rmode = 5
-    elif rmode in {6, "stochastic_equal"}:
-        rmode = 6
-    else:
+    rmode_map = {
+        0: 0, "nearest_odd": 0,
+        1: 1, "nearest_even": 1,
+        2: 2, "plus_infinity": 2,
+        3: 3, "minus_infinity": 3,
+        4: 4, "toward_zero": 4,
+        5: 5, "stochastic_prop": 5,
+        6: 6, "stochastic_equal": 6,
+    }
+
+    try:
+        rmode = rmode_map[rmode]
+    except KeyError:
         raise NotImplementedError("Invalid parameter for ``rmode``.")
+    
+    if customs.exp_bits is not None:
+        customs.emax = (1 << customs.exp_bits) - 1
+
+    if customs.sig_bits is not None:
+        customs.t = customs.sig_bits
     
     if os.environ['chop_backend'] == 'torch':
         from .tch.chop import chop

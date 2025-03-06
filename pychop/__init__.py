@@ -11,14 +11,16 @@ from .qlayer import QuantizedLayer, Rounding
 __version__ = '0.3.1'  
 backend('numpy')
 
-
 from dataclasses import dataclass
+from typing import Optional
 
 @dataclass
 class customs:
-    t: int
-    emax: int
-        
+    t: Optional[int] = None
+    emax: Optional[int] = None
+    exp_bits: int = None
+    ig_bits: int = None
+
 @dataclass
 class options:
     t: int
