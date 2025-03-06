@@ -82,6 +82,7 @@ Xq = ch(X) # Rounding values
 
 One can also customize the precision via:
 ```Python
+from pychop import Customs
 pychop.backend('numpy', 1)
 ct1 = Customs(emax=15, t=11)
 # half precision,  t is the number of bits in the significand 
