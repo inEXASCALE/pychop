@@ -42,3 +42,5 @@ if __name__ == '__main__':
     # Load Troch backend.
     # runtime 1: 0.9266691207885742
     # cuda  runtime 2: 0.1649622917175293
+
+    # matlab takes: >> tic; emu_val = chop(X); toc -> Elapsed time is 2.084953 seconds. 
