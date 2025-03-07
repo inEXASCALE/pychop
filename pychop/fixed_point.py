@@ -7,9 +7,7 @@ class FPoint(object):
     """
     Parameters
     ----------
-    x : numpy.ndarray | jax.Array | torch.Tensor,
-        The input array. 
-    
+
     ibits : int, default=4
         The bitwidth of integer part. 
 
@@ -18,11 +16,8 @@ class FPoint(object):
         
     rmode : int or str, default=1
         The rounding way.
-    
-    Returns
-    ----------
-    x_q : numpy.ndarray | jax.Array | torch.Tensor, 
-        The quantized array.
+
+
     """
 
     def __init__(self, ibits=4, fbits=4, rmode: str = "nearest",):
@@ -40,6 +35,15 @@ class FPoint(object):
         self.fpr = FPRound(ibits, fbits)
 
     def __call__(self, x):
+        """
+        x : numpy.ndarray | jax.Array | torch.Tensor,
+            The input array. 
+
+        Returns
+        ----------
+        x_q : numpy.ndarray | jax.Array | torch.Tensor, 
+            The quantized array.
+        """
         return self.fpr.quantize(x, self.rmode)
     
 
@@ -48,33 +52,45 @@ class FPoint(object):
 
 class FQuantizedLayer(nn.Module):
     def __init__(self, 
-                 in_features: int, 
-                 out_features: int,
-                 integer_bits: int,
-                 fractional_bits: int,
+                 in_dim: int, 
+                 out_dim: int,
+                 ibits: int,
+                 fbits: int,
                  rmode: str = "nearest",
                  bias: bool = True):
         """
         A linear layer with fixed-point quantization for weights, bias, and inputs.
+            
+        Parameters
+        ----------
+        in_dim : int
+            Number of input features
         
-        Args:
-            in_features: Number of input features
-            out_features: Number of output features
-            integer_bits: Number of integer bits (including sign) for Qm.n format
-            fractional_bits: Number of fractional bits for Qm.n format
-            rmode: Rounding method for quantization
-            bias: Whether to include a bias term
+        out_dim : int
+            Number of output features
+        
+        ibits : int
+            Number of integer bits (including sign) for Qm.n format
+        
+        fbits : int
+            Number of fractional bits for Qm.n format
+        
+        rmode : int
+            Rounding method for quantization
+        
+        bias : int
+            Whether to include a bias term
         """
         super(FQuantizedLayer, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.quantizer = FPRound(integer_bits, fractional_bits)
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.quantizer = FPRound(ibits, fbits)
         self.rmode = rmode
 
         # Initialize weights and bias as floating-point parameters
-        self.weight = nn.Parameter(torch.randn(out_features, in_features))
+        self.weight = nn.Parameter(torch.randn(out_dim, in_dim))
         if bias:
-            self.bias = nn.Parameter(torch.randn(out_features))
+            self.bias = nn.Parameter(torch.randn(out_dim))
         else:
             self.register_parameter('bias', None)
 
@@ -82,10 +98,15 @@ class FQuantizedLayer(nn.Module):
         """
         Forward pass with fixed-point quantization.
         
-        Args:
-            x: Input tensor (batch_size, in_features)
-        Returns:
-            Output tensor (batch_size, out_features)
+        Parameters
+        ----------
+        x : numpy.ndarray | jax.Array | torch.Tensor,
+            The input tensor (batch_size, in_dim)
+
+        Returns
+        ----------
+        Output: numpy.ndarray | jax.Array | torch.Tensor,
+            The input tensor (batch_size, out_dim)
         """
         
         return self.quantizer.quantize(x, self.rmode)

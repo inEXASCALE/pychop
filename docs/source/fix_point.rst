@@ -25,62 +25,169 @@ The fixed point representation for $x$ is given by
 
     Q_f{x} = \text{sign}(x) q(x_i) +  \text{sign}(x) q(x_f)
 
+.. _fixed_point_simulator:
+
+Fixed-Point Simulator Classes
+=============================
+
+The `FixedPointSimulator` class enables the quantization of floating-point numbers into a fixed-point Qm.n format, where `m` is the number of integer bits (including the sign bit) and `n` is the number of fractional bits. This document describes the usage and provides examples for implementations in PyTorch, NumPy, and JAX, each supporting six rounding modes: `nearest`, `up`, `down`, `towards_zero`, `stochastic_equal`, and `stochastic_proportional`.
+
+Overview
+--------
+
+The simulator converts floating-point values into a fixed-point representation with a resolution of \(2^{-n}\) and a range of \([-2^{m-1}, 2^{m-1} - 2^{-n}]\). For the Q4.4 format used in the examples:
+- **Resolution**: \(2^{-4} = 0.0625\)
+- **Range**: \([-8.0, 7.9375]\)
+
+The quantization process scales the input by the resolution, applies the chosen rounding mode, reconstructs the fixed-point value, and clamps it to the valid range.
+
+Usage
+-----
+
+Common Parameters
+~~~~~~~~~~~~~~~~~
+
+- **integer_bits**: Specifies the number of bits for the integer part, including the sign bit.
+- **fractional_bits**: Defines the number of bits for the fractional part.
+- **rmode**: Selects the rounding method, defaulting to "nearest".
+
+PyTorch Version
+~~~~~~~~~~~~~~~
+
+The PyTorch implementation integrates with PyTorch tensors, making it suitable for machine learning workflows.
+
+**Initialization**
+
+Create an instance by setting the integer and fractional bit counts to define the Qm.n format.
+
+**Quantization**
+
+Quantize a tensor of floating-point values by invoking the quantization method, optionally specifying a rounding mode. The result is a tensor with quantized values.
+
+**Code Example**:
+
+.. code-block:: python
+
+    # Initialize with Q4.4 format
+    sim = FixedPointSimulator(integer_bits=4, fractional_bits=4)
+    # Input tensor
+    values = torch.tensor([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
+    # Quantize with nearest rounding
+    result = sim.quantize(values, rounding_mode="nearest")
+    print(result)
+
+NumPy Version
+~~~~~~~~~~~~~
+
+The NumPy version operates on NumPy arrays, offering a general-purpose quantization tool.
+
+**Initialization**
+
+Instantiate the simulator with the desired integer and fractional bit counts.
+
+**Quantization**
+
+Apply the quantization method to a NumPy array, with an optional rounding mode parameter, to obtain a quantized array.
+
+**Code Example**:
+
+.. code-block:: python
+
+    # Initialize with Q4.4 format
+    sim = FixedPointSimulator(integer_bits=4, fractional_bits=4)
+    # Input array
+    values = np.array([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
+    # Quantize with nearest rounding
+    result = sim.quantize(values, rounding_mode="nearest")
+    print(result)
+
+JAX Version
+~~~~~~~~~~~
+
+The JAX implementation uses JAX arrays and includes JIT compilation for performance, requiring a PRNG key for stochastic modes.
+
+**Initialization**
+
+Set up the simulator by defining the integer and fractional bits for the Qm.n format.
+
+**Quantization**
+
+Quantize a JAX array using the quantization method, specifying a rounding mode and, for stochastic modes, a PRNG key. The output is a quantized JAX array.
+
+**Code Example**:
+
+.. code-block:: python
+
+    # Initialize with Q4.4 format
+    sim = FPRound(integer_bits=4, fractional_bits=4)
+    # Input array
+    values = jnp.array([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
+    # PRNG key for stochastic modes
+    key = random.PRNGKey(42)
+    # Quantize with nearest rounding (no key needed)
+    result = sim.quantize(values, rounding_mode="nearest")
+    print(result)
+
+Examples
+--------
+
+The following examples show the quantization of the input values `[1.7641, 0.3097, -0.2021, 2.47, 0.33]` in Q4.4 format across all rounding modes, consistent across PyTorch, NumPy, and JAX (with JAX using PRNG key 42 for stochastic modes).
+
+**Input Values**
+
+.. code-block:: text
+
+    [1.7641, 0.3097, -0.2021, 2.47, 0.33]
+
+**Outputs by Rounding Mode**
+
+- **Nearest**:
+
+  .. code-block:: text
+
+      [1.75, 0.3125, -0.1875, 2.5, 0.3125]
+
+  Rounds to the nearest representable value.
+
+- **Up**:
+
+  .. code-block:: text
+
+      [1.8125, 0.3125, -0.1875, 2.5, 0.375]
+
+  Positive values round toward positive infinity, negative values toward negative infinity.
+
+- **Down**:
+
+  .. code-block:: text
+
+      [1.75, 0.25, -0.25, 2.4375, 0.3125]
+
+  Positive values round toward negative infinity, negative values toward positive infinity.
+
+- **Towards Zero**:
+
+  .. code-block:: text
+
+      [1.75, 0.25, -0.1875, 2.4375, 0.3125]
+
+  Truncates toward zero, reducing the magnitude.
+
+- **Stochastic Equal**:
+
+  .. code-block:: text
+
+      [1.8125, 0.3125, -0.25, 2.5, 0.3125]
+
+  Randomly selects between floor and ceiling with equal probability (example with JAX PRNG key 42; varies otherwise).
+
+- **Stochastic Proportional**:
+
+  .. code-block:: text
+
+      [1.8125, 0.3125, -0.1875, 2.4375, 0.3125]
+
+  Randomly selects between floor and ceiling, with probability proportional to the fractional part (example with JAX PRNG key 42; varies otherwise).
 
 
-The usage is demonstrated step by step as below.
-
-First we load the data in various format:
-
-.. code:: python
-
-    import numpy as np
-    import torch
-    import pychop
-    from numpy import linalg
-    import jax
-
-    X_np = np.random.randn(500, 500) # Numpy array
-    X_th = torch.Tensor(X_np) # torch array
-    X_jx = jax.numpy.asarray(X_np)
-    print(X_np)
-
-
-The parameters that determine the fixed-point quantization is the following parameters
-
-.. code-block:: language
-
-    ibits : int, default=4
-        The bitwidth of integer part. 
-
-    fbits : int, default=4
-        The bitwidth of fractional part. 
-
-
-The backend of NumPy is performed by:
-
-.. code:: python
-
-    pychop.backend('numpy')
-    pyq_f = pychop.fpoint(ibits=4, fbits=4)
-    pyq_f(X_np)
-
-The backend of Torch is performed by:
-
-.. code:: python
-
-    pychop.backend('torch')
-    pyq_f = pychop.fpoint()
-    pyq_f(X_th)
-
-The backend of JAX is performed by:
-
-.. code:: python
-
-    pychop.backend('jax')
-    pyq_f = pychop.fpoint()
-    pyq_f(X_jx)
-
-[1] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks for biomedical image
-segmentation. In Medical Image Computing and Computer-Assisted Intervention, 234–241, 2015. Springer.
-
-
+This guide provides a clear introduction to using the `FPRound` classes, with practical examples formatted as code blocks for clarity.

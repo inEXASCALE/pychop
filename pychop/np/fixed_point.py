@@ -4,13 +4,13 @@ from typing import Tuple
 
 
 class FPRound:
-    def __init__(self, integer_bits: int, fractional_bits: int):
+    def __init__(self, ibits: int, fbits: int):
         """
         Initialize fixed-point simulator.
         
         Parameters
         ----------  
-        integer_bits : int, default=4
+        ibits : int, default=4
             The bitwidth of integer part. 
     
         fractional_bit : int, default=4
@@ -18,12 +18,12 @@ class FPRound:
             
         """
         
-        self.integer_bits = integer_bits
-        self.fractional_bits = fractional_bits
-        self.total_bits = integer_bits + fractional_bits
-        self.max_value = 2 ** (integer_bits - 1) - 2 ** (-fractional_bits)
-        self.min_value = -2 ** (integer_bits - 1)
-        self.resolution = 2 ** (-fractional_bits)
+        self.ibits = ibits
+        self.fbits = fbits
+        self.total_bits = ibits + fbits
+        self.max_value = 2 ** (ibits - 1) - 2 ** (-fbits)
+        self.min_value = -2 ** (ibits - 1)
+        self.resolution = 2 ** (-fbits)
 
     def _to_fixed_point_components(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -48,7 +48,7 @@ class FPRound:
                   x: np.ndarray,
                   sign: np.ndarray,
                   abs_x: np.ndarray,
-                  rounding_mode: str) -> np.ndarray:
+                  rmode: str) -> np.ndarray:
         """
         Quantize to fixed-point with specified rounding mode.
         
@@ -63,7 +63,7 @@ class FPRound:
         abs_x : numpy.ndarray
             Absolute values of input
             
-        rounding_mode : str
+        rmode : str | int
             One of 'nearest', 'up', 'down', 'towards_zero', 
             'stochastic_equal', 'stochastic_proportional'
         
@@ -75,25 +75,25 @@ class FPRound:
         
         scaled = abs_x / self.resolution
 
-        if rounding_mode == "nearest":
+        if rmode in {"nearest", 1}:
             quantized = np.round(scaled)
-        elif rounding_mode == "up":
+        elif rmode in {"up", 2}:
             quantized = np.where(sign > 0, np.ceil(scaled), np.floor(scaled))
-        elif rounding_mode == "down":
+        elif rmode in {"down", 3}:
             quantized = np.where(sign > 0, np.floor(scaled), np.ceil(scaled))
-        elif rounding_mode == "towards_zero":
+        elif rmode in {"towards_zero", 4}:
             quantized = np.trunc(scaled)
-        elif rounding_mode == "stochastic_equal":
+        elif rmode in {"stochastic_equal", 5}:
             floor_val = np.floor(scaled)
             prob = np.random.random(scaled.shape)
             quantized = np.where(prob < 0.5, floor_val, floor_val + 1)
-        elif rounding_mode == "stochastic_proportional":
+        elif rmode in {"stochastic_proportional", 6}:
             floor_val = np.floor(scaled)
             fraction = scaled - floor_val
             prob = np.random.random(scaled.shape)
             quantized = np.where(prob < fraction, floor_val + 1, floor_val)
         else:
-            raise ValueError(f"Unsupported rounding mode: {rounding_mode}")
+            raise ValueError(f"Unsupported rounding mode: {rmode}")
 
         result = sign * quantized * self.resolution
         result = np.clip(result, self.min_value, self.max_value)
@@ -103,7 +103,7 @@ class FPRound:
 
         return result
 
-    def quantize(self, x: np.ndarray, rounding_mode: str = "nearest") -> np.ndarray:
+    def quantize(self, x: np.ndarray, rmode: str = "nearest") -> np.ndarray:
         """
         Convert floating-point tensor to fixed-point representation with specified rounding method.
         
@@ -112,7 +112,7 @@ class FPRound:
         x : numpy.ndarray
             Input tensor
                         
-        rounding_mode : str
+        rmode : str
             One of 'nearest', 'up', 'down', 'towards_zero', 
             'stochastic_equal', 'stochastic_proportional'
         
@@ -122,13 +122,13 @@ class FPRound:
             Quantized tensor in fixed-point representation
         """
         sign, abs_x = self._to_fixed_point_components(x)
-        return self._quantize(x, sign, abs_x, rounding_mode)
+        return self._quantize(x, sign, abs_x, rmode)
 
     
     def get_format_info(self) -> dict:
         """Return information about the fixed-point format."""
         return {
-            "format": f"Q{self.integer_bits}.{self.fractional_bits}",
+            "format": f"Q{self.ibits}.{self.fbits}",
             "total_bits": self.total_bits,
             "range": (self.min_value, self.max_value),
             "resolution": self.resolution

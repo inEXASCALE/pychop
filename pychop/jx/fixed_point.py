@@ -4,14 +4,14 @@ from typing import Tuple
 from jax import jit
 
 class FPRound:
-    def __init__(self, integer_bits: int, fractional_bits: int):
+    def __init__(self, ibits: int, fbits: int):
         """Initialize fixed-point simulator with Qm.n format."""
-        self.integer_bits = integer_bits
-        self.fractional_bits = fractional_bits
-        self.total_bits = integer_bits + fractional_bits
-        self.max_value = 2 ** (integer_bits - 1) - 2 ** (-fractional_bits)
-        self.min_value = -2 ** (integer_bits - 1)
-        self.resolution = 2 ** (-fractional_bits)
+        self.ibits = ibits
+        self.fbits = fbits
+        self.total_bits = ibits + fbits
+        self.max_value = 2 ** (ibits - 1) - 2 ** (-fbits)
+        self.min_value = -2 ** (ibits - 1)
+        self.resolution = 2 ** (-fbits)
 
     def _to_fixed_point_components(self, x: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
@@ -36,7 +36,7 @@ class FPRound:
                   x: jnp.ndarray,
                   sign: jnp.ndarray,
                   abs_x: jnp.ndarray,
-                  rounding_mode: str,
+                  rmode: str,
                   key: random.PRNGKey = None) -> jnp.ndarray:
         """
         Quantize to fixed-point with specified rounding mode.
@@ -52,7 +52,7 @@ class FPRound:
         abs_x : torch.Tensor
             Absolute values of input
             
-        rounding_mode : str
+        rmode : str
             One of 'nearest', 'up', 'down', 'towards_zero', 
             'stochastic_equal', 'stochastic_proportional'
         
@@ -63,21 +63,21 @@ class FPRound:
         """
         scaled = abs_x / self.resolution
 
-        if rounding_mode == "nearest":
+        if rmode in {"nearest", 1}:
             quantized = jnp.round(scaled)
-        elif rounding_mode == "up":
+        elif rmode in {"up", 2}:
             quantized = jnp.where(sign > 0, jnp.ceil(scaled), jnp.floor(scaled))
-        elif rounding_mode == "down":
+        elif rmode in {"down", 3}:
             quantized = jnp.where(sign > 0, jnp.floor(scaled), jnp.ceil(scaled))
-        elif rounding_mode == "towards_zero":
+        elif rmode in {"towards_zero", 4}:
             quantized = jnp.trunc(scaled)
-        elif rounding_mode == "stochastic_equal":
+        elif rmode in {"stochastic_equal", 5}:
             if key is None:
                 raise ValueError("PRNG key required for stochastic rounding")
             floor_val = jnp.floor(scaled)
             prob = random.uniform(key, scaled.shape)
             quantized = jnp.where(prob < 0.5, floor_val, floor_val + 1)
-        elif rounding_mode == "stochastic_proportional":
+        elif rmode in {"stochastic_proportional", 6}:
             if key is None:
                 raise ValueError("PRNG key required for stochastic rounding")
             floor_val = jnp.floor(scaled)
@@ -85,7 +85,7 @@ class FPRound:
             prob = random.uniform(key, scaled.shape)
             quantized = jnp.where(prob < fraction, floor_val + 1, floor_val)
         else:
-            raise ValueError(f"Unsupported rounding mode: {rounding_mode}")
+            raise ValueError(f"Unsupported rounding mode: {rmode}")
 
         result = sign * quantized * self.resolution
         result = jnp.clip(result, self.min_value, self.max_value)
@@ -96,7 +96,7 @@ class FPRound:
         return result
 
     @jit
-    def quantize(self, x: jnp.ndarray, rounding_mode: str = "nearest", 
+    def quantize(self, x: jnp.ndarray, rmode: str = "nearest", 
                  key: random.PRNGKey = None) -> jnp.ndarray:
         """
         Convert floating-point tensor to fixed-point representation with specified rounding method.
@@ -106,7 +106,7 @@ class FPRound:
         x : torch.Tensor
             Input tensor
                         
-        rounding_mode : str
+        rmode : str
             One of 'nearest', 'up', 'down', 'towards_zero', 
             'stochastic_equal', 'stochastic_proportional'
         
@@ -116,33 +116,33 @@ class FPRound:
             Quantized tensor in fixed-point representation
         """
         sign, abs_x = self._to_fixed_point_components(x)
-        return self._quantize(x, sign, abs_x, rounding_mode, key)
+        return self._quantize(x, sign, abs_x, rmode, key)
 
     @staticmethod
     def _quantize_static(sim: 'FixedPointSimulator', 
                          x: jnp.ndarray,
                          sign: jnp.ndarray,
                          abs_x: jnp.ndarray,
-                         rounding_mode: str,
+                         rmode: str,
                          key: random.PRNGKey = None) -> jnp.ndarray:
         """Static quantization method for JIT compilation."""
         scaled = abs_x / sim.resolution
 
-        if rounding_mode == "nearest":
+        if rmode == "nearest":
             quantized = jnp.round(scaled)
-        elif rounding_mode == "up":
+        elif rmode == "up":
             quantized = jnp.where(sign > 0, jnp.ceil(scaled), jnp.floor(scaled))
-        elif rounding_mode == "down":
+        elif rmode == "down":
             quantized = jnp.where(sign > 0, jnp.floor(scaled), jnp.ceil(scaled))
-        elif rounding_mode == "towards_zero":
+        elif rmode == "towards_zero":
             quantized = jnp.trunc(scaled)
-        elif rounding_mode == "stochastic_equal":
+        elif rmode == "stochastic_equal":
             if key is None:
                 raise ValueError("PRNG key required for stochastic rounding")
             floor_val = jnp.floor(scaled)
             prob = random.uniform(key, scaled.shape)
             quantized = jnp.where(prob < 0.5, floor_val, floor_val + 1)
-        elif rounding_mode == "stochastic_proportional":
+        elif rmode == "stochastic_proportional":
             if key is None:
                 raise ValueError("PRNG key required for stochastic rounding")
             floor_val = jnp.floor(scaled)
@@ -150,7 +150,7 @@ class FPRound:
             prob = random.uniform(key, scaled.shape)
             quantized = jnp.where(prob < fraction, floor_val + 1, floor_val)
         else:
-            raise ValueError(f"Unsupported rounding mode: {rounding_mode}")
+            raise ValueError(f"Unsupported rounding mode: {rmode}")
 
         result = sign * quantized * sim.resolution
         result = jnp.clip(result, sim.min_value, sim.max_value)
@@ -160,7 +160,7 @@ class FPRound:
 
         return result
 
-    def quantize(self, x: jnp.ndarray, rounding_mode: str = "nearest", 
+    def quantize(self, x: jnp.ndarray, rmode: str = "nearest", 
                  key: random.PRNGKey = None) -> jnp.ndarray:
         """
         Convert floating-point tensor to fixed-point representation with specified rounding method.
@@ -170,7 +170,7 @@ class FPRound:
         x : torch.Tensor
             Input tensor
                         
-        rounding_mode : str
+        rmode : str
             One of 'nearest', 'up', 'down', 'towards_zero', 
             'stochastic_equal', 'stochastic_proportional'
         
@@ -181,12 +181,12 @@ class FPRound:
         """
         
         sign, abs_x = self._to_fixed_point_components(x)
-        return self._quantize_static(self, x, sign, abs_x, rounding_mode, key)
+        return self._quantize_static(self, x, sign, abs_x, rmode, key)
 
     def get_format_info(self) -> dict:
         """Return information about the fixed-point format."""
         return {
-            "format": f"Q{self.integer_bits}.{self.fractional_bits}",
+            "format": f"Q{self.ibits}.{self.fbits}",
             "total_bits": self.total_bits,
             "range": (self.min_value, self.max_value),
             "resolution": self.resolution
@@ -205,10 +205,10 @@ def test_fixed_point():
     print()
     
     print("Input values:", values)
-    rounding_modes = ["nearest", "up", "down", "towards_zero", 
+    rmodes = ["nearest", "up", "down", "towards_zero", 
                       "stochastic_equal", "stochastic_proportional"]
     key = random.PRNGKey(42)
-    for mode in rounding_modes:
+    for mode in rmodes:
         if "stochastic" in mode:
             result = fx_sim.quantize(values, mode, key)
         else:
