@@ -38,7 +38,7 @@ if __name__ == '__main__':
     print(device, " runtime 2:", time() - st)
 
     # Output
-    # python example1.py
+    # python example_gpu.py
     # Load Troch backend.
     # runtime 1: 0.9266691207885742
     # cuda  runtime 2: 0.1649622917175293
