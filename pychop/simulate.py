@@ -1,7 +1,10 @@
 import numpy as np
 
-class simulate():
+class Simulate():
     """Simulate a customised floating point system with rounding methods
+   
+    Only for demonstration and a small number of floating point numbers.
+    For large number of floating point numbers, please use the Chop class.
 
     Parameters
     ----------

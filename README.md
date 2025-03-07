@@ -103,16 +103,10 @@ Set quantized layer:
 
 ```Python
 import torch
-from pychop import QuantizedLayer, Round
-
-x = torch.tensor([0.1, 0.3, 1.7, 3.9, -2.5])
-mp = Round(5, 10) # Standard IEEE 754 half precision
-result = mp.quantize(x, "nearest")
-
-layer = QuantizedLayer(4, 2, 5, 10, rounding_mode="nearest")
+from pychop import QuantizedLayer, 
+layer = QuantizedLayer(5, 10, rmode="nearest")
 input_tensor = torch.randn(3, 4)
 output = layer(input_tensor)
-print("\nLayer output shape:", output.shape) # Output: torch.Size([3, 2])
 ```
 
 ### Use Cases

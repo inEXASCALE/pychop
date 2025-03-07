@@ -9,7 +9,7 @@ import pychop
 
 from pychop.chop import Chop
 from scipy.io import loadmat
-from pychop import Round
+from pychop import LightChop
 
 import torch
 import jax
@@ -707,7 +707,7 @@ class TestClassix(unittest.TestCase):
         values = torch.tensor([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
 
         # Half precision simulator (5 exponent bits, 10 significand bits)
-        fp16_sim = Round(5, 10)
+        fp16_sim = LightChop(5, 10)
 
         # Test all rounding modes
         rounding_modes = ["nearest", "up", "down", "towards_zero", 
