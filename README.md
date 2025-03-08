@@ -110,7 +110,7 @@ output = layer(input_tensor)
 ```
 
 A sequential neural network can be build with:
-```
+```Python
 import torch.nn as nn
 
 class MLP(nn.Module):
