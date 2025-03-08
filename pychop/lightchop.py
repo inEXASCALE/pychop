@@ -105,10 +105,9 @@ class LightChop:
                                                        torch.ceil(significand[subnormal_mask] * significand_steps)) / significand_steps
                 
         elif rmode in {"towards_zero", 4}:
-            significand_q = torch.trunc(significand_normal * significand_steps) / significand_steps
+            significand_q = torch.floor(significand_normal * significand_steps) / significand_steps
             if torch.any(subnormal_mask):
-                significand_q[subnormal_mask] = torch.trunc(significand[subnormal_mask] * 
-                                                       significand_steps) / significand_steps
+                significand_q[subnormal_mask] = torch.floor(significand[subnormal_mask] * significand_steps) / significand_steps
                 
         elif rmode in {"stoc_prop", 5}:
             significand_scaled = significand_normal * significand_steps
