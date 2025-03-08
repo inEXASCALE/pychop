@@ -725,8 +725,8 @@ class TestClassix(unittest.TestCase):
             groud_truth = pyq_f(values)
 
             # Half precision simulator (5 exponent bits, 10 significand bits)
-            fp16_sim = LightChop(5, 10, rounding_modes[mode-1])
-            emulated = fp16_sim.quantize(values)
+            fp16_sim = LightChop(5, 10, mode)
+            emulated = fp16_sim(values)
             assert np.array_equal(emulated, groud_truth), print("error rmode 3")
             
             print(f"{rounding_modes[mode-1]:12}, ", "Truth:", f"   {emulated}")
