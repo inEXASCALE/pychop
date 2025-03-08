@@ -98,13 +98,27 @@ Xq = ch(X)
 print(Xq[:10, 0])
 ```
 
+We introduce light version of chop that support faster rounding (but relies on PyTorch):
+
+```Python
+X_th = torch.from_numpy(X) # torch array
+pychop.backend('torch')
+
+from pychop.lightchop import LightChop
+
+ch = LightChop(exp_bits=5, sig_bits=10, rmode=3)
+Xq = ch(X_th)
+print(Xq[:10, 0])
+```
+
+
 #### (II). Train Neural Network
 Set quantized layer:
 
 ```Python
 import torch
 from pychop.layers import QuantizedLayer, 
-layer = QuantizedLayer(5, 10, rmode=1) # half precision, round to nearest ties to even
+layer = QuantizedLayer(exp_bits=5, sig_bits=10, rmode=1) # half precision, round to nearest ties to even
 input_tensor = torch.randn(3, 4)
 output = layer(input_tensor)
 ```
@@ -117,8 +131,7 @@ class MLP(nn.Module):
     def __init__(self):
         super(MLP, self).__init__()
         self.flatten = nn.Flatten()
-        self.quant = QuantizedLayer(5, 10, rmode=1)
-       # half precision, round to nearest ties to even
+        self.quant = QuantizedLayer(5, 10, rmode=1) # half precision
 
         self.layers = nn.Sequential(
             nn.Linear(28 * 28, 512),
