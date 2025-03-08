@@ -1,7 +1,5 @@
 import os
-import torch.nn as nn
 from .tch import FPRound
-import torch
 
 class Chopf(object):
     """
@@ -17,8 +15,14 @@ class Chopf(object):
         The bitwidth of fractional part. 
         
     rmode : int or str, default=1
-        The rounding way.
-
+            Rounding mode to use when quantizing the significand. Options are:
+            - 0 or "nearest_odd": Round to nearest value, ties to odd.
+            - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+            - 2 or "plus_inf": Round towards plus infinity (round up).
+            - 3 or "minus_inf": Round towards minus infinity (round down).
+            - 4 or "toward_zero": Truncate toward zero (no rounding up).
+            - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
 
     """
 
@@ -50,65 +54,3 @@ class Chopf(object):
     
 
 
-
-
-class FQuantizedLayer(nn.Module):
-    def __init__(self, 
-                 in_dim: int, 
-                 out_dim: int,
-                 ibits: int,
-                 fbits: int,
-                 rmode: str = "nearest",
-                 bias: bool = True):
-        """
-        A linear layer with fixed-point quantization for weights, bias, and inputs.
-            
-        Parameters
-        ----------
-        in_dim : int
-            Number of input features
-        
-        out_dim : int
-            Number of output features
-        
-        ibits : int
-            Number of integer bits (including sign) for Qm.n format
-        
-        fbits : int
-            Number of fractional bits for Qm.n format
-        
-        rmode : int
-            Rounding method for quantization
-        
-        bias : int
-            Whether to include a bias term
-        """
-        super(FQuantizedLayer, self).__init__()
-        self.in_dim = in_dim
-        self.out_dim = out_dim
-        self.quantizer = Chopf(ibits, fbits)
-        self.rmode = rmode
-
-        # Initialize weights and bias as floating-point parameters
-        self.weight = nn.Parameter(torch.randn(out_dim, in_dim))
-        if bias:
-            self.bias = nn.Parameter(torch.randn(out_dim))
-        else:
-            self.register_parameter('bias', None)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass with fixed-point quantization.
-        
-        Parameters
-        ----------
-        x : numpy.ndarray | jax.Array | torch.Tensor,
-            The input tensor (batch_size, in_dim)
-
-        Returns
-        ----------
-        Output: numpy.ndarray | jax.Array | torch.Tensor,
-            The input tensor (batch_size, out_dim)
-        """
-        
-        return self.quantizer.quantize(x, self.rmode)

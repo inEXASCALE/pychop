@@ -16,9 +16,9 @@ os.environ['chop_backend'] = 'numpy'
 from .set_backend import backend
 
 from .lightchop import LightChop
-from .fixed_point import FQuantizedLayer
-from .integer import IntQuantizedLayer
-from .qlayer import QuantizedLayer
+from .layers import FQuantizedLayer
+from .layers import IntQuantizedLayer
+from .layers import QuantizedLayer
 
 from dataclasses import dataclass
 from typing import Optional

@@ -88,7 +88,7 @@ ct1 = Customs(emax=15, t=11)
 # half precision,  t is the number of bits in the significand 
 # (including the hidden bit) and emax is the maximum value of the exponent
 
-ch = Chop(customs=ct1, rmode=3) 
+ch = Chop(customs=ct1, rmode=3) # Round towards minus infinity 
 Xq = ch(X)
 print(Xq[:10, 0])
 
@@ -103,8 +103,8 @@ Set quantized layer:
 
 ```Python
 import torch
-from pychop import QuantizedLayer, 
-layer = QuantizedLayer(5, 10, rmode="nearest")
+from pychop.layers import QuantizedLayer, 
+layer = QuantizedLayer(5, 10, rmode=1) # half precision, round to nearest ties to even
 input_tensor = torch.randn(3, 4)
 output = layer(input_tensor)
 ```

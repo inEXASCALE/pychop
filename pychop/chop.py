@@ -15,13 +15,13 @@ def Chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
         
     rmode : int or str, default=1
         Rounding mode to use when quantizing the significand. Options are:
-        - 1 or "nearest_even": Round to nearest value, ties to even (IEEE 754 default).
         - 0 or "nearest_odd": Round to nearest value, ties to odd.
-        - 2 or "plus_infinity": Round towards plus infinity (round up).
-        - 3 or "minus_infinity": Round towards minus infinity (round down).
+        - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+        - 2 or "plus_inf": Round towards plus infinity (round up).
+        - 3 or "minus_inf": Round towards minus infinity (round down).
         - 4 or "toward_zero": Truncate toward zero (no rounding up).
-        - 5 or "stochastic_prop": Stochastic rounding proportional to the fractional part.
-        - 6 or "stochastic_equal": Stochastic rounding with 50% probability.
+        - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+        - 6 or "stoc_equal": Stochastic rounding with 50% probability.
 
     flip : boolean, default=False
         Default is False; If ``flip`` is True, then each element
@@ -73,12 +73,12 @@ def Chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
     """
     rmode_map = {
         0: 0, "nearest_odd": 0,
-        1: 1, "nearest_even": 1,
-        2: 2, "plus_infinity": 2,
-        3: 3, "minus_infinity": 3,
+        1: 1, "nearest": 1,
+        2: 2, "plus_inf": 2,
+        3: 3, "minus_inf": 3,
         4: 4, "toward_zero": 4,
-        5: 5, "stochastic_prop": 5,
-        6: 6, "stochastic_equal": 6,
+        5: 5, "stoc_prop": 5,
+        6: 6, "stoc_equal": 6,
     }
 
     try:

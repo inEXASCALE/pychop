@@ -11,7 +11,7 @@ class FPRound:
         ibits : int, default=4
             The bitwidth of integer part. 
     
-        fractional_bit : int, default=4
+        fbits : int, default=4
             The bitwidth of fractional part. 
             
         """
@@ -61,9 +61,14 @@ class FPRound:
         abs_x : torch.Tensor
             Absolute values of input
             
-        rmode : str
-            One of 'nearest', 'up', 'down', 'towards_zero', 
-            'stochastic_equal', 'stochastic_proportional'
+        rmode : str | int
+            - 0 or "nearest_odd": Round to nearest value, ties to odd (Not implemented). 
+            - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+            - 2 or "plus_inf": Round towards plus infinity (round up).
+            - 3 or "minus_inf": Round towards minus infinity (round down).
+            - 4 or "toward_zero": Truncate toward zero (no rounding up).
+            - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
         
         Returns
         ----------  
@@ -75,21 +80,27 @@ class FPRound:
 
         if rmode in {"nearest", 1}:
             quantized = torch.round(scaled)
-        elif rmode in {"up", 2}:
+
+        elif rmode in {"plus_inf", 2}:
             quantized = torch.where(sign > 0, torch.ceil(scaled), torch.floor(scaled))
-        elif rmode in {"down", 3}:
+
+        elif rmode in {"minus_inf", 3}:
             quantized = torch.where(sign > 0, torch.floor(scaled), torch.ceil(scaled))
+
         elif rmode in {"towards_zero", 4}:
             quantized = torch.trunc(scaled)
-        elif rmode in {"stochastic_equal", 5}:
-            floor_val = torch.floor(scaled)
-            prob = torch.rand_like(scaled)
-            quantized = torch.where(prob < 0.5, floor_val, floor_val + 1)
-        elif rmode in {"stochastic_proportional", 6}:
+
+        elif rmode in {"stoc_prop", 5}:
             floor_val = torch.floor(scaled)
             fraction = scaled - floor_val
             prob = torch.rand_like(scaled)
             quantized = torch.where(prob < fraction, floor_val + 1, floor_val)
+
+        elif rmode in {"stoc_equal", 6}:
+            floor_val = torch.floor(scaled)
+            prob = torch.rand_like(scaled)
+            quantized = torch.where(prob < 0.5, floor_val, floor_val + 1)
+
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
 

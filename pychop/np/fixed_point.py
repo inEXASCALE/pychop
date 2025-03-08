@@ -64,34 +64,47 @@ class FPRound:
             Absolute values of input
             
         rmode : str | int
-            One of 'nearest', 'up', 'down', 'towards_zero', 
-            'stochastic_equal', 'stochastic_proportional'
-        
+            - 0 or "nearest_odd": Round to nearest value, ties to odd (Not implemented). 
+            - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+            - 2 or "plus_inf": Round towards plus infinity (round up).
+            - 3 or "minus_inf": Round towards minus infinity (round down).
+            - 4 or "toward_zero": Truncate toward zero (no rounding up).
+            - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+
         Returns
         ----------  
         result : numpy.ndarray
             Quantized tensor in fixed-point representation
         """
         
+
+
         scaled = abs_x / self.resolution
 
         if rmode in {"nearest", 1}:
             quantized = np.round(scaled)
-        elif rmode in {"up", 2}:
+
+        elif rmode in {"plus_inf", 2}:
             quantized = np.where(sign > 0, np.ceil(scaled), np.floor(scaled))
-        elif rmode in {"down", 3}:
+
+        elif rmode in {"minus_inf", 3}:
             quantized = np.where(sign > 0, np.floor(scaled), np.ceil(scaled))
+
         elif rmode in {"towards_zero", 4}:
             quantized = np.trunc(scaled)
-        elif rmode in {"stochastic_equal", 5}:
-            floor_val = np.floor(scaled)
-            prob = np.random.random(scaled.shape)
-            quantized = np.where(prob < 0.5, floor_val, floor_val + 1)
-        elif rmode in {"stochastic_proportional", 6}:
+
+        elif rmode in {"stoc_prop", 5}:
             floor_val = np.floor(scaled)
             fraction = scaled - floor_val
             prob = np.random.random(scaled.shape)
             quantized = np.where(prob < fraction, floor_val + 1, floor_val)
+
+        elif rmode in {"stoc_equal", 6}:
+            floor_val = np.floor(scaled)
+            prob = np.random.random(scaled.shape)
+            quantized = np.where(prob < 0.5, floor_val, floor_val + 1)
+
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
 

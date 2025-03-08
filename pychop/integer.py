@@ -95,18 +95,3 @@ class Chopi(object):
                           )
 
 
-class IntQuantizedLayer(torch.nn.Module):
-    """
-    __init__(config)
-        Apply ``pychop`` to quantization aware training, 
-        One can feed [quant | chop | fixed_point] module as base for quantization.
-
-    """
-
-    def __init__(self, bits=8, sign=1, zpoint=1, rd_func=None, clip_range=None, epsilon=1e-12):
-        super(IntQuantizedLayer, self).__init__()
-        self.chopi = Chopi(bits=bits, sign=sign, zpoint=zpoint, rd_func=rd_func, clip_range=clip_range, epsilon=epsilon)
-        
-    def forward(self, x):
-        return self.chopi(x)
-        

@@ -52,10 +52,15 @@ class FPRound:
         abs_x : torch.Tensor
             Absolute values of input
             
-        rmode : str
-            One of 'nearest', 'up', 'down', 'towards_zero', 
-            'stochastic_equal', 'stochastic_proportional'
-        
+        rmode : str | int
+            - 0 or "nearest_odd": Round to nearest value, ties to odd (Not implemented). 
+            - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+            - 2 or "plus_inf": Round towards plus infinity (round up).
+            - 3 or "minus_inf": Round towards minus infinity (round down).
+            - 4 or "toward_zero": Truncate toward zero (no rounding up).
+            - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+
         Returns
         ----------  
         result : torch.Tensor
@@ -65,25 +70,31 @@ class FPRound:
 
         if rmode in {"nearest", 1}:
             quantized = jnp.round(scaled)
-        elif rmode in {"up", 2}:
+
+        elif rmode in {"plus_inf", 2}:
             quantized = jnp.where(sign > 0, jnp.ceil(scaled), jnp.floor(scaled))
-        elif rmode in {"down", 3}:
+
+        elif rmode in {"minus_inf", 3}:
             quantized = jnp.where(sign > 0, jnp.floor(scaled), jnp.ceil(scaled))
+
         elif rmode in {"towards_zero", 4}:
             quantized = jnp.trunc(scaled)
-        elif rmode in {"stochastic_equal", 5}:
-            if key is None:
-                raise ValueError("PRNG key required for stochastic rounding")
-            floor_val = jnp.floor(scaled)
-            prob = random.uniform(key, scaled.shape)
-            quantized = jnp.where(prob < 0.5, floor_val, floor_val + 1)
-        elif rmode in {"stochastic_proportional", 6}:
+
+        elif rmode in {"stoc_prop", 5}:
             if key is None:
                 raise ValueError("PRNG key required for stochastic rounding")
             floor_val = jnp.floor(scaled)
             fraction = scaled - floor_val
             prob = random.uniform(key, scaled.shape)
             quantized = jnp.where(prob < fraction, floor_val + 1, floor_val)
+
+        elif rmode in {"stoc_equal", 6}:
+            if key is None:
+                raise ValueError("PRNG key required for stochastic rounding")
+            floor_val = jnp.floor(scaled)
+            prob = random.uniform(key, scaled.shape)
+            quantized = jnp.where(prob < 0.5, floor_val, floor_val + 1)
+
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
 
