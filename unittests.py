@@ -756,7 +756,7 @@ class TestClassix(unittest.TestCase):
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
-       ch = LightChop(exp_bits=5, sig_bits=10, rmode=4)
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=4)
         emulated= ch(X_th_scaling)
         groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
