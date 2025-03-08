@@ -13,11 +13,10 @@ class QuantizedLayer(torch.nn.Module):
                  rmode: str = "nearest"):
         
         super().__init__()
-        self.quantizer = LightChop(exp_bits, sig_bits)
-        self.rmode = rmode
+        self.quantizer = LightChop(exp_bits, sig_bits, rmode)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.quantizer.quantize(x, self.rmode)
+        return self.quantizer.quantize(x)
 
 
 class IntQuantizedLayer(torch.nn.Module):

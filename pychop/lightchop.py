@@ -6,12 +6,13 @@ class LightChop:
     A class to simulate different floating-point precisions and rounding modes
     for PyTorch tensors.
     """
-    def __init__(self, exp_bits: int, sig_bits: int):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: str = "nearest"):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
         self.max_exp = 2 ** (exp_bits - 1) - 1
         self.min_exp = -self.max_exp + 1
         self.bias = 2 ** (exp_bits - 1) - 1  # Bias for IEEE 754
+        self.rmode = rmode
         
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -158,7 +159,7 @@ class LightChop:
         
         return result
 
-    def quantize(self, x: torch.Tensor, rmode: str = "nearest") -> torch.Tensor:
+    def quantize(self, x: torch.Tensor) -> torch.Tensor:
         """
         Quantize a tensor to the specified precision with given rounding mode.
         
@@ -168,6 +169,8 @@ class LightChop:
                           'stochastic_equal', 'stochastic_proportional'
         """
         sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-        return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, rmode)
+        return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode)
 
 
+    def __call__(self, x: torch.Tensor):
+        return self.quantize(x)
