@@ -54,7 +54,18 @@ class LightChop:
                            inf_mask: torch.Tensor,
                            nan_mask: torch.Tensor,
                            rmode: str) -> torch.Tensor:
-        """Quantize components according to IEEE 754 FP16 rules with various rounding modes"""
+        """Quantize components according to IEEE 754 FP16 rules with various rounding modes
+
+        Rounding mode to use when quantizing the significand. Options are:
+        - 0 or "nearest_odd": Round to nearest value, ties to odd.
+        - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+        - 2 or "plus_inf": Round towards plus infinity (round up).
+        - 3 or "minus_inf": Round towards minus infinity (round down).
+        - 4 or "toward_zero": Truncate toward zero (no rounding up).
+        - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+        - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+        
+        """
         
         # Clamp exponent to representable range (including bias)
         exp_min = 0  # 0 represents subnormals
@@ -68,12 +79,13 @@ class LightChop:
         significand_normal = significand - 1.0  # Remove implicit leading 1 for normal numbers
         
         # Apply rounding mode
-        if rmode == "nearest":
+        if rmode in {"nearest", 1}:
             significand_q = torch.round(significand_normal * significand_steps) / significand_steps
             if torch.any(subnormal_mask):
                 significand_q[subnormal_mask] = torch.round(significand[subnormal_mask] * 
                                                        significand_steps) / significand_steps
-        elif rmode == "up":
+                
+        elif rmode in {"plus_inf", 2}:
             significand_q = torch.where(sign > 0, 
                                    torch.ceil(significand_normal * significand_steps),
                                    torch.floor(significand_normal * significand_steps)) / significand_steps
@@ -81,7 +93,8 @@ class LightChop:
                 significand_q[subnormal_mask] = torch.where(sign[subnormal_mask] > 0,
                                                        torch.ceil(significand[subnormal_mask] * significand_steps),
                                                        torch.floor(significand[subnormal_mask] * significand_steps)) / significand_steps
-        elif rmode == "down":
+                
+        elif rmode in {"minus_inf", 3}:
             significand_q = torch.where(sign > 0,
                                    torch.floor(significand_normal * significand_steps),
                                    torch.ceil(significand_normal * significand_steps)) / significand_steps
@@ -89,23 +102,14 @@ class LightChop:
                 significand_q[subnormal_mask] = torch.where(sign[subnormal_mask] > 0,
                                                        torch.floor(significand[subnormal_mask] * significand_steps),
                                                        torch.ceil(significand[subnormal_mask] * significand_steps)) / significand_steps
-        elif rmode == "towards_zero":
+                
+        elif rmode in {"towards_zero", 4}:
             significand_q = torch.trunc(significand_normal * significand_steps) / significand_steps
             if torch.any(subnormal_mask):
                 significand_q[subnormal_mask] = torch.trunc(significand[subnormal_mask] * 
                                                        significand_steps) / significand_steps
-        elif rmode == "stochastic_equal":
-            significand_scaled = significand_normal * significand_steps
-            floor_val = torch.floor(significand_scaled)
-            prob = torch.rand_like(significand_scaled)
-            significand_q = torch.where(prob < 0.5, floor_val, floor_val + 1) / significand_steps
-            if torch.any(subnormal_mask):
-                significand_scaled = significand[subnormal_mask] * significand_steps
-                floor_val = torch.floor(significand_scaled)
-                prob = torch.rand_like(significand_scaled)
-                significand_q[subnormal_mask] = torch.where(prob < 0.5, floor_val, 
-                                                       floor_val + 1) / significand_steps
-        elif rmode == "stochastic_proportional":
+                
+        elif rmode in {"stoc_prop", 5}:
             significand_scaled = significand_normal * significand_steps
             floor_val = torch.floor(significand_scaled)
             fraction = significand_scaled - floor_val
@@ -118,6 +122,19 @@ class LightChop:
                 prob = torch.rand_like(significand_scaled)
                 significand_q[subnormal_mask] = torch.where(prob < fraction, floor_val + 1, 
                                                        floor_val) / significand_steps
+                
+        elif rmode in {"stoc_equal", 6}:
+            significand_scaled = significand_normal * significand_steps
+            floor_val = torch.floor(significand_scaled)
+            prob = torch.rand_like(significand_scaled)
+            significand_q = torch.where(prob < 0.5, floor_val, floor_val + 1) / significand_steps
+            if torch.any(subnormal_mask):
+                significand_scaled = significand[subnormal_mask] * significand_steps
+                floor_val = torch.floor(significand_scaled)
+                prob = torch.rand_like(significand_scaled)
+                significand_q[subnormal_mask] = torch.where(prob < 0.5, floor_val, 
+                                                       floor_val + 1) / significand_steps
+
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
         
