@@ -9,7 +9,7 @@ import pychop
 
 from pychop.chop import Chop
 from scipy.io import loadmat
-from pychop import LightChop
+from pychop.lightchop import LightChop
 
 import torch
 import jax

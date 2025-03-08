@@ -33,13 +33,13 @@ def backend(lib='numpy', verbose=0):
     else:
         try:
             global torch
-            global LightChop
+            global lightchop
             global FQuantizedLayer
             global IntQuantizedLayer
             global QuantizedLayer
             
             import torch
-
+            import pychop.lightchop as lightchop
             if verbose: print('Load Troch backend.')
                 
         except ImportError as e:
