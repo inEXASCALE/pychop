@@ -109,6 +109,32 @@ input_tensor = torch.randn(3, 4)
 output = layer(input_tensor)
 ```
 
+A sequential neural network can be build with:
+```
+import torch.nn as nn
+
+class MLP(nn.Module):
+    def __init__(self):
+        super(MLP, self).__init__()
+        self.flatten = nn.Flatten()
+        self.quant = QuantizedLayer(5, 10, rmode=1)
+       # half precision, round to nearest ties to even
+
+        self.layers = nn.Sequential(
+            nn.Linear(28 * 28, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(256, 10)
+        )
+        
+    def forward(self, x):
+        x = self.quant(self.flatten(x))
+        return self.layers(x)
+```
+
 ### Use Cases
  
  * Machine Learning: Test the impact of low-precision arithmetic on model accuracy and training stability, especially for resource-constrained environments like edge devices.
