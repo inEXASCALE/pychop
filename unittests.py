@@ -740,19 +740,19 @@ class TestClassix(unittest.TestCase):
         
         ch = LightChop(exp_bits=5, sig_bits=10, rmode=1)
         emulated= ch(X_th_scaling)
-        groud_truth = loadmat("half/half_rmode_1_subnormal_1.mat")
+        groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 1")
         
         ch = LightChop(exp_bits=5, sig_bits=10, rmode=2)
         emulated= ch(X_th_scaling)
-        groud_truth = loadmat("half/half_rmode_2_subnormal_1.mat")
+        groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 2")
         
         ch = LightChop(exp_bits=5, sig_bits=10, rmode=3)
         emulated= ch(X_th_scaling)
-        groud_truth = loadmat("half/half_rmode_3_subnormal_1.mat")
+        groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
