@@ -62,13 +62,15 @@ class FQuantizedLayer(nn.Module):
         
         rmode : int
             Rounding mode to use when quantizing the significand. Options are:
-            - 0 or "nearest_odd": Round to nearest value, ties to odd.
-            - 1 or 1: Round to nearest value, ties to even (IEEE 754 default).
-            - 2 or "plus_inf": Round towards plus infinity (round up).
-            - 3 or "minus_inf": Round towards minus infinity (round down).
-            - 4 or "toward_zero": Truncate toward zero (no rounding up).
-            - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
-            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+            - 0: Round to nearest value, ties to odd.
+            - 1: Round to nearest value, ties to even (IEEE 754 default).
+            - 2: Round towards plus infinity (round up).
+            - 3: Round towards minus infinity (round down).
+            - 4: Truncate toward zero (no rounding up).
+            - 5: Stochastic rounding proportional to the fractional part.
+            - 6: Stochastic rounding with 50% probability.
+            - 7: Round to nearest value, ties to zero.
+            - 8: Round to nearest value, ties to away.
 
         bias : int
             Whether to include a bias term
@@ -522,6 +524,54 @@ class FPRound:
                                              torch.floor(significand * significand_steps), 
                                              torch.ceil(significand * significand_steps)) / significand_steps, 
                                    significand_q)
+            
+        elif self.rmode == 7:
+            significand_scaled = significand_normal * significand_steps
+            floor_val = torch.floor(significand_scaled)
+            ceil_val = torch.ceil(significand_scaled)
+            is_half = torch.abs(significand_scaled - floor_val - 0.5) < 1e-6  # Robust tie check
+            significand_q = torch.where(
+                is_half,
+                torch.where(sign >= 0, floor_val, ceil_val),  # Toward zero: positive floor, negative ceil
+                torch.round(significand_scaled)
+            ) / significand_steps
+            significand_subnormal = significand * significand_steps
+            sub_floor = torch.floor(significand_subnormal)
+            sub_ceil = torch.ceil(significand_subnormal)
+            sub_is_half = torch.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
+            significand_q = torch.where(
+                subnormal_mask,
+                torch.where(
+                    sub_is_half,
+                    torch.where(sign >= 0, sub_floor, sub_ceil),
+                    torch.round(significand_subnormal)
+                ) / significand_steps,
+                significand_q
+            )
+            
+        elif self.rmode == 8:
+            significand_scaled = significand_normal * significand_steps
+            floor_val = torch.floor(significand_scaled)
+            ceil_val = torch.ceil(significand_scaled)
+            is_half = torch.abs(significand_scaled - floor_val - 0.5) < 1e-6  # Robust tie check
+            significand_q = torch.where(
+                is_half,
+                torch.where(sign >= 0, ceil_val, floor_val),  # Away from zero: positive ceil, negative floor
+                torch.round(significand_scaled)
+            ) / significand_steps
+            significand_subnormal = significand * significand_steps
+            sub_floor = torch.floor(significand_subnormal)
+            sub_ceil = torch.ceil(significand_subnormal)
+            sub_is_half = torch.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
+            significand_q = torch.where(
+                subnormal_mask,
+                torch.where(
+                    sub_is_half,
+                    torch.where(sign >= 0, sub_ceil, sub_floor),
+                    torch.round(significand_subnormal)
+                ) / significand_steps,
+                significand_q
+            )
 
         else:
             raise ValueError(f"Unsupported rounding mode: {self.rmode}")

@@ -65,7 +65,9 @@ class LightChop:
         - 4 or "toward_zero": Truncate toward zero (no rounding up).
         - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
         - 6 or "stoc_equal": Stochastic rounding with 50% probability.
-        
+        - 7 or "nearest_ties_to_zero": Round to nearest value, ties to zero.
+        - 8 or "nearest_ties_to_away": Round to nearest value, ties to away.
+
         """
         
         # Clamp exponent to representable range (including bias)
@@ -134,7 +136,55 @@ class LightChop:
                 prob = torch.rand_like(significand_scaled)
                 significand_q[subnormal_mask] = torch.where(prob < 0.5, floor_val, 
                                                        floor_val + 1) / significand_steps
-
+                
+        elif self.rmode in {"nearest_ties_to_zero", 7}:
+            significand_scaled = significand_normal * significand_steps
+            floor_val = torch.floor(significand_scaled)
+            ceil_val = torch.ceil(significand_scaled)
+            is_half = torch.abs(significand_scaled - floor_val - 0.5) < 1e-6  # Robust tie check
+            significand_q = torch.where(
+                is_half,
+                torch.where(sign >= 0, floor_val, ceil_val),  # Toward zero: positive floor, negative ceil
+                torch.round(significand_scaled)
+            ) / significand_steps
+            significand_subnormal = significand * significand_steps
+            sub_floor = torch.floor(significand_subnormal)
+            sub_ceil = torch.ceil(significand_subnormal)
+            sub_is_half = torch.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
+            significand_q = torch.where(
+                subnormal_mask,
+                torch.where(
+                    sub_is_half,
+                    torch.where(sign >= 0, sub_floor, sub_ceil),
+                    torch.round(significand_subnormal)
+                ) / significand_steps,
+                significand_q
+            )
+            
+        elif self.rmode in {"nearest_ties_to_away", 8}:
+            significand_scaled = significand_normal * significand_steps
+            floor_val = torch.floor(significand_scaled)
+            ceil_val = torch.ceil(significand_scaled)
+            is_half = torch.abs(significand_scaled - floor_val - 0.5) < 1e-6  # Robust tie check
+            significand_q = torch.where(
+                is_half,
+                torch.where(sign >= 0, ceil_val, floor_val),  # Away from zero: positive ceil, negative floor
+                torch.round(significand_scaled)
+            ) / significand_steps
+            significand_subnormal = significand * significand_steps
+            sub_floor = torch.floor(significand_subnormal)
+            sub_ceil = torch.ceil(significand_subnormal)
+            sub_is_half = torch.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
+            significand_q = torch.where(
+                subnormal_mask,
+                torch.where(
+                    sub_is_half,
+                    torch.where(sign >= 0, sub_ceil, sub_floor),
+                    torch.round(significand_subnormal)
+                ) / significand_steps,
+                significand_q
+            )
+    
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
         
