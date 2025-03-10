@@ -1,7 +1,8 @@
 import torch
 # from .lightchop import LightChop
 from .fixed_point import Chopf
-from .integer import Chopi
+from .tch.integer import Chopi
+
 import torch.nn as nn
 from typing import Tuple
 
@@ -27,9 +28,9 @@ class IntQuantizedLayer(torch.nn.Module):
 
     """
 
-    def __init__(self, bits=8, sign=1, zpoint=1, rd_func=None, clip_range=None, epsilon=1e-12):
+    def __init__(self, num_bits=8, symmetric=False, per_channel=False, channel_dim=0):
         super(IntQuantizedLayer, self).__init__()
-        self.chopi = Chopi(bits=bits, sign=sign, zpoint=zpoint, rd_func=rd_func, clip_range=clip_range, epsilon=epsilon)
+        self.chopi = Chopi(num_bits=um_bits, symmetric=symmetric, per_channel=per_channel, channel_dim=channel_dim)
         
     def forward(self, x):
         return self.chopi(x)
