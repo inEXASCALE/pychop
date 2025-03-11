@@ -71,12 +71,29 @@ We will go through the main functionality of ``pychop``, the detail can be refer
 #### (I). Floating point quantization
 Rounding the values with specified precision format:
 
+``pychop`` supports faster low-precision floating point quantization and also enable GPU emulation (simply move the input to GPU device), with different rounding ways:
+
 ```Python
-from pychop import Chop
+import pychop
+from pychop.lightchop import LightChop
 import numpy as np
 np.random.seed(0)
 
 X = np.random.randn(5000, 5000) 
+pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
+ 
+ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
+Xq = ch(X)
+print(Xq[:10, 0])
+```
+
+If one is not seeking optimized performance and more emulation supports, one can use the following example. 
+
+``pychop`` also provides same functionalities just like Higham's chop [1], but with faster rounding compared to it:
+
+```Python
+from pychop import Chop
+
 ch = Chop('h') # Standard IEEE 754 half precision
 Xq = ch(X) # Rounding values
 ```
@@ -97,18 +114,6 @@ Xq = ch(X)
 print(Xq[:10, 0])
 ```
 
-``pychop`` supports faster low-precision floating point quantization and also enable GPU emulation, with different rounding ways (but relies on PyTorch):
-
-```Python
-X_th = torch.from_numpy(X) # torch array
-pychop.backend('torch')
-
-from pychop.lightchop import LightChop
-
-ch = LightChop(exp_bits=5, sig_bits=10, rmode=3)
-Xq = ch(X_th)
-print(Xq[:10, 0])
-```
 
 
 Set quantized layer:
