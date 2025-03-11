@@ -45,6 +45,7 @@ class Chopi:
         else:
             min_val = np.min(x)
             max_val = np.max(x)
+            
         range_val = max_val - min_val
         range_val = np.maximum(range_val, 1e-5)
         scale = range_val / (self.qmax - self.qmin)

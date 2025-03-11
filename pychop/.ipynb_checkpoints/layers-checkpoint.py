@@ -33,7 +33,7 @@ class IntQuantizedLayer(torch.nn.Module):
         self.chopi = Chopi(num_bits=num_bits, symmetric=symmetric, per_channel=per_channel, channel_dim=channel_dim)
         
     def forward(self, x):
-        return self.chopi.quantize(x).to(dtype=torch.float32)
+        return self.chopi(x)
         
 
 class FQuantizedLayer(nn.Module):

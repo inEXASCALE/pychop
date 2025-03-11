@@ -131,21 +131,21 @@ The integer arithmetic emulation of ``pychop`` is implemented by the interface `
     print(X_np)
 
     pychop.backend('numpy')
-    pyq_f = pychop.Chopi(bits=8) # The larger the ``bits`` are, the more accurate of the reconstruction is 
+    pyq_f = pychop.Chopi(num_bits=8) # The larger the ``bits`` are, the more accurate of the reconstruction is 
     X_q = pyq_f.quantize(X_np) # quant array -> integer
     X_inv = pyq_f.dequantize(X_q) # dequant array -> floating point values
     linalg.norm(X_inv - X_np)
         
 
     pychop.backend('torch')
-    pyq_f = pychop.Chopi(bits=8)
+    pyq_f = pychop.Chopi(num_bits=8)
     X_q = pyq_f.quantize(X_th)  # quant array -> integer
     X_inv = pyq_f.dequantize(X_q) # dequant array -> floating point values
     linalg.norm(X_inv - X_np)
 
 
     pychop.backend('jax')
-    pyq_f = pychop.Chopi(bits=8)
+    pyq_f = pychop.Chopi(num_bits=8)
     X_q = pyq_f.quantize(X_jx) # quant array -> integer
     X_inv = pyq_f.dequantize(X_q) # dequant array -> floating point values 
     linalg.norm(X_inv - X_jx)
@@ -155,27 +155,15 @@ The integer arithmetic emulation of ``pychop`` is implemented by the interface `
 Quantization aware training
 ----------------------------------------------
 
-``pychop`` provides easy-to-use API for quantization aware training.  
+``pychop`` provides easy-to-use API ``IntQuantizedLayer`` for quantization aware training.  
 
 Simply load the module via:
 
 .. code:: python
 
-    from pychop import QuantLayer
-
-``QuantLayer`` enables the quantization components of ``quant``, ``chop``, and ``fixed_point`` to be integrated into neural network training, 
-which is often referred to as quantization-aware training.
-
-
-.. admonition:: Note
-
-    The QuantLayer only support backend of Torch, so as to successfully run this functionality, please use
-
-    .. code:: python
-
-        pychop.backend('torch') 
+    from pychop import IntQuantizedLayer
 
 
 
-The quantization-aware training simply perform by plugging the ``IntQuantLayer`` into neural network building. We illustrate its usage in fully connected layer training:
+The quantization-aware training simply perform by plugging the ``IntQuantizedLayer`` into neural network building. We illustrate its usage in fully connected layer training:
 
