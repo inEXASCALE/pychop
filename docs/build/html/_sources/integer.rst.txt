@@ -8,8 +8,9 @@ user-defined bitwidths. The following example illustrates the usage of the metho
 
 
 Basic usage
-----------------------------------------------
+--------------
 
+The integer arithmetic emulation of ``pychop`` is implemented by the interface ``Chopi``. It can be used in many circumstances, and offer flexible choices for users to choose, such as symmetric quantization or not, number of bitwidth to use, the usage is illustrated as below:
 
 .. class:: Chopi(num_bits=8, symmetric=False, per_channel=False, channel_dim=0)
 

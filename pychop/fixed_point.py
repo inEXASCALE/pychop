@@ -7,13 +7,13 @@ class Chopf(object):
 
     Parameters
     ----------
-    ibits: int, default=4
+    ibits : int, default=4
         The bitwidth of integer part. 
 
-    fbits: int, default=4
+    fbits : int, default=4
         The bitwidth of fractional part. 
         
-    rmode: int or str, default=1
+    rmode : int or str, default=1
             Rounding mode to use when quantizing the significand. Options are: 
                 - 0 or "nearest_odd": Round to nearest value, ties to odd.
                 - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
@@ -41,12 +41,12 @@ class Chopf(object):
 
     def __call__(self, x):
         """
-        x: numpy.ndarray | jax.Array | torch.Tensor,
+        x : numpy.ndarray | jax.Array | torch.Tensor,
             The input array. 
 
         Returns
         ----------
-        x_q: numpy.ndarray | jax.Array | torch.Tensor, 
+        x_q : numpy.ndarray | jax.Array | torch.Tensor, 
             The quantized array.
         """
         return self.fpr.quantize(x, self.rmode)
