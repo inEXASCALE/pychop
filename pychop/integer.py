@@ -1,6 +1,5 @@
 import os
 
-
 def Chopi(num_bits=8, symmetric=False, per_channel=False, channel_dim=0):
     """
     Integer Quantizer: Convert floating point numbers to integers.

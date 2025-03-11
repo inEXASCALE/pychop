@@ -5,7 +5,7 @@ from .fixed_point import Chopf
 from .integer import Chopi
 from .chop import Chop
 from .bitchop import Bitchop
-
+from .lightchop import LightChop
 
 __version__ = '0.3.1'  
 

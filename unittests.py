@@ -9,7 +9,7 @@ import pychop
 
 from pychop.chop import Chop
 from scipy.io import loadmat
-from pychop.lightchop import LightChop
+from pychop import LightChop
 
 import torch
 import jax
@@ -761,6 +761,69 @@ class TestClassix(unittest.TestCase):
         groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
         groud_truth = groud_truth["emu_vals"].flatten()
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+
+
+    def test_lightchop3(self):
+        pychop.backend('jax')
+        scaling = 1000
+        X_jx_scaling = X_jx / scaling
+        
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=1)
+        emulated= ch(X_jx_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+        
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=2)
+        emulated= ch(X_jx_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+        
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=3)
+        emulated= ch(X_jx_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=4)
+        emulated= ch(X_jx_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+
+
+    def test_lightchop3(self):
+        pychop.backend('numpy')
+        scaling = 1000
+        X_np_scaling = X_np / scaling
+        
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=1)
+        emulated= ch(X_np_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+        
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=2)
+        emulated= ch(X_np_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+        
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=3)
+        emulated= ch(X_np_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = LightChop(exp_bits=5, sig_bits=10, rmode=4)
+        emulated= ch(X_np_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
 
 if __name__ == '__main__':
     unittest.main()
