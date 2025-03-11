@@ -144,7 +144,7 @@ class QuantizedAdagrad(Optimizer):
 
         return loss
 
-# 4. Quantized Adam (from previous response, repeated for completeness)
+# 4. Quantized Adam 
 class QuantizedAdam(Optimizer):
     """Custom Adam optimizer with quantized momentum and accumulators."""
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0,
