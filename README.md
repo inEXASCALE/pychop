@@ -1,4 +1,4 @@
-# pychop: efficiently quantizing floating point numbers
+# pychop: efficient low precision quantization
 
 [![Workflow for Codecov](https://github.com/inEXASCALE/pychop/actions/workflows/codecov.yml/badge.svg)](https://github.com/inEXASCALE/pychop/actions/workflows/codecov.yml)
 [![!pypi](https://img.shields.io/pypi/v/pychop?color=greem)](https://pypi.org/project/pychop/)
