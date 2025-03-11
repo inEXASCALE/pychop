@@ -66,8 +66,9 @@ The code example can be found on the [quick start page](https://github.com/chenx
 
 
 ### Examples
+We will go through the main functionality of ``pychop``, the detail can be referred to the documentation. 
 
-#### (I). Chop
+#### (I). Floating point quantization
 Rounding the values with specified precision format:
 
 ```Python
@@ -110,7 +111,6 @@ print(Xq[:10, 0])
 ```
 
 
-#### (II). Train Neural Network
 Set quantized layer:
 
 ```Python
@@ -144,6 +144,38 @@ class MLP(nn.Module):
     def forward(self, x):
         x = self.quant(self.flatten(x))
         return self.layers(x)
+```
+
+
+#### (II). Fixed point quantization
+
+Similar to floating point quantization, one can set corresponding backend. The dominant parameters are ibits and fbits, which are referred to as the bitwidth of integer part and fractional part, respectively. 
+
+```Python
+pychop.backend('numpy')
+from pychop import Chopf
+
+ch = Chopf(ibits=4, fbits=4)
+Xq = ch(X)
+```
+
+
+#### (III). Integer quantization
+
+Integer quantization is another important feature of pychop. It intention is to convert the floating point number into low bit-width integer, which speedup the computations in certain computing hardware. It performs quantization with user-defined bitwidths. The following example illustrates the usage of the method.
+
+The integer arithmetic emulation of ``pychop`` is implemented by the interface Chopi. It can be used in many circumstances, and offer flexible choices for users to choose, such as symmetric quantization or not, number of bitwidth to use, the usage is illustrated as below:
+
+
+```Python
+import numpy as np
+from pychop import Chopi  # Assuming module name
+pychop.backend('numpy')
+
+x = np.array([[0.1, -0.2], [0.3, 0.4]])
+ch = Chopi(num_bits=8, symmetric=False)
+q = ch.quantize(x) # Convert to integers
+dq = ch.dequantize(q) # Convert back to floating points
 ```
 
 ### Use Cases
