@@ -169,7 +169,7 @@ The integer arithmetic emulation of ``pychop`` is implemented by the interface C
 
 ```Python
 import numpy as np
-from pychop import Chopi  # Assuming module name
+from pychop import Chopi 
 pychop.backend('numpy')
 
 x = np.array([[0.1, -0.2], [0.3, 0.4]])
