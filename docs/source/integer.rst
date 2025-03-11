@@ -73,7 +73,7 @@ The integer arithmetic emulation of ``pychop`` is implemented by the interface `
    .. code-block:: python
 
       import jax.numpy as jnp
-      from pychop import Chopi  # Assuming module name
+      from pychop import Chopi  
       pychop.backend('jax')
 
       x = jnp.array([[0.1, -0.2], [0.3, 0.4]])
@@ -88,13 +88,13 @@ The integer arithmetic emulation of ``pychop`` is implemented by the interface `
    .. code-block:: python
 
       import torch
-      from pychop import Chopi  # Assuming module name
+      from pychop import Chopi  
       pychop.backend('torch')
 
       x = torch.tensor([[0.1, -0.2], [0.3, 0.4]])
-      Chopi = Chopi(num_bits=8, symmetric=False)
-      q = Chopi.quantize(x)  # Inference mode
-      dq = Chopi.dequantize(q)
+      ch = Chopi(num_bits=8, symmetric=False)
+      q = ch.quantize(x)  # Inference mode
+      dq = ch.dequantize(q)
       print(q)  # e.g., tensor([[ 85,  42], [106, 127]], dtype=torch.int8)
       print(dq)  # e.g., tensor([[ 0.098, -0.196], [ 0.294,  0.392]])
 
@@ -103,13 +103,13 @@ The integer arithmetic emulation of ``pychop`` is implemented by the interface `
    .. code-block:: python
 
       import numpy as np
-      from pychop import Chopi  # Assuming module name
+      from pychop import Chopi  
       pychop.backend('numpy')
 
       x = np.array([[0.1, -0.2], [0.3, 0.4]])
-      Chopi = NumpyChopi(num_bits=8, symmetric=False)
-      q = Chopi.quantize(x)
-      dq = Chopi.dequantize(q)
+      ch = NumpyChopi(num_bits=8, symmetric=False)
+      q = ch.quantize(x)
+      dq = ch.dequantize(q)
       print(q)  # e.g., [[ 85  42] [106 127]], dtype=int8
       print(dq)  # e.g., [[ 0.098  -0.196] [ 0.294   0.392]]
 
@@ -177,32 +177,5 @@ which is often referred to as quantization-aware training.
 
 
 
-The usage of QuantLayer simply extended by the ``quant``, ``chop``, and ``fixed_point``, therefore, we need to first load the corresponding modules via:
+The quantization-aware training simply perform by plugging the ``IntQuantLayer`` into neural network building. We illustrate its usage in fully connected layer training:
 
-.. code:: python
-
-    from pychop import quant
-    from pychop import chop
-    from pychop import fpoint
-
-
-The quantization-aware training simply perform by plugging the ``QuantLayer`` into neural network building. We illustrate its usage in fully connected layer training:
-
-
-.. code:: python
-    
-    class NeuralNet(nn.Module):
-        def __init__(self, input_size, hidden_size, num_classes):
-            super(NeuralNet, self).__init__()
-            self.quant1 = QuantLayer(fpoint(4, 4)) 
-            self.quant2 = QuantLayer(chop('h'))
-            self.quant3 = QuantLayer(quant())
-            self.fc1 = nn.Linear(input_size, hidden_size) 
-            self.relu = nn.ReLU()
-            self.fc2 = nn.Linear(hidden_size, num_classes)  
-        
-        def forward(self, x):
-            out = self.quant1(self.fc1(x))
-            out = self.quant2(self.relu(out))
-            out = self.quant3(self.fc2(out))
-            return out
