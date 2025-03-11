@@ -97,7 +97,7 @@ Xq = ch(X)
 print(Xq[:10, 0])
 ```
 
-We introduce light version of chop that support faster rounding (but relies on PyTorch):
+``pychop`` supports faster low-precision floating point quantization and also enable GPU emulation, with different rounding ways (but relies on PyTorch):
 
 ```Python
 X_th = torch.from_numpy(X) # torch array
