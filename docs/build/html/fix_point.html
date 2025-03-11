@@ -50,6 +50,18 @@
 <li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions in the Chop Class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Fixed point quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#fixed-point-simulator-classes">Fixed-Point Simulator Classes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#common-parameters">Common Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorch-version">PyTorch Version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#numpy-version">NumPy Version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jax-version">JAX Version</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="nn.html">Quantization aware training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
@@ -93,48 +105,132 @@ Following that, a basic bitwise shift quantization function is given by:</p>
 <p>The fixed point representation for $x$ is given by</p>
 <div class="math notranslate nohighlight">
 \[Q_f{x} = \text{sign}(x) q(x_i) +  \text{sign}(x) q(x_f)\]</div>
-<p>The usage is demonstrated step by step as below.</p>
-<p>First we load the data in various format:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">pychop</span>
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">linalg</span>
-<span class="kn">import</span> <span class="nn">jax</span>
-
-<span class="n">X_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span> <span class="c1"># Numpy array</span>
-<span class="n">X_th</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">X_np</span><span class="p">)</span> <span class="c1"># torch array</span>
-<span class="n">X_jx</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X_np</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">X_np</span><span class="p">)</span>
+</section>
+<section id="fixed-point-simulator-classes">
+<span id="fixed-point-simulator"></span><h1>Fixed-Point Simulator Classes<a class="headerlink" href="#fixed-point-simulator-classes" title="Link to this heading"></a></h1>
+<p>The <cite>FixedPointSimulator</cite> class enables the quantization of floating-point numbers into a fixed-point Qm.n format, where <cite>m</cite> is the number of integer bits (including the sign bit) and <cite>n</cite> is the number of fractional bits. This document describes the usage and provides examples for implementations in PyTorch, NumPy, and JAX, each supporting six rounding modes: <cite>nearest</cite>, <cite>up</cite>, <cite>down</cite>, <cite>towards_zero</cite>, <cite>stochastic_equal</cite>, and <cite>stochastic_proportional</cite>.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The simulator converts floating-point values into a fixed-point representation with a resolution of (2^{-n}) and a range of ([-2^{m-1}, 2^{m-1} - 2^{-n}]). For the Q4.4 format used in the examples:
+- <strong>Resolution</strong>: (2^{-4} = 0.0625)
+- <strong>Range</strong>: ([-8.0, 7.9375])</p>
+<p>The quantization process scales the input by the resolution, applies the chosen rounding mode, reconstructs the fixed-point value, and clamps it to the valid range.</p>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<section id="common-parameters">
+<h3>Common Parameters<a class="headerlink" href="#common-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>integer_bits</strong>: Specifies the number of bits for the integer part, including the sign bit.</p></li>
+<li><p><strong>fractional_bits</strong>: Defines the number of bits for the fractional part.</p></li>
+<li><p><strong>rmode</strong>: Selects the rounding method, defaulting to “nearest”.</p></li>
+</ul>
+</section>
+<section id="pytorch-version">
+<h3>PyTorch Version<a class="headerlink" href="#pytorch-version" title="Link to this heading"></a></h3>
+<p>The PyTorch implementation integrates with PyTorch tensors, making it suitable for machine learning workflows.</p>
+<p><strong>Initialization</strong></p>
+<p>Create an instance by setting the integer and fractional bit counts to define the Qm.n format.</p>
+<p><strong>Quantization</strong></p>
+<p>Quantize a tensor of floating-point values by invoking the quantization method, optionally specifying a rounding mode. The result is a tensor with quantized values.</p>
+<p><strong>Code Example</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize with Q4.4 format</span>
+<span class="n">sim</span> <span class="o">=</span> <span class="n">FixedPointSimulator</span><span class="p">(</span><span class="n">integer_bits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fractional_bits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="c1"># Input tensor</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.7641</span><span class="p">,</span> <span class="mf">0.3097</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2021</span><span class="p">,</span> <span class="mf">2.4700</span><span class="p">,</span> <span class="mf">0.3300</span><span class="p">])</span>
+<span class="c1"># Quantize with nearest rounding</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The parameters that determine the fixed-point quantization is the following parameters</p>
-<div class="highlight-language notranslate"><div class="highlight"><pre><span></span>ibits : int, default=4
-    The bitwidth of integer part.
-
-fbits : int, default=4
-    The bitwidth of fractional part.
+</section>
+<section id="numpy-version">
+<h3>NumPy Version<a class="headerlink" href="#numpy-version" title="Link to this heading"></a></h3>
+<p>The NumPy version operates on NumPy arrays, offering a general-purpose quantization tool.</p>
+<p><strong>Initialization</strong></p>
+<p>Instantiate the simulator with the desired integer and fractional bit counts.</p>
+<p><strong>Quantization</strong></p>
+<p>Apply the quantization method to a NumPy array, with an optional rounding mode parameter, to obtain a quantized array.</p>
+<p><strong>Code Example</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize with Q4.4 format</span>
+<span class="n">sim</span> <span class="o">=</span> <span class="n">FixedPointSimulator</span><span class="p">(</span><span class="n">integer_bits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fractional_bits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="c1"># Input array</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.7641</span><span class="p">,</span> <span class="mf">0.3097</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2021</span><span class="p">,</span> <span class="mf">2.4700</span><span class="p">,</span> <span class="mf">0.3300</span><span class="p">])</span>
+<span class="c1"># Quantize with nearest rounding</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The backend of NumPy is performed by:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pychop</span><span class="o">.</span><span class="n">backend</span><span class="p">(</span><span class="s1">&#39;numpy&#39;</span><span class="p">)</span>
-<span class="n">pyq_f</span> <span class="o">=</span> <span class="n">pychop</span><span class="o">.</span><span class="n">fpoint</span><span class="p">(</span><span class="n">ibits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fbits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-<span class="n">pyq_f</span><span class="p">(</span><span class="n">X_np</span><span class="p">)</span>
+</section>
+<section id="jax-version">
+<h3>JAX Version<a class="headerlink" href="#jax-version" title="Link to this heading"></a></h3>
+<p>The JAX implementation uses JAX arrays and includes JIT compilation for performance, requiring a PRNG key for stochastic modes.</p>
+<p><strong>Initialization</strong></p>
+<p>Set up the simulator by defining the integer and fractional bits for the Qm.n format.</p>
+<p><strong>Quantization</strong></p>
+<p>Quantize a JAX array using the quantization method, specifying a rounding mode and, for stochastic modes, a PRNG key. The output is a quantized JAX array.</p>
+<p><strong>Code Example</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize with Q4.4 format</span>
+<span class="n">sim</span> <span class="o">=</span> <span class="n">FPRound</span><span class="p">(</span><span class="n">integer_bits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fractional_bits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="c1"># Input array</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.7641</span><span class="p">,</span> <span class="mf">0.3097</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2021</span><span class="p">,</span> <span class="mf">2.4700</span><span class="p">,</span> <span class="mf">0.3300</span><span class="p">])</span>
+<span class="c1"># PRNG key for stochastic modes</span>
+<span class="n">key</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="c1"># Quantize with nearest rounding (no key needed)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The backend of Torch is performed by:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pychop</span><span class="o">.</span><span class="n">backend</span><span class="p">(</span><span class="s1">&#39;torch&#39;</span><span class="p">)</span>
-<span class="n">pyq_f</span> <span class="o">=</span> <span class="n">pychop</span><span class="o">.</span><span class="n">fpoint</span><span class="p">()</span>
-<span class="n">pyq_f</span><span class="p">(</span><span class="n">X_th</span><span class="p">)</span>
+</section>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<p>The following examples show the quantization of the input values <cite>[1.7641, 0.3097, -0.2021, 2.47, 0.33]</cite> in Q4.4 format across all rounding modes, consistent across PyTorch, NumPy, and JAX (with JAX using PRNG key 42 for stochastic modes).</p>
+<p><strong>Input Values</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[1.7641, 0.3097, -0.2021, 2.47, 0.33]
 </pre></div>
 </div>
-<p>The backend of JAX is performed by:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pychop</span><span class="o">.</span><span class="n">backend</span><span class="p">(</span><span class="s1">&#39;jax&#39;</span><span class="p">)</span>
-<span class="n">pyq_f</span> <span class="o">=</span> <span class="n">pychop</span><span class="o">.</span><span class="n">fpoint</span><span class="p">()</span>
-<span class="n">pyq_f</span><span class="p">(</span><span class="n">X_jx</span><span class="p">)</span>
+<p><strong>Outputs by Rounding Mode</strong></p>
+<ul>
+<li><p><strong>Nearest</strong>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[1.75, 0.3125, -0.1875, 2.5, 0.3125]
 </pre></div>
 </div>
-<p>[1] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks for biomedical image
-segmentation. In Medical Image Computing and Computer-Assisted Intervention, 234–241, 2015. Springer.</p>
+<p>Rounds to the nearest representable value.</p>
+</li>
+<li><p><strong>Up</strong>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[1.8125, 0.3125, -0.1875, 2.5, 0.375]
+</pre></div>
+</div>
+<p>Positive values round toward positive infinity, negative values toward negative infinity.</p>
+</li>
+<li><p><strong>Down</strong>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[1.75, 0.25, -0.25, 2.4375, 0.3125]
+</pre></div>
+</div>
+<p>Positive values round toward negative infinity, negative values toward positive infinity.</p>
+</li>
+<li><p><strong>Towards Zero</strong>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[1.75, 0.25, -0.1875, 2.4375, 0.3125]
+</pre></div>
+</div>
+<p>Truncates toward zero, reducing the magnitude.</p>
+</li>
+<li><p><strong>Stochastic Equal</strong>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[1.8125, 0.3125, -0.25, 2.5, 0.3125]
+</pre></div>
+</div>
+<p>Randomly selects between floor and ceiling with equal probability (example with JAX PRNG key 42; varies otherwise).</p>
+</li>
+<li><p><strong>Stochastic Proportional</strong>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[1.8125, 0.3125, -0.1875, 2.4375, 0.3125]
+</pre></div>
+</div>
+<p>Randomly selects between floor and ceiling, with probability proportional to the fractional part (example with JAX PRNG key 42; varies otherwise).</p>
+</li>
+</ul>
+<p>This guide provides a clear introduction to using the <cite>FPRound</cite> classes, with practical examples formatted as code blocks for clarity.</p>
+</section>
 </section>
 
 

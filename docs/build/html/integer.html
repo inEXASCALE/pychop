@@ -18,9 +18,7 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Fixed point quantization" href="fix_point.html" />
-    <link rel="prev" title="Mathematical Functions" href="mathfunc.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -43,26 +41,15 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="start.html">Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lightchop.html">Float Precision Simulator Classes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Integer quantization</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#Chopi"><code class="docutils literal notranslate"><span class="pre">Chopi</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Chopi.calibrate"><code class="docutils literal notranslate"><span class="pre">Chopi.calibrate()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Chopi.quantize"><code class="docutils literal notranslate"><span class="pre">Chopi.quantize()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Chopi.dequantize"><code class="docutils literal notranslate"><span class="pre">Chopi.dequantize()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#quantization-aware-training">Quantization aware training</a></li>
-</ul>
-</li>
 <li class="toctree-l1"><a class="reference internal" href="fix_point.html">Fixed point quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fix_point.html#fixed-point-simulator-classes">Fixed-Point Simulator Classes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="layers.html">Quantized Layers Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimizers.html">Quantized Optimizers Module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
@@ -82,7 +69,7 @@
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Integer quantization</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/quant.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/integer.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -95,6 +82,8 @@
 <p>Integer quantization is another important feature of <code class="docutils literal notranslate"><span class="pre">pychop</span></code>. It intention is to convert the floating point number into
 low bit-width integer, which speedup the computations in certain computing hardware. It performs quantization with
 user-defined bitwidths. The following example illustrates the usage of the method.</p>
+<section id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="Chopi">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Chopi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_bits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symmetric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Chopi" title="Link to this definition"></a></dt>
@@ -263,6 +252,7 @@ user-defined bitwidths. The following example illustrates the usage of the metho
 <span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">X_inv</span> <span class="o">-</span> <span class="n">X_jx</span><span class="p">)</span>
 </pre></div>
 </div>
+</section>
 <section id="quantization-aware-training">
 <h2>Quantization aware training<a class="headerlink" href="#quantization-aware-training" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">pychop</span></code> provides easy-to-use API for quantization aware training.</p>
@@ -309,10 +299,7 @@ which is often referred to as quantization-aware training.</p>
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="mathfunc.html" class="btn btn-neutral float-left" title="Mathematical Functions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="fix_point.html" class="btn btn-neutral float-right" title="Fixed point quantization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

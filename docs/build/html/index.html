@@ -46,11 +46,13 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="start.html">Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions in the Chop Class</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lightchop.html">Float Precision Simulator Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="integer.html">Integer quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fix_point.html">Fixed point quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="nn.html">Quantization aware training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fix_point.html#fixed-point-simulator-classes">Fixed-Point Simulator Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layers.html">Quantized Layers Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimizers.html">Quantized Optimizers Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
@@ -164,7 +166,13 @@ To ensure consistency with MATLAB’s chop software, <code class="docutils liter
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="start.html">Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions in the Chop Class</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="lightchop.html">Float Precision Simulator Classes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lightchop.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lightchop.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lightchop.html#notes">Notes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="mathfunc.html#trigonometric-functions">Trigonometric Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mathfunc.html#hyperbolic-functions">Hyperbolic Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mathfunc.html#exponential-and-logarithmic-functions">Exponential and Logarithmic Functions</a></li>
@@ -173,15 +181,26 @@ To ensure consistency with MATLAB’s chop software, <code class="docutils liter
 <li class="toctree-l2"><a class="reference internal" href="mathfunc.html#additional-mathematical-functions">Additional Mathematical Functions</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="integer.html">Integer quantization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="integer.html#basic-usage">Basic usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integer.html#quantization-aware-training">Quantization aware training</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="fix_point.html">Fixed point quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="nn.html">Quantization aware training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api.html#pychop.chop"><code class="docutils literal notranslate"><span class="pre">chop</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#pychop.quant"><code class="docutils literal notranslate"><span class="pre">quant</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#pychop.fpoint"><code class="docutils literal notranslate"><span class="pre">fpoint</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#pychop.simulate"><code class="docutils literal notranslate"><span class="pre">simulate</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#pychop.float_params"><code class="docutils literal notranslate"><span class="pre">float_params</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="fix_point.html#fixed-point-simulator-classes">Fixed-Point Simulator Classes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fix_point.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fix_point.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fix_point.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="layers.html">Quantized Layers Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="layers.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="layers.html#notes">Notes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="optimizers.html">Quantized Optimizers Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="optimizers.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimizers.html#notes">Notes</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>

@@ -43,11 +43,13 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="start.html">Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions in the Chop Class</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lightchop.html">Float Precision Simulator Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="integer.html">Integer quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fix_point.html">Fixed point quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="nn.html">Quantization aware training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fix_point.html#fixed-point-simulator-classes">Fixed-Point Simulator Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layers.html">Quantized Layers Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimizers.html">Quantized Optimizers Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
@@ -218,6 +220,8 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="integer.html#Chopi.calibrate">calibrate() (Chopi method)</a>
+</li>
       <li>
     cbrt()
 
@@ -225,7 +229,7 @@
         <li><a href="mathfunc.html#cbrt">built-in function</a>
 </li>
       </ul></li>
-      <li><a href="api.html#pychop.chop">chop (class in pychop)</a>
+      <li><a href="integer.html#Chopi">Chopi (built-in class)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -248,6 +252,10 @@
 
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="integer.html#Chopi.dequantize">dequantize() (Chopi method)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     diff()
@@ -283,12 +291,6 @@
 
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#pychop.float_params">float_params (class in pychop)</a>
-</li>
-      <li><a href="api.html#pychop.fpoint">fpoint (class in pychop)</a>
-</li>
-  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     frexp()
@@ -365,7 +367,33 @@
 <h2 id="Q">Q</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#pychop.quant">quant (class in pychop)</a>
+      <li><a href="integer.html#Chopi.quantize">quantize() (Chopi method)</a>
+</li>
+      <li><a href="optimizers.html#QuantizedAdagrad">QuantizedAdagrad (built-in class)</a>
+</li>
+      <li><a href="optimizers.html#QuantizedAdam">QuantizedAdam (built-in class)</a>
+</li>
+      <li><a href="layers.html#QuantizedBatchNorm2d">QuantizedBatchNorm2d (built-in class)</a>
+</li>
+      <li><a href="layers.html#QuantizedConv2d">QuantizedConv2d (built-in class)</a>
+</li>
+      <li><a href="layers.html#QuantizedGRU">QuantizedGRU (built-in class)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="layers.html#QuantizedLinear">QuantizedLinear (built-in class)</a>
+</li>
+      <li><a href="layers.html#QuantizedLinearNorm">QuantizedLinearNorm (built-in class)</a>
+</li>
+      <li><a href="layers.html#QuantizedLSTM">QuantizedLSTM (built-in class)</a>
+</li>
+      <li><a href="layers.html#QuantizedMultiheadAttention">QuantizedMultiheadAttention (built-in class)</a>
+</li>
+      <li><a href="optimizers.html#QuantizedRMSprop">QuantizedRMSprop (built-in class)</a>
+</li>
+      <li><a href="layers.html#QuantizedRNN">QuantizedRNN (built-in class)</a>
+</li>
+      <li><a href="optimizers.html#QuantizedSGD">QuantizedSGD (built-in class)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -381,17 +409,11 @@
 </li>
       </ul></li>
   </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#pychop.simulate.rounding">rounding() (pychop.simulate method)</a>
-</li>
-  </ul></td>
 </tr></table>
 
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#pychop.simulate">simulate (class in pychop)</a>
-</li>
       <li>
     sin()
 

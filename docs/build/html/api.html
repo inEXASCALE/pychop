@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="License" href="license.html" />
-    <link rel="prev" title="Quantization aware training" href="nn.html" /> 
+    <link rel="prev" title="Quantized Optimizers Module" href="optimizers.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,18 +46,16 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="start.html">Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chop.html">Floating point simuluation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions in the Chop Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lightchop.html">Float Precision Simulator Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mathfunc.html">Mathematical Functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quant.html">Integer quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fix_point.html">Fixed point quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="nn.html">Quantization aware training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fix_point.html#fixed-point-simulator-classes">Fixed-Point Simulator Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layers.html">Quantized Layers Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimizers.html">Quantized Optimizers Module</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#pychop.chop"><code class="docutils literal notranslate"><span class="pre">chop</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pychop.quant"><code class="docutils literal notranslate"><span class="pre">quant</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pychop.fpoint"><code class="docutils literal notranslate"><span class="pre">fpoint</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pychop.simulate"><code class="docutils literal notranslate"><span class="pre">simulate</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#pychop.simulate.rounding"><code class="docutils literal notranslate"><span class="pre">simulate.rounding()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#pychop.simulate"><code class="docutils literal notranslate"><span class="pre">simulate</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#pychop.float_params"><code class="docutils literal notranslate"><span class="pre">float_params</span></code></a></li>
 </ul>
 </li>
@@ -90,208 +88,24 @@
              
   <section id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
-<dl class="py class">
+<dl class="py attribute">
 <dt class="sig sig-object py" id="pychop.chop">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">chop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'h'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subnormal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">randfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">customs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/chop.html#chop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.chop" title="Link to this definition"></a></dt>
-<dd><section id="parameters">
-<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>prec<span class="classifier">str, default=’s’:</span></dt><dd><p>The target arithmetic format.</p>
-</dd>
-<dt>subnormal<span class="classifier">boolean</span></dt><dd><dl class="simple">
-<dt>Whether or not to support subnormal numbers.</dt><dd><p>If set <cite>subnormal=False</cite>, subnormals are flushed to zero.</p>
-</dd>
-</dl>
-</dd>
-<dt>rmode<span class="classifier">int or str, default=1</span></dt><dd><p>Rounding mode to use when quantizing the significand. Options are:
-- 1 or “nearest_even”: Round to nearest value, ties to even (IEEE 754 default).
-- 0 or “nearest_odd”: Round to nearest value, ties to odd.
-- 2 or “plus_infinity”: Round towards plus infinity (round up).
-- 3 or “minus_infinity”: Round towards minus infinity (round down).
-- 4 or “toward_zero”: Truncate toward zero (no rounding up).
-- 5 or “stochastic_prop”: Stochastic rounding proportional to the fractional part.
-- 6 or “stochastic_equal”: Stochastic rounding with 50% probability.</p>
-</dd>
-<dt>flip<span class="classifier">boolean, default=False</span></dt><dd><p>Default is False; If <code class="docutils literal notranslate"><span class="pre">flip</span></code> is True, then each element
-of the rounded result has a randomly generated bit in its significand flipped 
-with probability <code class="docutils literal notranslate"><span class="pre">p</span></code>. This parameter is designed for soft error simulation.</p>
-</dd>
-<dt>explim<span class="classifier">boolean, default=True</span></dt><dd><p>Default is True; If <code class="docutils literal notranslate"><span class="pre">explim</span></code> is False, then the maximal exponent for
-the specified arithmetic is ignored, thus overflow, underflow, or subnormal numbers
-will be produced only if necessary for the data type.  
-This option is designed for exploring low precisions independent of range limitations.</p>
-</dd>
-<dt>p<span class="classifier">float, default=0.5</span></dt><dd><p>The probability <code class="docutils literal notranslate"><span class="pre">p`</span> <span class="pre">for</span> <span class="pre">each</span> <span class="pre">element</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">rounded</span> <span class="pre">result</span> <span class="pre">has</span> <span class="pre">a</span> <span class="pre">randomly</span>
-<span class="pre">generated</span> <span class="pre">bit</span> <span class="pre">in</span> <span class="pre">its</span> <span class="pre">significand</span> <span class="pre">flipped</span>&#160; <span class="pre">when</span> <span class="pre">``flip</span></code> is True</p>
-</dd>
-<dt>randfunc<span class="classifier">callable, default=None</span></dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">randfunc</span></code> is supplied, then the random numbers used for rounding  will be generated 
-using that function in stochastic rounding (i.e., <code class="docutils literal notranslate"><span class="pre">rmode</span></code> of 5 and 6). Default is numbers
-in uniform distribution between 0 and 1, i.e., np.random.uniform.</p>
-</dd>
-<dt>customs<span class="classifier">dataclass, default=None</span></dt><dd><p>If customs is defined, then use customs.t and customs.emax for floating point arithmetic.</p>
-</dd>
-<dt>random_state<span class="classifier">int, default=0</span></dt><dd><p>Random seed set for stochastic rounding settings.</p>
-</dd>
-<dt>verbose<span class="classifier">int | bool, defaul=0</span></dt><dd><p>Whether or not to print out the unit-roundoff.</p>
-</dd>
-</dl>
-</section>
-<section id="properties">
-<h2>Properties<a class="headerlink" href="#properties" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>u<span class="classifier">float,</span></dt><dd><p>Unit roundoff corresponding to the floating point format</p>
-</dd>
-</dl>
-</section>
-<section id="methods">
-<h2>Methods<a class="headerlink" href="#methods" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>chop(x) </dt><dd><p>Method that convert <code class="docutils literal notranslate"><span class="pre">x</span></code> to the user-specific arithmetic format.</p>
-</dd>
-</dl>
-</section>
-<section id="returns">
-<h2>Returns<a class="headerlink" href="#returns" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>chop | object,</dt><dd><p><code class="docutils literal notranslate"><span class="pre">chop</span></code> instance.</p>
-</dd>
-</dl>
-</section>
+<span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">chop</span></span><a class="headerlink" href="#pychop.chop" title="Link to this definition"></a></dt>
+<dd><p>alias of &lt;module ‘pychop.chop’ from ‘/Users/chenxinye/pychop/pychop/chop.py’&gt;</p>
 </dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="pychop.quant">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">quant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/quant.html#quant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.quant" title="Link to this definition"></a></dt>
-<dd><section id="id1">
-<h2>Parameters<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>bits<span class="classifier">int, default=8</span></dt><dd><p>The bitwidth of integer format, the larger it is, the wider range the quantized value can be.</p>
-</dd>
-<dt>sign<span class="classifier">bool, default=1</span></dt><dd><p>Whether or not to quantize the value to symmetric integer range.</p>
-</dd>
-<dt>zpoint<span class="classifier">bool, default=1</span></dt><dd><p>Whether or not to compute the zero point. If <cite>zpoint=0</cite>, then the quantized range must be symmetric.</p>
-</dd>
-<dt>rd_func<span class="classifier">function, default=None</span></dt><dd><p>The rounding function used for the quantization. The default is round to nearest.</p>
-</dd>
-<dt>clip_range<span class="classifier">list, default=None</span></dt><dd><p>The clipping function for the quantization.</p>
-</dd>
-<dt>epsilon<span class="classifier">double, default=1e-12</span></dt><dd><p>When the x is comprised of single value, then the scaling factor will be (b - a + epsilon) / (alpha - beta)
-for mapping [a, b] to [alpha, beta].</p>
-</dd>
-</dl>
-</section>
-<section id="id2">
-<h2>Methods<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>quant(x):</dt><dd><p>Method that quantize <code class="docutils literal notranslate"><span class="pre">x</span></code> to the user-specific arithmetic format.</p>
-</dd>
-</dl>
-</section>
-<section id="id3">
-<h2>Returns<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>quant | object,</dt><dd><p><code class="docutils literal notranslate"><span class="pre">quant</span></code> instance.</p>
-</dd>
-</dl>
-</section>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pychop.fpoint">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">fpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ibits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fbits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/fixed_point.html#fpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.fpoint" title="Link to this definition"></a></dt>
-<dd><section id="id4">
-<h2>Parameters<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>x<span class="classifier">numpy.ndarray | jax.Array | torch.Tensor,</span></dt><dd><p>The input array.</p>
-</dd>
-<dt>ibits<span class="classifier">int, default=4</span></dt><dd><p>The bitwidth of integer part.</p>
-</dd>
-<dt>fbits<span class="classifier">int, default=4</span></dt><dd><p>The bitwidth of fractional part.</p>
-</dd>
-</dl>
-</section>
-<section id="id5">
-<h2>Returns<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>x_q<span class="classifier">numpy.ndarray | jax.Array | torch.Tensor, </span></dt><dd><p>The quantized array.</p>
-</dd>
-</dl>
-</section>
-</dd></dl>
-
-<dl class="py class">
+<dl class="py attribute">
 <dt class="sig sig-object py" id="pychop.simulate">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subnormal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/simulate.html#simulate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.simulate" title="Link to this definition"></a></dt>
-<dd><p>Simulate a customised floating point system with rounding methods</p>
-<section id="id6">
-<h2>Parameters<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
-<dl>
-<dt>base<span class="classifier">int</span></dt><dd><p>The base (or radix) in the floating point number system.</p>
-</dd>
-<dt>t<span class="classifier">int </span></dt><dd><p>The precision in the floating point number system.</p>
-</dd>
-<dt>emin, emax<span class="classifier">int</span></dt><dd><p>The exponent range, with emin &lt; e &lt; emax.
-If emin is omited, emin = 1 - emax which conform to IEEE 754 standard.</p>
-</dd>
-<dt>sign<span class="classifier">boolean, default=False</span></dt><dd><p>Whether or not give sign to the floating point numbers.
-If <code class="docutils literal notranslate"><span class="pre">sign=False</span></code>, then the generated floating point numbers are nonnegative.</p>
-</dd>
-<dt>subnormal<span class="classifier">boolean, default=False</span></dt><dd><p>Whether or not to include subnormal numbers. 
-If subnormal numbers are not included, the floating point numbers are normalized.</p>
-</dd>
-<dt>rmode<span class="classifier">int, default=1</span></dt><dd><p>Ways to round the values in the floating point system.
-There are 6 options for rounding:</p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p>Round to nearest using round to even last bit to break ties (the default).</p></li>
-<li><p>Round towards plus infinity (round up).</p></li>
-<li><p>Round towards minus infinity (round down).</p></li>
-<li><p>Round towards zero.</p></li>
-<li><dl class="simple">
-<dt>Stochastic rounding - round to the next larger or next smaller floating-point number </dt><dd><p>with probability proportional to the distance to those floating-point numbers.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>Stochastic rounding - round to the next larger or next smaller floating-point number </dt><dd><p>with equal probability.</p>
-</dd>
-</dl>
-</li>
-</ol>
-</div></blockquote>
-</dd>
-</dl>
-</section>
-<section id="id7">
-<h2>Methods<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>generate():</dt><dd><p>Generate the floating point numbers given user specified parameters.</p>
-</dd>
-<dt>rounding(x):</dt><dd><p>Round the values <code class="docutils literal notranslate"><span class="pre">x</span></code> in terms of the predefined rounding mode.</p>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="pychop.simulate.rounding">
-<span class="sig-name descname"><span class="pre">rounding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/simulate.html#simulate.rounding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.simulate.rounding" title="Link to this definition"></a></dt>
-<dd><p>Simulate a customised floating point system with rounding methods</p>
-<section id="id8">
-<h3>Parameters<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
-<dl class="simple">
-<dt>x<span class="classifier">flaot or numpy.ndarray</span></dt><dd><p>The values to be rounded.</p>
-</dd>
-</dl>
-</section>
-</dd></dl>
-
-</section>
+<span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">simulate</span></span><a class="headerlink" href="#pychop.simulate" title="Link to this definition"></a></dt>
+<dd><p>alias of &lt;module ‘pychop.simulate’ from ‘/Users/chenxinye/pychop/pychop/simulate.py’&gt;</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pychop.float_params">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pychop.</span></span><span class="sig-name descname"><span class="pre">float_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">argv</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pychop/float_params.html#float_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pychop.float_params" title="Link to this definition"></a></dt>
 <dd><p>Method to print a table showing all the parameters for all the precisions.</p>
-<section id="id9">
-<h2>Parameters<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
 <dl>
 <dt>prec<span class="classifier">str, </span></dt><dd><ul class="simple">
 <li><p>‘q43’, ‘fp8-e4m3’ - NVIDIA quarter precision (4 exponent bits, 3 significand bits).</p></li>
@@ -307,8 +121,8 @@ There are 6 options for rounding:</p>
 </dd>
 </dl>
 </section>
-<section id="id10">
-<h2>Returns<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<section id="returns">
+<h2>Returns<a class="headerlink" href="#returns" title="Link to this heading"></a></h2>
 <dl class="simple">
 <dt>u:     </dt><dd><p>The unit roundoff,</p>
 </dd>
@@ -336,7 +150,7 @@ There are 6 options for rounding:</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="nn.html" class="btn btn-neutral float-left" title="Quantization aware training" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="optimizers.html" class="btn btn-neutral float-left" title="Quantized Optimizers Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="license.html" class="btn btn-neutral float-right" title="License" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

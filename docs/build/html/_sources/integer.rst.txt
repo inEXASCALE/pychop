@@ -6,6 +6,11 @@ Integer quantization is another important feature of ``pychop``. It intention is
 low bit-width integer, which speedup the computations in certain computing hardware. It performs quantization with 
 user-defined bitwidths. The following example illustrates the usage of the method.
 
+
+Basic usage
+----------------------------------------------
+
+
 .. class:: Chopi(num_bits=8, symmetric=False, per_channel=False, channel_dim=0)
 
    A class for quantizing and dequantizing arrays to and from integer representations.

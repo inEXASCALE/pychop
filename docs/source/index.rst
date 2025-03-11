@@ -100,11 +100,12 @@ To give a shot, one may print information of various precision formats:
 
    start.rst
    chop.rst
+   lightchop.rst
    mathfunc.rst
-   quant.rst
+   integer.rst
    fix_point.rst
-   nn.rst
-   api.rst
+   layers.rst
+   optimizers.rst
    license
 
 
