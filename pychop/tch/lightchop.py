@@ -5,7 +5,36 @@ class LightChop:
     """
     A class to simulate different floating-point precisions and rounding modes
     for PyTorch tensors.
+
+    Initialize with specific format parameters.
+    Convert to custom float representation with proper IEEE 754 handling
+    
+    Parameters
+    ----------
+    exp_bits: int 
+        Number of bits for exponent.
+
+    sig_bits : int
+        Number of bits for significand (significant digits)
+
+    rmode : int
+        rounding modes.
+
+        Rounding mode to use when quantizing the significand. Options are:
+        - 0 or "nearest_odd": Round to nearest value, ties to odd.
+        - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+        - 2 or "plus_inf": Round towards plus infinity (round up).
+        - 3 or "minus_inf": Round towards minus infinity (round down).
+        - 4 or "toward_zero": Truncate toward zero (no rounding up).
+        - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+        - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+        - 7 or "nearest_ties_to_zero": Round to nearest value, ties to zero.
+        - 8 or "nearest_ties_to_away": Round to nearest value, ties to away.
+
+    random_state : int, default=42
+        random seed for stochastic rounding.
     """
+
     def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, random_state: int = 42):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
@@ -17,14 +46,7 @@ class LightChop:
 
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Initialize with specific format parameters.
-        Convert to custom float representation with proper IEEE 754 handling
-        
-        Args:
-            exp_bits: Number of bits for exponent
-            sig_bits: Number of bits for significand (significant digits)
-        """
+      
         sign = torch.sign(x)
         abs_x = torch.abs(x)
         
@@ -57,17 +79,6 @@ class LightChop:
                            nan_mask: torch.Tensor,
                            rmode: str) -> torch.Tensor:
         """Quantize components according to IEEE 754 FP16 rules with various rounding modes
-
-        Rounding mode to use when quantizing the significand. Options are:
-        - 0 or "nearest_odd": Round to nearest value, ties to odd.
-        - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
-        - 2 or "plus_inf": Round towards plus infinity (round up).
-        - 3 or "minus_inf": Round towards minus infinity (round down).
-        - 4 or "toward_zero": Truncate toward zero (no rounding up).
-        - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
-        - 6 or "stoc_equal": Stochastic rounding with 50% probability.
-        - 7 or "nearest_ties_to_zero": Round to nearest value, ties to zero.
-        - 8 or "nearest_ties_to_away": Round to nearest value, ties to away.
 
         """
         
@@ -213,10 +224,10 @@ class LightChop:
         """
         Quantize a tensor to the specified precision with given rounding mode.
         
-        Args:
-            x: Input tensor
-            rmode: One of 'nearest', 'up', 'down', 'towards_zero', 
-                          'stochastic_equal', 'stochastic_proportional'
+        Parameters
+        ----------
+        x: Input tensor
+        
         """
         sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
         return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode)
