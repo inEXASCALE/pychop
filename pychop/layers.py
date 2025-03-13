@@ -132,7 +132,6 @@ class QuantizedConv3d(nn.Module):
         self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
 
-        
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         q_weight = self.quantizer.quantize(self.conv.weight)
         q_bias = self.quantizer.quantize(self.conv.bias)

@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import sys
-# appending a path
+
 sys.path.append('../')
 from pychop.optimizers import *
 
