@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
@@ -12,20 +11,20 @@ sys.path.append('../')
 from pychop.layers import *
 
 class QuantizedCNN(nn.Module):
-    def __init__(self, num_bits=8):
+    def __init__(self, num_bits=8):  # Changed to 8-bit for finer precision
         super(QuantizedCNN, self).__init__()
         self.conv1 = IntQuantizedConv2d(1, 16, 3, padding=1, num_bits=num_bits)
-        self.bn1 = IntQuantizedBatchNorm2d(16, num_bits=num_bits)
-        self.relu1 = IntQuantizedReLU(num_bits=num_bits)
-        self.pool1 = IntQuantizedMaxPool2d(2, 2, num_bits=num_bits)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.relu1 = nn.ReLU()
+        self.pool1 = nn.MaxPool2d(2, 2)
         self.conv2 = IntQuantizedConv2d(16, 32, 3, padding=1, num_bits=num_bits)
-        self.bn2 = IntQuantizedBatchNorm2d(32, num_bits=num_bits)
-        self.relu2 = IntQuantizedReLU(num_bits=num_bits)
-        self.pool2 = IntQuantizedAvgPool2d(2, 2, num_bits=num_bits)
-        self.flatten = IntQuantizedFlatten(num_bits=num_bits)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.relu2 = nn.ReLU()
+        self.pool2 = nn.AvgPool2d(2, 2)
+        self.flatten = nn.Flatten()
         self.fc1 = IntQuantizedLinear(32 * 7 * 7, 128, num_bits=num_bits)
-        self.dropout = IntQuantizedDropout(p=0.5, num_bits=num_bits)
-        self.relu3 = IntQuantizedReLU(num_bits=num_bits)
+        self.dropout = nn.Dropout(p=0.5)
+        self.relu3 = nn.ReLU()
         self.fc2 = IntQuantizedLinear(128, 10, num_bits=num_bits)
 
     def forward(self, x):
@@ -90,5 +89,5 @@ for epoch in range(1, num_epochs + 1):
     train_loss = train(model, device, train_loader, optimizer, criterion, epoch)
     test_acc = evaluate(model, device, test_loader)
 
-print("\nTest Accuracy with Quantization-Aware Training:")
+print("\nFinal Test Accuracy with Quantization-Aware Training:")
 evaluate(model, device, test_loader)

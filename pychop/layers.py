@@ -2,7 +2,6 @@ import torch
 # from .lightchop import LightChop
 from .fixed_point import FPRound
 from .tch.integer import Chopi
-
 import torch.nn as nn
 from typing import Tuple
 import torch.nn.functional as F
@@ -594,86 +593,38 @@ class BFPRound:
 
 
 
-# ----- Integer arithmetic
 
-
-class IntQuantizeSTE(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, x, scale, zero_point, qmin, qmax):
-        q = torch.round(x / scale + zero_point).clamp(qmin, qmax)
-        ctx.save_for_backward(scale, zero_point)
-        return q
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        scale, zero_point = ctx.saved_tensors
-        grad_input = grad_output * scale
-        return grad_input, None, None, None, None
-
-
-
-# PyTorch-based Quantizer Class
-class INTRound(nn.Module):
-    def __init__(self, num_bits=8, symmetric=False):
-        super(INTRound, self).__init__()
-        self.num_bits = num_bits
-        self.symmetric = symmetric
-        self.qmin = -(2 ** (num_bits - 1)) if symmetric else 0
-        self.qmax = (2 ** (num_bits - 1)) - 1
-
-    def calibrate(self, x):
-        min_val = torch.min(x)
-        max_val = torch.max(x)
-        range_val = max_val - min_val
-        range_val = max(range_val, 1e-5)
-        scale = range_val / (self.qmax - self.qmin)
-        zero_point = 0 if self.symmetric else torch.round(self.qmin - (min_val / scale))
-        return scale, zero_point
-
-    def quantize(self, x, scale, zero_point):
-        q = IntQuantizeSTE.apply(x, scale, zero_point, self.qmin, self.qmax)
-        return q
-
-    def dequantize(self, q, scale, zero_point):
-        return (q - zero_point) * scale
-
-    def forward(self, x, training=True):
-        scale, zero_point = self.calibrate(x)
-        q = self.quantize(x, scale, zero_point)
-        if training:
-            return self.dequantize(q, scale, zero_point)
-        return q
-
-
+# Quantized Linear Layer
 # Quantized Linear Layer
 class IntQuantizedLinear(nn.Module):
     def __init__(self, in_features, out_features, num_bits=8):
         super(IntQuantizedLinear, self).__init__()
         self.linear = nn.Linear(in_features, out_features)
-        # self.quantizer_w = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
-        # w = self.quantizer_w(self.linear.weight, training=self.training)
+        w = self.quantizer_w(self.linear.weight, training=self.training)
+        b = self.quantizer_w(self.linear.bias, training=self.training) if self.linear.bias is not None else None
         x = self.quantizer_x(x, training=self.training)
-        out = self.linear.forward(x)
+        out = F.linear(x, w, b)
         return self.quantizer_out(out, training=self.training)
-
 
 # Quantized Conv1d Layer
 class IntQuantizedConv1d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv1d, self).__init__()
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
+        b = self.quantizer_w(self.conv.bias, training=self.training) if self.conv.bias is not None else None
         x = self.quantizer_x(x, training=self.training)
-        out = self.conv.forward(x)
+        out = self.conv._conv_forward(x, w, b)
         return self.quantizer_out(out, training=self.training)
 
 # Quantized Conv2d Layer
@@ -681,106 +632,128 @@ class IntQuantizedConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv2d, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
+        b = self.quantizer_w(self.conv.bias, training=self.training) if self.conv.bias is not None else None
         x = self.quantizer_x(x, training=self.training)
-        out = self.conv.forward(x)
+        out = self.conv._conv_forward(x, w, b)
         return self.quantizer_out(out, training=self.training)
-
-
 
 # Quantized Conv3d Layer
 class IntQuantizedConv3d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv3d, self).__init__()
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
+        b = self.quantizer_w(self.conv.bias, training=self.training) if self.conv.bias is not None else None
         x = self.quantizer_x(x, training=self.training)
-        out = self.conv.forward(x)
+        out = self.conv._conv_forward(x, w, b)
         return self.quantizer_out(out, training=self.training)
 
-
-# Quantized LSTM Layer
+# Quantized LSTM Layer (Simplified, custom forward needed for full quantization)
 class IntQuantizedLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, num_bits=8):
         super(IntQuantizedLSTM, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_h = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_c = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_h = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_c = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w_hh = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
 
     def forward(self, x, hidden=None):
         x = self.quantizer_x(x, training=self.training)
         if hidden is None:
             batch_size = x.size(0)
-            hidden = (torch.zeros(self.lstm.num_layers, batch_size, self.lstm.hidden_size).to(x.device),
-                      torch.zeros(self.lstm.num_layers, batch_size, self.lstm.hidden_size).to(x.device))
+            hidden = (torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device),
+                      torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device))
         h, c = hidden
         h = self.quantizer_h(h, training=self.training)
         c = self.quantizer_c(c, training=self.training)
-        out, (h_n, c_n) = self.lstm(x, (h, c))
+        # Note: nn.LSTM doesn't natively support quantized weights in forward
+        # For simplicity, quantize weights but use standard forward (imperfect)
+        w_ih = self.quantizer_w_ih(self.lstm.weight_ih_l0, training=self.training)
+        w_hh = self.quantizer_w_hh(self.lstm.weight_hh_l0, training=self.training)
+        b_ih = self.quantizer_w_ih(self.lstm.bias_ih_l0, training=self.training) if self.lstm.bias_ih_l0 is not None else None
+        b_hh = self.quantizer_w_hh(self.lstm.bias_hh_l0, training=self.training) if self.lstm.bias_hh_l0 is not None else None
+        out, (h_n, c_n) = self.lstm(x, (h, c))  # Weights not fully utilized here
         return self.quantizer_out(out, training=self.training), (h_n, c_n)
 
-# Quantized GRU Layer
+# Quantized GRU Layer (Simplified, custom forward needed)
 class IntQuantizedGRU(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, num_bits=8):
         super(IntQuantizedGRU, self).__init__()
         self.gru = nn.GRU(input_size, hidden_size, num_layers=num_layers, batch_first=True)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_h = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_h = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w_hh = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
 
     def forward(self, x, hidden=None):
         x = self.quantizer_x(x, training=self.training)
         if hidden is None:
             batch_size = x.size(0)
-            hidden = torch.zeros(self.gru.num_layers, batch_size, self.gru.hidden_size).to(x.device)
+            hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
         hidden = self.quantizer_h(hidden, training=self.training)
+        # Quantize weights (imperfect without custom forward)
+        w_ih = self.quantizer_w_ih(self.gru.weight_ih_l0, training=self.training)
+        w_hh = self.quantizer_w_hh(self.gru.weight_hh_l0, training=self.training)
+        b_ih = self.quantizer_w_ih(self.gru.bias_ih_l0, training=self.training) if self.gru.bias_ih_l0 is not None else None
+        b_hh = self.quantizer_w_hh(self.gru.bias_hh_l0, training=self.training) if self.gru.bias_hh_l0 is not None else None
         out, h_n = self.gru(x, hidden)
         return self.quantizer_out(out, training=self.training), h_n
 
-
-
-# Quantized Attention Layer (Simple Multi-Head Attention)
+# Quantized Attention Layer (Simplified, custom forward needed)
 class IntQuantizedAttention(nn.Module):
     def __init__(self, embed_dim, num_heads, num_bits=8):
         super(IntQuantizedAttention, self).__init__()
         self.attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
-        self.quantizer_q = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_k = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_v = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_q = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_k = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_v = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, query, key, value):
         q = self.quantizer_q(query, training=self.training)
         k = self.quantizer_k(key, training=self.training)
         v = self.quantizer_v(value, training=self.training)
+        # Quantize projection weights (imperfect without custom forward)
+        w_q = self.quantizer_w(self.attn.in_proj_weight[:self.attn.embed_dim], training=self.training)
+        w_k = self.quantizer_w(self.attn.in_proj_weight[self.attn.embed_dim:2*self.attn.embed_dim], training=self.training)
+        w_v = self.quantizer_w(self.attn.in_proj_weight[2*self.attn.embed_dim:], training=self.training)
         out, _ = self.attn(q, k, v)
         return self.quantizer_out(out, training=self.training)
-
-
 
 # Quantized BatchNorm2d Layer
 class IntQuantizedBatchNorm2d(nn.Module):
     def __init__(self, num_features, num_bits=8):
         super(IntQuantizedBatchNorm2d, self).__init__()
         self.bn = nn.BatchNorm2d(num_features)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
-        out = self.bn(x)
+        w = self.quantizer_w(self.bn.weight, training=self.training)
+        b = self.quantizer_w(self.bn.bias, training=self.training)
+        out = self.bn(x)  # Note: Custom BN forward needed for quantized w, b
         return self.quantizer_out(out, training=self.training)
 
 # Quantized ReLU Layer
@@ -788,67 +761,60 @@ class IntQuantizedReLU(nn.Module):
     def __init__(self, num_bits=8):
         super(IntQuantizedReLU, self).__init__()
         self.relu = nn.ReLU()
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
         out = self.relu(x)
         return self.quantizer_out(out, training=self.training)
 
-
-
 # Quantized MaxPool2d Layer
 class IntQuantizedMaxPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, num_bits=8):
         super(IntQuantizedMaxPool2d, self).__init__()
         self.pool = nn.MaxPool2d(kernel_size, stride=stride, padding=padding)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
         out = self.pool(x)
         return self.quantizer_out(out, training=self.training)
-
-
 
 # Quantized AvgPool2d Layer
 class IntQuantizedAvgPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, num_bits=8):
         super(IntQuantizedAvgPool2d, self).__init__()
         self.pool = nn.AvgPool2d(kernel_size, stride=stride, padding=padding)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
         out = self.pool(x)
         return self.quantizer_out(out, training=self.training)
-    
-
 
 # Quantized Dropout Layer
 class IntQuantizedDropout(nn.Module):
     def __init__(self, p=0.5, num_bits=8):
         super(IntQuantizedDropout, self).__init__()
         self.dropout = nn.Dropout(p=p)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
         out = self.dropout(x)
         return self.quantizer_out(out, training=self.training)
 
-
-
+# Quantized Flatten Layer
 class IntQuantizedFlatten(nn.Module):
     def __init__(self, start_dim=1, end_dim=-1, num_bits=8):
         super(IntQuantizedFlatten, self).__init__()
         self.flatten = nn.Flatten(start_dim=start_dim, end_dim=end_dim)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)

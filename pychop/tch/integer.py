@@ -1,11 +1,10 @@
 import torch
 import warnings
 import torch.nn as nn
-import torch.nn.functional as F
 
 class Chopi(nn.Module):
     """
-    Integer quantizer.
+    Integer quantizer with Straight-Through Estimator (STE) for training.
     
     Parameters
     ----------
@@ -20,9 +19,9 @@ class Chopi(nn.Module):
 
     channel_dim : int, default=0
         Dimension to treat as channel axis.
-
     """
-    def __init__(self, num_bits=8, symmetric=False, per_channel=False, channel_dim=0):
+    
+    def __init__(self, num_bits=8, symmetric=False, per_channel=False, channel_dim=0, verbose=True):
         super(Chopi, self).__init__()
         self.num_bits = num_bits
         self.symmetric = symmetric
@@ -48,15 +47,16 @@ class Chopi(nn.Module):
             warnings.warn("Current int type does not support this bitwidth, use int64 to simulate.")
             self.intType = torch.int64
 
-    
+        self.verbose = verbose
+
     def calibrate(self, x):
         """
         Calibrate scale and zero_point based on array.
         
         Parameters
         ----------
-        x : np.ndarray
-            Input array to calibrate from.
+        x : torch.Tensor
+            Input tensor to calibrate from.
         """
         if self.per_channel and x.dim() > 1:
             dims = [d for d in range(x.dim()) if d != self.channel_dim]
@@ -84,12 +84,12 @@ class Chopi(nn.Module):
         
         Parameters
         ----------
-        x : Tensor
-            Input array to quantize.
+        x : torch.Tensor
+            Input tensor to quantize.
         
         Returns
         ----------
-        np.ndarray: Quantized integer array.
+        torch.Tensor: Quantized integer tensor.
         """
         self.calibrate(x)
         if self.per_channel and x.dim() > 1:
@@ -102,20 +102,23 @@ class Chopi(nn.Module):
             zero_point = self.zero_point if not self.symmetric else 0
         q = torch.round(x / scale + zero_point)
         q = torch.clamp(q, self.qmin, self.qmax)
-        return q.to(dtype=self.intType)
+
+        if self.verbose:
+            print(f"Quantized range: [{x.min().item():.4f}, {x.max().item():.4f}], Scale: {scale.mean().item():.6f}, Clipped: {clipped.item():.4f}")
         
+        return q.to(dtype=self.intType)
 
     def dequantize(self, q):
         """
-        Dequantize the integer NumPy array to floating-point.
+        Dequantize the integer tensor to floating-point.
         
         Parameters
         ----------
-        q : Tensor
-            Quantized integer NumPy array.
+        q : torch.Tensor
+            Quantized integer tensor.
         
         Returns:
-        np.ndarray: Dequantized floating-point array.
+        torch.Tensor: Dequantized floating-point tensor.
         """
         if self.per_channel and q.dim() > 1:
             shape = [1] * q.dim()
@@ -127,12 +130,30 @@ class Chopi(nn.Module):
             zero_point = self.zero_point if not self.symmetric else 0
         x = (q - zero_point) * scale
         return x
-        
 
     def forward(self, x, training=True):
+        """
+        Forward pass with quantization and STE during training.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+        
+        training : bool, default=True
+            Whether in training mode (apply STE) or inference mode.
+        
+        Returns
+        ----------
+        torch.Tensor: Quantized and dequantized tensor (training) or quantized tensor (inference).
+        """
         if training:
+            # Quantize and dequantize
             q = self.quantize(x)
-            return self.dequantize(q)
+            x_dequant = self.dequantize(q)
+            # Apply STE: Pass gradients through x, use quantized values in forward
+            if x.requires_grad:
+                return x + (x_dequant - x).detach()
+            return x_dequant
+        # Inference: Return quantized values as float32
         return self.quantize(x).to(dtype=torch.float32)
-
-
