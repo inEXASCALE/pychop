@@ -1,8 +1,8 @@
 import os
 import numpy as np
 
-def Chop(prec='h', subnormal=None, rmode=1, flip=False, explim=1, device='cpu',
-         p=0.5, randfunc=None, customs=None, random_state=0, verbose=0):
+def Chop(prec: str='h', subnormal: bool=None, rmode: int=1, flip: bool=False, explim: int=1, device: str='cpu',
+         p: float=0.5, randfunc=None, customs=None, random_state: int=0, verbose: int=0):
     """
     Parameters
     ----------
