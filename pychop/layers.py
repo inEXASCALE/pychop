@@ -1,6 +1,6 @@
 import torch
 # from .lightchop import LightChop
-from .fixed_point import Chopf
+from .fixed_point import FPRound
 from .tch.integer import Chopi
 
 import torch.nn as nn
@@ -15,7 +15,7 @@ class QuantizedLayer(torch.nn.Module):
                  rmode: int = 1):
         
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.quantizer.quantize(x)
@@ -80,7 +80,7 @@ class FQuantizedLayer(nn.Module):
         super(FQuantizedLayer, self).__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
-        self.quantizer = Chopf(ibits, fbits)
+        self.quantizer = FPRound(ibits, fbits)
         self.rmode = rmode
 
         # Initialize weights and bias as floating-point parameters
@@ -111,7 +111,7 @@ class FQuantizedLayer(nn.Module):
 class QuantizedLinear(nn.Module):
     def __init__(self, in_features: int, out_features: int, exp_bits: int, sig_bits: int, rmode: int = 1):
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.weight = nn.Parameter(torch.randn(out_features, in_features))
         self.bias = nn.Parameter(torch.randn(out_features))
         
@@ -129,7 +129,7 @@ class QuantizedConv2d(nn.Module):
                  exp_bits: int, sig_bits: int, stride: int or tuple = 1, 
                  padding: int or tuple = 0, rmode: int = 1):
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.weight = nn.Parameter(torch.randn(out_channels, in_channels, *([kernel_size] * 2 if isinstance(kernel_size, int) else kernel_size)))
         self.bias = nn.Parameter(torch.randn(out_channels))
         self.stride = stride if isinstance(stride, tuple) else (stride, stride)
@@ -146,7 +146,7 @@ class QuantizedRNN(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
                  num_layers: int = 1, bias: bool = True, nonlinearity: str = 'tanh', rmode: int = 1):
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -201,7 +201,7 @@ class QuantizedLSTM(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
                  num_layers: int = 1, bias: bool = True, rmode: int = 1):
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -262,7 +262,7 @@ class QuantizedBatchNorm2d(nn.Module):
     def __init__(self, num_features: int, exp_bits: int, sig_bits: int, 
                  eps: float = 1e-5, momentum: float = 0.1, rmode: int = 1):
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
@@ -298,7 +298,7 @@ class QuantizedLayerNorm(nn.Module):
     def __init__(self, normalized_shape: int or tuple, exp_bits: int, sig_bits: int, 
                  eps: float = 1e-5, rmode: int = 1):
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.normalized_shape = normalized_shape if isinstance(normalized_shape, tuple) else (normalized_shape,)
         self.eps = eps
         self.weight = nn.Parameter(torch.ones(self.normalized_shape))
@@ -322,7 +322,7 @@ class QuantizedGRU(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
                  num_layers: int = 1, bias: bool = True, rmode: int = 1):
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -377,7 +377,7 @@ class QuantizedMultiheadAttention(nn.Module):
     def __init__(self, embed_dim: int, num_heads: int, exp_bits: int, sig_bits: int, 
                  dropout: float = 0.0, rmode: int = 1):
         super().__init__()
-        self.quantizer = FPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
@@ -420,7 +420,7 @@ class QuantizedMultiheadAttention(nn.Module):
 
 
 
-class FPRound:
+class BFPRound:
     def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
         """Initialize float precision simulator with custom format and rounding mode."""
         self.exp_bits = exp_bits
@@ -594,7 +594,7 @@ class FPRound:
 
 
 
-# ----- Quantization-aware training
+# ----- Integer arithmetic
 
 
 class IntQuantizeSTE(torch.autograd.Function):
@@ -856,7 +856,7 @@ class IntQuantizedFlatten(nn.Module):
         return self.quantizer_out(out, training=self.training)
     
 
-
+# ----- Fixed-point arithmetic
 
 
 class FPQuantizedConv1d(nn.Module):
@@ -876,6 +876,7 @@ class FPQuantizedConv1d(nn.Module):
         q_weight = self.quantizer.quantize(self.conv.weight)
         q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
         return self.conv._conv_forward(q_x, q_weight, q_bias)
+
 
 class FPQuantizedLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, int_bits=8, frac_bits=8):
@@ -961,10 +962,10 @@ class FPQuantizedLinear(nn.Module):
 
     def forward(self, x):
         q_x = self.quantizer.quantize(x)
-        # q_weight = self.quantizer.quantize(self.linear.weight)
-        # q_bias = self.quantizer.quantize(self.linear.bias)
-        # return F.linear(q_x, q_weight, q_bias)
-        return F.linear(q_x, self.linear.weight, self.linear.bias)
+        q_weight = self.quantizer.quantize(self.linear.weight)
+        q_bias = self.quantizer.quantize(self.linear.bias)
+        return F.linear(q_x, q_weight, q_bias)
+        # return F.linear(q_x, self.linear.weight, self.linear.bias)
 
 class FPQuantizedMaxPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, int_bits=8, frac_bits=8):

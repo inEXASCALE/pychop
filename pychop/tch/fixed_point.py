@@ -13,9 +13,7 @@ class FPRound:
     
         fbits : int, default=4
             The bitwidth of fractional part. 
-            
         """
-        
         self.ibits = ibits
         self.fbits = fbits
         self.total_bits = ibits + fbits
@@ -35,9 +33,8 @@ class FPRound:
         Returns
         ----------  
         sign: Tensor of signs (+1 or -1)
-            abs_x: Tensor of absolute values
+        abs_x: Tensor of absolute values
         """
-        
         sign = torch.sign(x)  # 1, -1, or 0
         abs_x = torch.abs(x)
         return sign, abs_x
@@ -48,12 +45,12 @@ class FPRound:
                   abs_x: torch.Tensor,
                   rmode: str) -> torch.Tensor:
         """
-        Quantize to fixed-point with specified rounding mode.
+        Quantize to fixed-point with specified rounding mode and STE.
         
         Parameters
         ----------  
         x : torch.Tensor
-            Input tensor
+            Input tensor (unquantized, for STE)
             
         sign : torch.Tensor
             Signs of input values
@@ -73,48 +70,47 @@ class FPRound:
         Returns
         ----------  
         result : torch.Tensor
-            Quantized tensor in fixed-point representation
+            Quantized tensor in fixed-point representation with STE applied
         """
-        
         scaled = abs_x / self.resolution
 
         if rmode in {"nearest", 1}:
             quantized = torch.round(scaled)
-
         elif rmode in {"plus_inf", 2}:
             quantized = torch.where(sign > 0, torch.ceil(scaled), torch.floor(scaled))
-
         elif rmode in {"minus_inf", 3}:
             quantized = torch.where(sign > 0, torch.floor(scaled), torch.ceil(scaled))
-
         elif rmode in {"towards_zero", 4}:
             quantized = torch.trunc(scaled)
-
         elif rmode in {"stoc_prop", 5}:
             floor_val = torch.floor(scaled)
             fraction = scaled - floor_val
             prob = torch.rand_like(scaled)
             quantized = torch.where(prob < fraction, floor_val + 1, floor_val)
-
         elif rmode in {"stoc_equal", 6}:
             floor_val = torch.floor(scaled)
             prob = torch.rand_like(scaled)
             quantized = torch.where(prob < 0.5, floor_val, floor_val + 1)
-
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
 
+        # Compute quantized result in floating-point domain
         result = sign * quantized * self.resolution
         result = torch.clamp(result, self.min_value, self.max_value)
 
+        # Handle infinities and NaNs
         result[torch.isinf(x)] = torch.sign(x[torch.isinf(x)]) * self.max_value
         result[torch.isnan(x)] = float('nan')
+
+        # Apply Straight-Through Estimator (STE) if gradients are needed
+        if x.requires_grad:
+            result = x + (result - x).detach()
 
         return result
 
     def quantize(self, x: torch.Tensor, rmode: str = "nearest") -> torch.Tensor:
         """
-        Convert floating-point tensor to fixed-point representation with specified rounding method.
+        Convert floating-point tensor to fixed-point representation with specified rounding method and STE.
         
         Parameters
         ----------  
@@ -122,7 +118,7 @@ class FPRound:
             Input tensor
                         
         rmode : str
-            One of 'nearest', 'up', 'down', 'towards_zero', 
+            One of 'nearest', 'plus_inf', 'minus_inf', 'towards_zero', 
             'stochastic_equal', 'stochastic_proportional'
         
         Returns
@@ -130,7 +126,6 @@ class FPRound:
         result : torch.Tensor
             Quantized tensor in fixed-point representation
         """
-        
         sign, abs_x = self._to_fixed_point_components(x)
         return self._quantize(x, sign, abs_x, rmode)
         
@@ -142,6 +137,3 @@ class FPRound:
             "range": (self.min_value, self.max_value),
             "resolution": self.resolution
         }
-
-
-
