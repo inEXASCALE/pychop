@@ -6,7 +6,7 @@ def Chop(prec: str='h', subnormal: bool=None, rmode: int=1, flip: bool=False, ex
     """
     Parameters
     ----------
-    prec : str, default='s':
+    prec : str, default='h':
         The target arithmetic format.
 
     subnormal : boolean
