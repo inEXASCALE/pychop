@@ -108,7 +108,6 @@ class FQuantizedLayer(nn.Module):
         return self.quantizer.quantize(x, self.rmode)
 
 
-# Assume FPRound is defined elsewhere with the corrected _quantize_components
 class QuantizedLinear(nn.Module):
     def __init__(self, in_features: int, out_features: int, exp_bits: int, sig_bits: int, rmode: int = 1):
         super().__init__()
@@ -117,10 +116,10 @@ class QuantizedLinear(nn.Module):
         self.bias = nn.Parameter(torch.randn(out_features))
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_weight = self.quantizer.quantize(self.weight)
+        q_weight = self.weight # self.quantizer.quantize(self.weight)
         q_input = self.quantizer.quantize(x)
         output = torch.matmul(q_input, q_weight.t())
-        q_bias = self.quantizer.quantize(self.bias)
+        q_bias = self.bias # self.quantizer.quantize(self.bias)
         return output + q_bias
 
 
@@ -646,6 +645,21 @@ class INTRound(nn.Module):
         return q
 
 
+# Quantized Linear Layer
+class IntQuantizedLinear(nn.Module):
+    def __init__(self, in_features, out_features, num_bits=8):
+        super(IntQuantizedLinear, self).__init__()
+        self.linear = nn.Linear(in_features, out_features)
+        # self.quantizer_w = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
+        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
+
+    def forward(self, x):
+        # w = self.quantizer_w(self.linear.weight, training=self.training)
+        x = self.quantizer_x(x, training=self.training)
+        out = self.linear.forward(x)
+        return self.quantizer_out(out, training=self.training)
+
 
 # Quantized Conv1d Layer
 class IntQuantizedConv1d(nn.Module):
@@ -693,22 +707,6 @@ class IntQuantizedConv3d(nn.Module):
         x = self.quantizer_x(x, training=self.training)
         out = self.conv.forward(x)
         return self.quantizer_out(out, training=self.training)
-
-# Quantized Linear Layer
-class IntQuantizedLinear(nn.Module):
-    def __init__(self, in_features, out_features, num_bits=8):
-        super(IntQuantizedLinear, self).__init__()
-        self.linear = nn.Linear(in_features, out_features)
-        self.quantizer_w = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = INTRound(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = INTRound(num_bits=num_bits, symmetric=False)
-
-    def forward(self, x):
-        w = self.quantizer_w(self.linear.weight, training=self.training)
-        x = self.quantizer_x(x, training=self.training)
-        out = self.linear.forward(x)
-        return self.quantizer_out(out, training=self.training)
-
 
 
 # Quantized LSTM Layer
@@ -963,9 +961,10 @@ class FPQuantizedLinear(nn.Module):
 
     def forward(self, x):
         q_x = self.quantizer.quantize(x)
-        q_weight = self.quantizer.quantize(self.linear.weight)
-        q_bias = self.quantizer.quantize(self.linear.bias)
-        return F.linear(q_x, q_weight, q_bias)
+        # q_weight = self.quantizer.quantize(self.linear.weight)
+        # q_bias = self.quantizer.quantize(self.linear.bias)
+        # return F.linear(q_x, q_weight, q_bias)
+        return F.linear(q_x, self.linear.weight, self.linear.bias)
 
 class FPQuantizedMaxPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, int_bits=8, frac_bits=8):
