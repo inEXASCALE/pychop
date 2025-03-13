@@ -5,9 +5,10 @@ from .tch.integer import Chopi
 
 import torch.nn as nn
 from typing import Tuple
+import torch.nn.functional as F
 
 class QuantizedLayer(torch.nn.Module):
-    """Example of a quantized linear layer"""
+    """Quantize each element of neural networks"""
     def __init__(self, 
                  exp_bits: int,
                  sig_bits: int,
@@ -105,8 +106,6 @@ class FQuantizedLayer(nn.Module):
         """
         
         return self.quantizer.quantize(x, self.rmode)
-
-
 
 
 # Assume FPRound is defined elsewhere with the corrected _quantize_components
@@ -857,3 +856,197 @@ class IntQuantizedFlatten(nn.Module):
         x = self.quantizer_x(x, training=self.training)
         out = self.flatten(x)
         return self.quantizer_out(out, training=self.training)
+    
+
+
+
+
+class FPQuantizedConv1d(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        nn.init.kaiming_normal_(self.conv.weight, mode='fan_in', nonlinearity='relu')
+        if self.conv.bias is not None:
+            nn.init.zeros_(self.conv.bias)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        q_weight = self.quantizer.quantize(self.conv.weight)
+        q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
+        return self.conv._conv_forward(q_x, q_weight, q_bias)
+
+class FPQuantizedLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=batch_first)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        for name, param in self.lstm.named_parameters():
+            if 'weight' in name:
+                nn.init.xavier_uniform_(param)
+            elif 'bias' in name:
+                nn.init.zeros_(param)
+
+    def forward(self, x, h0=None, c0=None):
+        q_x = self.quantizer.quantize(x)
+        if h0 is None:
+            h0 = torch.zeros(self.lstm.num_layers, x.size(0), self.lstm.hidden_size, device=x.device)
+        if c0 is None:
+            c0 = torch.zeros(self.lstm.num_layers, x.size(0), self.lstm.hidden_size, device=x.device)
+        q_h0 = self.quantizer.quantize(h0)
+        q_c0 = self.quantizer.quantize(c0)
+        for name, param in self.lstm.named_parameters():
+            param.data = self.quantizer.quantize(param.data)
+        return self.lstm(q_x, (q_h0, q_c0))
+
+class FPQuantizedAttention(nn.Module):
+    def __init__(self, embed_dim, num_heads, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.attn = nn.MultiheadAttention(embed_dim, num_heads)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        for name, param in self.attn.named_parameters():
+            if 'weight' in name:
+                nn.init.xavier_uniform_(param)
+            elif 'bias' in name:
+                nn.init.zeros_(param)
+
+    def forward(self, query, key, value, attn_mask=None):
+        q_query = self.quantizer.quantize(query)
+        q_key = self.quantizer.quantize(key)
+        q_value = self.quantizer.quantize(value)
+        for name, param in self.attn.named_parameters():
+            param.data = self.quantizer.quantize(param.data)
+        return self.attn(q_query, q_key, q_value, attn_mask=attn_mask)
+
+class FPQuantizedGRU(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=batch_first)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        for name, param in self.gru.named_parameters():
+            if 'weight' in name:
+                nn.init.xavier_uniform_(param)
+            elif 'bias' in name:
+                nn.init.zeros_(param)
+
+    def forward(self, x, h0=None):
+        q_x = self.quantizer.quantize(x)
+        if h0 is None:
+            h0 = torch.zeros(self.gru.num_layers, x.size(0), self.gru.hidden_size, device=x.device)
+        q_h0 = self.quantizer.quantize(h0)
+        for name, param in self.gru.named_parameters():
+            param.data = self.quantizer.quantize(param.data)
+        return self.gru(q_x, q_h0)
+
+class FPQuantizedLinear(nn.Module):
+    def __init__(self, in_features, out_features, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.linear = nn.Linear(in_features, out_features)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        nn.init.kaiming_normal_(self.linear.weight, mode='fan_in', nonlinearity='linear')
+        nn.init.zeros_(self.linear.bias)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        q_weight = self.quantizer.quantize(self.linear.weight)
+        q_bias = self.quantizer.quantize(self.linear.bias)
+        return F.linear(q_x, q_weight, q_bias)
+
+class FPQuantizedMaxPool2d(nn.Module):
+    def __init__(self, kernel_size, stride=None, padding=0, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.pool = nn.MaxPool2d(kernel_size, stride, padding)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        return self.pool(q_x)
+
+class FPQuantizedConv2d(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        nn.init.kaiming_normal_(self.conv.weight, mode='fan_in', nonlinearity='relu')
+        if self.conv.bias is not None:
+            nn.init.zeros_(self.conv.bias)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        q_weight = self.quantizer.quantize(self.conv.weight)
+        q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
+        return self.conv._conv_forward(q_x, q_weight, q_bias)
+
+class FPQuantizedConv3d(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride, padding)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        nn.init.kaiming_normal_(self.conv.weight, mode='fan_in', nonlinearity='relu')
+        if self.conv.bias is not None:
+            nn.init.zeros_(self.conv.bias)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        q_weight = self.quantizer.quantize(self.conv.weight)
+        q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
+        return self.conv._conv_forward(q_x, q_weight, q_bias)
+
+class FPQuantizedBatchNorm2d(nn.Module):
+    def __init__(self, num_features, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.bn = nn.BatchNorm2d(num_features)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        nn.init.ones_(self.bn.weight)
+        nn.init.zeros_(self.bn.bias)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        q_weight = self.quantizer.quantize(self.bn.weight)
+        q_bias = self.quantizer.quantize(self.bn.bias)
+        return F.batch_norm(q_x, self.bn.running_mean, self.bn.running_var, 
+                            q_weight, q_bias, self.bn.training, self.bn.momentum, self.bn.eps)
+
+class FPQuantizedAvgPool2d(nn.Module):
+    def __init__(self, kernel_size, stride=None, padding=0, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.pool = nn.AvgPool2d(kernel_size, stride, padding)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        return self.pool(q_x)
+
+class FPQuantizedDropout(nn.Module):
+    def __init__(self, p=0.5, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.dropout = nn.Dropout(p)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        return self.dropout(q_x)
