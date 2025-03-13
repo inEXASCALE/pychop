@@ -8,7 +8,8 @@ class LightChop:
     that mimics IEEE 754 floating-point representation with configurable exponent bits (exp_bits),
     significand bits (sig_bits), and various rounding modes (rmode). 
     It uses PyTorch tensors for efficient computation and handles special cases like zeros,
-    infinities, NaNs, and subnormal numbers.
+    infinities, NaNs, and subnormal numbers. The code follows IEEE 754 conventions for sign, 
+    exponent bias, implicit leading 1 (for normal numbers), and subnormal number handling.
 
     Initialize with specific format parameters.
     Convert to custom float representation with proper IEEE 754 handling
