@@ -28,7 +28,7 @@ class IntQuantizedLayer(torch.nn.Module):
 
     """
 
-    def __init__(self, num_bits=8, symmetric=False, per_channel=False, channel_dim=0):
+    def __init__(self, num_bits=8, symmetric=True, per_channel=False, channel_dim=0):
         super(IntQuantizedLayer, self).__init__()
         self.chopi = Chopi(num_bits=num_bits, symmetric=symmetric, per_channel=per_channel, channel_dim=channel_dim)
         
@@ -595,14 +595,13 @@ class BFPRound:
 
 
 # Quantized Linear Layer
-# Quantized Linear Layer
 class IntQuantizedLinear(nn.Module):
     def __init__(self, in_features, out_features, num_bits=8):
         super(IntQuantizedLinear, self).__init__()
         self.linear = nn.Linear(in_features, out_features)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         w = self.quantizer_w(self.linear.weight, training=self.training)
@@ -616,9 +615,9 @@ class IntQuantizedConv1d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv1d, self).__init__()
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
@@ -632,9 +631,9 @@ class IntQuantizedConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv2d, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
@@ -648,9 +647,9 @@ class IntQuantizedConv3d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv3d, self).__init__()
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
@@ -664,12 +663,12 @@ class IntQuantizedLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, num_bits=8):
         super(IntQuantizedLSTM, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_h = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_c = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_w_hh = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_h = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_c = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w_hh = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
@@ -696,11 +695,11 @@ class IntQuantizedGRU(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, num_bits=8):
         super(IntQuantizedGRU, self).__init__()
         self.gru = nn.GRU(input_size, hidden_size, num_layers=num_layers, batch_first=True)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_h = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_w_hh = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_h = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w_hh = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
@@ -723,11 +722,11 @@ class IntQuantizedAttention(nn.Module):
     def __init__(self, embed_dim, num_heads, num_bits=8):
         super(IntQuantizedAttention, self).__init__()
         self.attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
-        self.quantizer_q = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_k = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_v = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_q = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_k = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_v = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, query, key, value):
         q = self.quantizer_q(query, training=self.training)
@@ -745,9 +744,9 @@ class IntQuantizedBatchNorm2d(nn.Module):
     def __init__(self, num_features, num_bits=8):
         super(IntQuantizedBatchNorm2d, self).__init__()
         self.bn = nn.BatchNorm2d(num_features)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -761,8 +760,8 @@ class IntQuantizedReLU(nn.Module):
     def __init__(self, num_bits=8):
         super(IntQuantizedReLU, self).__init__()
         self.relu = nn.ReLU()
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -774,8 +773,8 @@ class IntQuantizedMaxPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, num_bits=8):
         super(IntQuantizedMaxPool2d, self).__init__()
         self.pool = nn.MaxPool2d(kernel_size, stride=stride, padding=padding)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -787,8 +786,8 @@ class IntQuantizedAvgPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, num_bits=8):
         super(IntQuantizedAvgPool2d, self).__init__()
         self.pool = nn.AvgPool2d(kernel_size, stride=stride, padding=padding)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -800,8 +799,8 @@ class IntQuantizedDropout(nn.Module):
     def __init__(self, p=0.5, num_bits=8):
         super(IntQuantizedDropout, self).__init__()
         self.dropout = nn.Dropout(p=p)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -813,8 +812,8 @@ class IntQuantizedFlatten(nn.Module):
     def __init__(self, start_dim=1, end_dim=-1, num_bits=8):
         super(IntQuantizedFlatten, self).__init__()
         self.flatten = nn.Flatten(start_dim=start_dim, end_dim=end_dim)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=False)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=False)
+        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)

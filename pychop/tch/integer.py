@@ -21,7 +21,7 @@ class Chopi(nn.Module):
         Dimension to treat as channel axis.
     """
     
-    def __init__(self, num_bits=8, symmetric=False, per_channel=False, channel_dim=0, verbose=True):
+    def __init__(self, num_bits=8, symmetric=False, per_channel=False, channel_dim=0, verbose=False):
         super(Chopi, self).__init__()
         self.num_bits = num_bits
         self.symmetric = symmetric
@@ -75,6 +75,7 @@ class Chopi(nn.Module):
         zero_point = 0 if self.symmetric else self.qmin - (min_val / scale)
 
         self.scale.data = scale.detach()
+
         if not self.symmetric:
             self.zero_point.data = zero_point.detach()
 
@@ -97,14 +98,18 @@ class Chopi(nn.Module):
             shape[self.channel_dim] = -1
             scale = self.scale.view(*shape)
             zero_point = self.zero_point.view(*shape) if not self.symmetric else 0
+
         else:
             scale = self.scale
             zero_point = self.zero_point if not self.symmetric else 0
+            
         q = torch.round(x / scale + zero_point)
         q = torch.clamp(q, self.qmin, self.qmax)
 
         if self.verbose:
-            print(f"Quantized range: [{x.min().item():.4f}, {x.max().item():.4f}], Scale: {scale.mean().item():.6f}, Clipped: {clipped.item():.4f}")
+            clipped = (q == self.qmin).float().mean() + (q == self.qmax).float().mean()
+            print(
+                f"Quantized range: [{x.min().item():.4f}, {x.max().item():.4f}], Scale: {scale.mean().item():.6f}, Clipped: {clipped.item():.4f}")
         
         return q.to(dtype=self.intType)
 
