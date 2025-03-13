@@ -124,6 +124,26 @@ class QuantizedConv1d(nn.Module):
         q_input = self.quantizer.quantize(x)
         return F.conv1d(q_input, q_weight, q_bias, self.conv.stride, self.conv.padding)
 
+
+class QuantizedConv2d(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: int or tuple, 
+                 exp_bits: int, sig_bits: int, stride: int or tuple = 1, 
+                 padding: int or tuple = 0, rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.weight = nn.Parameter(torch.randn(out_channels, in_channels, *([kernel_size] * 2 if isinstance(kernel_size, int) else kernel_size)))
+        self.bias = nn.Parameter(torch.randn(out_channels))
+        self.stride = stride if isinstance(stride, tuple) else (stride, stride)
+        self.padding = padding if isinstance(padding, tuple) else (padding, padding)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_weight = self.quantizer.quantize(self.weight)
+        q_input = self.quantizer.quantize(x)
+        output = nn.functional.conv2d(q_input, q_weight, stride=self.stride, padding=self.padding)
+        q_bias = self.quantizer.quantize(self.bias)
+        return output + q_bias.view(1, -1, 1, 1)
+
+
 class QuantizedConv3d(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, tuple], 
                  exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0, 
@@ -249,24 +269,6 @@ class QuantizedLinear(nn.Module):
         return output + q_bias
 
 
-
-class QuantizedConv2d(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int or tuple, 
-                 exp_bits: int, sig_bits: int, stride: int or tuple = 1, 
-                 padding: int or tuple = 0, rmode: int = 1):
-        super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
-        self.weight = nn.Parameter(torch.randn(out_channels, in_channels, *([kernel_size] * 2 if isinstance(kernel_size, int) else kernel_size)))
-        self.bias = nn.Parameter(torch.randn(out_channels))
-        self.stride = stride if isinstance(stride, tuple) else (stride, stride)
-        self.padding = padding if isinstance(padding, tuple) else (padding, padding)
-        
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_weight = self.quantizer.quantize(self.weight)
-        q_input = self.quantizer.quantize(x)
-        output = nn.functional.conv2d(q_input, q_weight, stride=self.stride, padding=self.padding)
-        q_bias = self.quantizer.quantize(self.bias)
-        return output + q_bias.view(1, -1, 1, 1)
 
 class QuantizedRNN(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
@@ -963,24 +965,6 @@ class IntQuantizedFlatten(nn.Module):
 # ----- Fixed-point arithmetic
 
 
-class FPQuantizedConv1d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
-        super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
-        self.initialize_weights()
-
-    def initialize_weights(self):
-        nn.init.kaiming_normal_(self.conv.weight, mode='fan_in', nonlinearity='relu')
-        if self.conv.bias is not None:
-            nn.init.zeros_(self.conv.bias)
-
-    def forward(self, x):
-        q_x = self.quantizer.quantize(x)
-        q_weight = self.quantizer.quantize(self.conv.weight)
-        q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
-        return self.conv._conv_forward(q_x, q_weight, q_bias)
-
 
 
 class FPQuantizedLSTM(nn.Module):
@@ -1081,6 +1065,26 @@ class FPQuantizedMaxPool2d(nn.Module):
     def forward(self, x):
         q_x = self.quantizer.quantize(x)
         return self.pool(q_x)
+
+
+class FPQuantizedConv1d(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
+        super().__init__()
+        self.quantizer = FPRound(int_bits, frac_bits)
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        nn.init.kaiming_normal_(self.conv.weight, mode='fan_in', nonlinearity='relu')
+        if self.conv.bias is not None:
+            nn.init.zeros_(self.conv.bias)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        q_weight = self.quantizer.quantize(self.conv.weight)
+        q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
+        return self.conv._conv_forward(q_x, q_weight, q_bias)
+
 
 class FPQuantizedConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
