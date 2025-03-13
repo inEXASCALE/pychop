@@ -4,7 +4,11 @@ from typing import Tuple
 class LightChop:
     """
     A class to simulate different floating-point precisions and rounding modes
-    for PyTorch tensors.
+    for PyTorch tensors. This code implements a custom floating-point precision simulator
+    that mimics IEEE 754 floating-point representation with configurable exponent bits (exp_bits),
+    significand bits (sig_bits), and various rounding modes (rmode). 
+    It uses PyTorch tensors for efficient computation and handles special cases like zeros,
+    infinities, NaNs, and subnormal numbers.
 
     Initialize with specific format parameters.
     Convert to custom float representation with proper IEEE 754 handling
