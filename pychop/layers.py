@@ -398,9 +398,66 @@ class QuantizedDropout(nn.Module):
         return self.dropout(q_input)
     
 
+class QuantizedBatchNorm1d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
+        super().__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
+
+    def forward(self, x):
+        x_q = self.quantizer.quantize(x)
+
+        # Handle input dimensions
+        if x_q.dim() == 2:  # Shape: (N, C)
+            dims = (0,)  # Mean over batch dimension
+        elif x_q.dim() == 3:  # Shape: (N, C, L)
+            dims = (0, 2)  # Mean over batch and length dimensions
+        else:
+            raise ValueError(f"Expected input tensor of 2 or 3 dimensions, got {x_q.dim()}")
+
+        if self.training:
+            # Compute batch statistics over appropriate dimensions
+            batch_mean = x_q.mean(dim=dims)
+            batch_var = x_q.var(dim=dims, unbiased=False)
+
+            # Update running statistics
+            with torch.no_grad():
+                self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
+                self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                self.num_batches_tracked += 1
+
+            mean = self.quantizer.quantize(batch_mean)
+            var = self.quantizer.quantize(batch_var)
+        else:
+            mean = self.quantizer.quantize(self.running_mean)
+            var = self.quantizer.quantize(self.running_var)
+
+        # Quantize parameters
+        weight_q = self.quantizer.quantize(self.weight)
+        bias_q = self.quantizer.quantize(self.bias)
+
+        # Normalize and scale with proper broadcasting
+        if x_q.dim() == 2:
+            x_normalized = (x_q - mean) / torch.sqrt(var + self.eps)
+            x_q = weight_q * x_normalized + bias_q
+        else:  # Shape: (N, C, L)
+            x_normalized = (x_q - mean.view(1, -1, 1)) / torch.sqrt(var.view(1, -1, 1) + self.eps)
+            x_q = weight_q.view(1, -1, 1) * x_normalized + bias_q.view(1, -1, 1)
+
+        return self.quantizer.quantize(x_q)
+
+
+
 class QuantizedBatchNorm2d(nn.Module):
-    def __init__(self, num_features: int, exp_bits: int, sig_bits: int, 
-                 eps: float = 1e-5, momentum: float = 0.1, rmode: int = 1):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
         super().__init__()
         self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
         self.num_features = num_features
@@ -433,6 +490,47 @@ class QuantizedBatchNorm2d(nn.Module):
         normalized = (q_input - q_mean.view(1, -1, 1, 1)) / torch.sqrt(q_var.view(1, -1, 1, 1) + self.eps)
         return q_weight.view(1, -1, 1, 1) * normalized + q_bias.view(1, -1, 1, 1)
 
+
+class QuantizedBatchNorm3d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
+        super().__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
+
+    def forward(self, x):
+        x_q = self.quantizer.quantize(x)
+
+        if self.training:
+            batch_mean = x_q.mean(dim=(0, 2, 3, 4))
+            batch_var = x_q.var(dim=(0, 2, 3, 4), unbiased=False)
+
+            with torch.no_grad():
+                self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
+                self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                self.num_batches_tracked += 1
+
+            mean = self.quantizer.quantize(batch_mean)
+            var = self.quantizer.quantize(batch_var)
+        else:
+            mean = self.quantizer.quantize(self.running_mean)
+            var = self.quantizer.quantize(self.running_var)
+
+        weight_q = self.quantizer.quantize(self.weight)
+        bias_q = self.quantizer.quantize(self.bias)
+
+        x_normalized = (x_q - mean.view(1, -1, 1, 1, 1)) / torch.sqrt(var.view(1, -1, 1, 1, 1) + self.eps)
+        x_q = weight_q.view(1, -1, 1, 1, 1) * x_normalized + bias_q.view(1, -1, 1, 1, 1)
+
+        return self.quantizer.quantize(x_q)
+    
 
 class QuantizedLayerNorm(nn.Module):
     def __init__(self, normalized_shape: int or tuple, exp_bits: int, sig_bits: int, 
@@ -880,21 +978,161 @@ class IntQuantizedAttention(nn.Module):
         out, _ = self.attn(q, k, v)
         return self.quantizer_out(out, training=self.training)
 
+
 # Quantized BatchNorm2d Layer
-class IntQuantizedBatchNorm2d(nn.Module):
-    def __init__(self, num_features, num_bits=8):
-        super(IntQuantizedBatchNorm2d, self).__init__()
-        self.bn = nn.BatchNorm2d(num_features)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+class IntQuantizedBatchNorm1d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, num_bits=8):
+        super().__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.quantizer = Chopi(num_bits=num_bits, symmetric=True)
+
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
 
     def forward(self, x):
-        x = self.quantizer_x(x, training=self.training)
-        w = self.quantizer_w(self.bn.weight, training=self.training)
-        b = self.quantizer_w(self.bn.bias, training=self.training)
-        out = self.bn(x)  # Note: Custom BN forward needed for quantized w, b
-        return self.quantizer_out(out, training=self.training)
+        x_q = self.quantizer.quantize(x)
+
+        # Handle input dimensions
+        if x_q.dim() == 2:  # Shape: (N, C)
+            dims = (0,)  # Mean over batch dimension
+        elif x_q.dim() == 3:  # Shape: (N, C, L)
+            dims = (0, 2)  # Mean over batch and length dimensions
+        else:
+            raise ValueError(f"Expected input tensor of 2 or 3 dimensions, got {x_q.dim()}")
+
+        if self.training:
+            # Compute batch statistics over appropriate dimensions
+            batch_mean = x_q.mean(dim=dims)
+            batch_var = x_q.var(dim=dims, unbiased=False)
+
+            # Update running statistics
+            with torch.no_grad():
+                self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
+                self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                self.num_batches_tracked += 1
+
+            mean = self.quantizer.quantize(batch_mean)
+            var = self.quantizer.quantize(batch_var)
+        else:
+            mean = self.quantizer.quantize(self.running_mean)
+            var = self.quantizer.quantize(self.running_var)
+
+        # Quantize parameters
+        weight_q = self.quantizer.quantize(self.weight)
+        bias_q = self.quantizer.quantize(self.bias)
+
+        # Normalize and scale with proper broadcasting
+        if x_q.dim() == 2:
+            x_normalized = (x_q - mean) / torch.sqrt(var + self.eps)
+            x_q = weight_q * x_normalized + bias_q
+        else:  # Shape: (N, C, L)
+            x_normalized = (x_q - mean.view(1, -1, 1)) / torch.sqrt(var.view(1, -1, 1) + self.eps)
+            x_q = weight_q.view(1, -1, 1) * x_normalized + bias_q.view(1, -1, 1)
+
+        return self.quantizer.quantize(x_q)
+
+
+
+
+class IntQuantizedBatchNorm2d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, num_bits=8):
+        super().__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.quantizer = Chopi(num_bits=num_bits, symmetric=True)
+
+        # Learnable parameters
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        
+        # Running statistics buffers
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
+
+    def forward(self, x):
+        # Quantize input
+        x_q = self.quantizer.quantize(x)
+
+        if self.training:
+            # Compute batch statistics over N, H, W dimensions (N, C, H, W)
+            batch_mean = x_q.mean(dim=(0, 2, 3))
+            batch_var = x_q.var(dim=(0, 2, 3), unbiased=False)
+
+            # Update running statistics
+            with torch.no_grad():
+                self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
+                self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                self.num_batches_tracked += 1
+
+            # Quantize batch statistics
+            mean = self.quantizer.quantize(batch_mean)
+            var = self.quantizer.quantize(batch_var)
+        else:
+            # Use quantized running statistics during inference
+            mean = self.quantizer.quantize(self.running_mean)
+            var = self.quantizer.quantize(self.running_var)
+
+        # Quantize parameters
+        weight_q = self.quantizer.quantize(self.weight)
+        bias_q = self.quantizer.quantize(self.bias)
+
+        # Normalize and scale
+        # Reshape mean and var to (1, C, 1, 1) for broadcasting
+        x_normalized = (x_q - mean.view(1, -1, 1, 1)) / torch.sqrt(var.view(1, -1, 1, 1) + self.eps)
+        x_q = weight_q.view(1, -1, 1, 1) * x_normalized + bias_q.view(1, -1, 1, 1)
+
+        # Quantize output
+        return self.quantizer.quantize(x_q)
+
+
+class IntQuantizedBatchNorm3d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, num_bits=8):
+        super().__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.quantizer = Chopi(num_bits=num_bits, symmetric=True)
+
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
+
+    def forward(self, x):
+        x_q = self.quantizer.quantize(x)
+
+        if self.training:
+            batch_mean = x_q.mean(dim=(0, 2, 3, 4))
+            batch_var = x_q.var(dim=(0, 2, 3, 4), unbiased=False)
+
+            with torch.no_grad():
+                self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
+                self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                self.num_batches_tracked += 1
+
+            mean = self.quantizer.quantize(batch_mean)
+            var = self.quantizer.quantize(batch_var)
+        else:
+            mean = self.quantizer.quantize(self.running_mean)
+            var = self.quantizer.quantize(self.running_var)
+
+        weight_q = self.quantizer.quantize(self.weight)
+        bias_q = self.quantizer.quantize(self.bias)
+
+        x_normalized = (x_q - mean.view(1, -1, 1, 1, 1)) / torch.sqrt(var.view(1, -1, 1, 1, 1) + self.eps)
+        x_q = weight_q.view(1, -1, 1, 1, 1) * x_normalized + bias_q.view(1, -1, 1, 1, 1)
+
+        return self.quantizer.quantize(x_q)
+    
+
 
 # Quantized ReLU Layer
 class IntQuantizedReLU(nn.Module):
@@ -964,13 +1202,29 @@ class IntQuantizedFlatten(nn.Module):
 
 # ----- Fixed-point arithmetic
 
+class FPQuantizedLinear(nn.Module):
+    def __init__(self, in_features, out_features, ibits=8, fbits=8, rmode=1):
+        super().__init__()
+        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.linear = nn.Linear(in_features, out_features)
+        self.initialize_weights()
 
+    def initialize_weights(self):
+        nn.init.kaiming_normal_(self.linear.weight, mode='fan_in', nonlinearity='linear')
+        nn.init.zeros_(self.linear.bias)
+
+    def forward(self, x):
+        q_x = self.quantizer.quantize(x)
+        q_weight = self.quantizer.quantize(self.linear.weight)
+        q_bias = self.quantizer.quantize(self.linear.bias)
+        return F.linear(q_x, q_weight, q_bias)
+        # return F.linear(q_x, self.linear.weight, self.linear.bias)
 
 
 class FPQuantizedLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, int_bits=8, frac_bits=8):
+    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=batch_first)
         self.initialize_weights()
 
@@ -993,10 +1247,11 @@ class FPQuantizedLSTM(nn.Module):
             param.data = self.quantizer.quantize(param.data)
         return self.lstm(q_x, (q_h0, q_c0))
 
+
 class FPQuantizedAttention(nn.Module):
-    def __init__(self, embed_dim, num_heads, int_bits=8, frac_bits=8):
+    def __init__(self, embed_dim, num_heads, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.attn = nn.MultiheadAttention(embed_dim, num_heads)
         self.initialize_weights()
 
@@ -1015,10 +1270,11 @@ class FPQuantizedAttention(nn.Module):
             param.data = self.quantizer.quantize(param.data)
         return self.attn(q_query, q_key, q_value, attn_mask=attn_mask)
 
+
 class FPQuantizedGRU(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, int_bits=8, frac_bits=8):
+    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=batch_first)
         self.initialize_weights()
 
@@ -1038,28 +1294,11 @@ class FPQuantizedGRU(nn.Module):
             param.data = self.quantizer.quantize(param.data)
         return self.gru(q_x, q_h0)
 
-class FPQuantizedLinear(nn.Module):
-    def __init__(self, in_features, out_features, int_bits=8, frac_bits=8):
-        super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
-        self.linear = nn.Linear(in_features, out_features)
-        self.initialize_weights()
-
-    def initialize_weights(self):
-        nn.init.kaiming_normal_(self.linear.weight, mode='fan_in', nonlinearity='linear')
-        nn.init.zeros_(self.linear.bias)
-
-    def forward(self, x):
-        q_x = self.quantizer.quantize(x)
-        q_weight = self.quantizer.quantize(self.linear.weight)
-        q_bias = self.quantizer.quantize(self.linear.bias)
-        return F.linear(q_x, q_weight, q_bias)
-        # return F.linear(q_x, self.linear.weight, self.linear.bias)
 
 class FPQuantizedMaxPool2d(nn.Module):
-    def __init__(self, kernel_size, stride=None, padding=0, int_bits=8, frac_bits=8):
+    def __init__(self, kernel_size, stride=None, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.pool = nn.MaxPool2d(kernel_size, stride, padding)
 
     def forward(self, x):
@@ -1068,9 +1307,9 @@ class FPQuantizedMaxPool2d(nn.Module):
 
 
 class FPQuantizedConv1d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
         self.initialize_weights()
 
@@ -1087,9 +1326,9 @@ class FPQuantizedConv1d(nn.Module):
 
 
 class FPQuantizedConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
         self.initialize_weights()
 
@@ -1104,10 +1343,11 @@ class FPQuantizedConv2d(nn.Module):
         q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
         return self.conv._conv_forward(q_x, q_weight, q_bias)
 
+
 class FPQuantizedConv3d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, int_bits=8, frac_bits=8):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride, padding)
         self.initialize_weights()
 
@@ -1122,38 +1362,198 @@ class FPQuantizedConv3d(nn.Module):
         q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
         return self.conv._conv_forward(q_x, q_weight, q_bias)
 
-class FPQuantizedBatchNorm2d(nn.Module):
-    def __init__(self, num_features, int_bits=8, frac_bits=8):
-        super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
-        self.bn = nn.BatchNorm2d(num_features)
-        self.initialize_weights()
 
-    def initialize_weights(self):
-        nn.init.ones_(self.bn.weight)
-        nn.init.zeros_(self.bn.bias)
+class FPQuantizedBatchNorm1d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, ibits=8, fbits=8, rmode=1):
+        super().__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.quantizer = FPRound(ibits, fbits, rmode)
+
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
 
     def forward(self, x):
-        q_x = self.quantizer.quantize(x)
-        q_weight = self.quantizer.quantize(self.bn.weight)
-        q_bias = self.quantizer.quantize(self.bn.bias)
-        return F.batch_norm(q_x, self.bn.running_mean, self.bn.running_var, 
-                            q_weight, q_bias, self.bn.training, self.bn.momentum, self.bn.eps)
+        x_q = self.quantizer.quantize(x)
 
-class FPQuantizedAvgPool2d(nn.Module):
-    def __init__(self, kernel_size, stride=None, padding=0, int_bits=8, frac_bits=8):
+        # Handle input dimensions
+        if x_q.dim() == 2:  # Shape: (N, C)
+            dims = (0,)  # Mean over batch dimension
+        elif x_q.dim() == 3:  # Shape: (N, C, L)
+            dims = (0, 2)  # Mean over batch and length dimensions
+        else:
+            raise ValueError(f"Expected input tensor of 2 or 3 dimensions, got {x_q.dim()}")
+
+        if self.training:
+            # Compute batch statistics over appropriate dimensions
+            batch_mean = x_q.mean(dim=dims)
+            batch_var = x_q.var(dim=dims, unbiased=False)
+
+            # Update running statistics
+            with torch.no_grad():
+                self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
+                self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                self.num_batches_tracked += 1
+
+            mean = self.quantizer.quantize(batch_mean)
+            var = self.quantizer.quantize(batch_var)
+        else:
+            mean = self.quantizer.quantize(self.running_mean)
+            var = self.quantizer.quantize(self.running_var)
+
+        # Quantize parameters
+        weight_q = self.quantizer.quantize(self.weight)
+        bias_q = self.quantizer.quantize(self.bias)
+
+        # Normalize and scale with proper broadcasting
+        if x_q.dim() == 2:
+            x_normalized = (x_q - mean) / torch.sqrt(var + self.eps)
+            x_q = weight_q * x_normalized + bias_q
+        else:  # Shape: (N, C, L)
+            x_normalized = (x_q - mean.view(1, -1, 1)) / torch.sqrt(var.view(1, -1, 1) + self.eps)
+            x_q = weight_q.view(1, -1, 1) * x_normalized + bias_q.view(1, -1, 1)
+
+        return self.quantizer.quantize(x_q)
+    
+
+class FPQuantizedBatchNorm2d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.quantizer = FPRound(ibits, fbits, rmode)
+
+        # Learnable parameters
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        
+        # Running statistics buffers
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
+
+    def forward(self, x):
+        # Quantize input
+        x_q = self.quantizer.quantize(x)
+
+        if self.training:
+            # Compute batch statistics over N, H, W dimensions (N, C, H, W)
+            batch_mean = x_q.mean(dim=(0, 2, 3))
+            batch_var = x_q.var(dim=(0, 2, 3), unbiased=False)
+
+            # Update running statistics
+            with torch.no_grad():
+                self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
+                self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                self.num_batches_tracked += 1
+
+            # Quantize batch statistics
+            mean = self.quantizer.quantize(batch_mean)
+            var = self.quantizer.quantize(batch_var)
+        else:
+            # Use quantized running statistics during inference
+            mean = self.quantizer.quantize(self.running_mean)
+            var = self.quantizer.quantize(self.running_var)
+
+        # Quantize parameters
+        weight_q = self.quantizer.quantize(self.weight)
+        bias_q = self.quantizer.quantize(self.bias)
+
+        # Normalize and scale
+        # Reshape mean and var to (1, C, 1, 1) for broadcasting
+        x_normalized = (x_q - mean.view(1, -1, 1, 1)) / torch.sqrt(var.view(1, -1, 1, 1) + self.eps)
+        x_q = weight_q.view(1, -1, 1, 1) * x_normalized + bias_q.view(1, -1, 1, 1)
+
+        # Quantize output
+        return self.quantizer.quantize(x_q)
+    
+    
+#class FPQuantizedBatchNorm2d(nn.Module):
+#    def __init__(self, num_features, ibits=8, fbits=8, rmode=1):
+#        super().__init__()
+#        self.quantizer = FPRound(ibits, fbits, rmode)
+#        self.bn = nn.BatchNorm2d(num_features)
+#        self.initialize_weights()
+#
+#    def initialize_weights(self):
+#        nn.init.ones_(self.bn.weight)
+#        nn.init.zeros_(self.bn.bias)
+#
+#    def forward(self, x):
+#        q_x = self.quantizer.quantize(x)
+#        q_weight = self.quantizer.quantize(self.bn.weight)
+#        q_bias = self.quantizer.quantize(self.bn.bias)
+#        return F.batch_norm(q_x, self.bn.running_mean, self.bn.running_var, 
+#                            q_weight, q_bias, self.bn.training, self.bn.momentum, self.bn.eps)
+
+
+
+class FPQuantizedBatchNorm3d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, ibits=8, fbits=8, rmode=1):
+        super().__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.quantizer = FPRound(ibits, fbits, rmode)
+
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
+
+    def forward(self, x):
+        x_q = self.quantizer.quantize(x)
+
+        if self.training:
+            # Compute batch statistics (N, C, D, H, W) -> mean/var over N, D, H, W
+            batch_mean = x_q.mean(dim=(0, 2, 3, 4))
+            batch_var = x_q.var(dim=(0, 2, 3, 4), unbiased=False)
+
+            # Update running statistics
+            with torch.no_grad():
+                self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
+                self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                self.num_batches_tracked += 1
+
+            mean = self.quantizer.quantize(batch_mean)
+            var = self.quantizer.quantize(batch_var)
+        else:
+            mean = self.quantizer.quantize(self.running_mean)
+            var = self.quantizer.quantize(self.running_var)
+
+        # Quantize parameters
+        weight_q = self.quantizer.quantize(self.weight)
+        bias_q = self.quantizer.quantize(self.bias)
+
+        # Normalize and scale
+        x_normalized = (x_q - mean.view(1, -1, 1, 1, 1)) / torch.sqrt(var.view(1, -1, 1, 1, 1) + self.eps)
+        x_q = weight_q.view(1, -1, 1, 1, 1) * x_normalized + bias_q.view(1, -1, 1, 1, 1)
+
+        # Quantize output
+        return self.quantizer.quantize(x_q)
+    
+    
+class FPQuantizedAvgPool2d(nn.Module):
+    def __init__(self, kernel_size, stride=None, padding=0, ibits=8, fbits=8, rmode=1):
+        super().__init__()
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.pool = nn.AvgPool2d(kernel_size, stride, padding)
 
     def forward(self, x):
         q_x = self.quantizer.quantize(x)
         return self.pool(q_x)
 
+
 class FPQuantizedDropout(nn.Module):
-    def __init__(self, p=0.5, int_bits=8, frac_bits=8):
+    def __init__(self, p=0.5, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(int_bits, frac_bits)
+        self.quantizer = FPRound(ibits, fbits, rmode)
         self.dropout = nn.Dropout(p)
 
     def forward(self, x):

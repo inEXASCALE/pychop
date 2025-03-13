@@ -39,6 +39,14 @@ if __name__ == "__main__":
     loss_lstm.backward()
     print("Quantized LSTM - Output shape:", y_lstm.shape, "Gradients:", x_lstm.grad is not None)
 
+    # Test QuantizedBatchNorm1d
+    bn_layer = QuantizedBatchNorm1d(3, 5, 10, rmode=1).to(device)
+    x_bn = torch.randn(2, 3, 32, device=device, requires_grad=True)
+    y_bn = bn_layer(x_bn)
+    loss_bn = y_bn.sum()
+    loss_bn.backward()
+    print("Quantized BatchNorm1d - Output shape:", y_bn.shape, "Gradients:", x_bn.grad is not None)
+    
     # Test QuantizedBatchNorm2d
     bn_layer = QuantizedBatchNorm2d(3, 5, 10, rmode=1).to(device)
     x_bn = torch.randn(2, 3, 32, 32, device=device, requires_grad=True)
@@ -46,6 +54,14 @@ if __name__ == "__main__":
     loss_bn = y_bn.sum()
     loss_bn.backward()
     print("Quantized BatchNorm2d - Output shape:", y_bn.shape, "Gradients:", x_bn.grad is not None)
+    
+    # Test QuantizedBatchNorm3d
+    bn_layer = QuantizedBatchNorm3d(3, 5, 10, rmode=1).to(device)
+    x_bn = torch.randn(2, 3, 32, 32, 32, device=device, requires_grad=True)
+    y_bn = bn_layer(x_bn)
+    loss_bn = y_bn.sum()
+    loss_bn.backward()
+    print("Quantized BatchNorm3d - Output shape:", y_bn.shape, "Gradients:", x_bn.grad is not None)
     
     # Test QuantizedLayerNorm
     ln_layer = QuantizedLayerNorm(512, 5, 10, rmode=4).to(device)

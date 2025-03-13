@@ -113,18 +113,32 @@ target_conv3d = torch.randn(2, 16, 8, 8, 8).to(device)
 test_layer(FPQuantizedConv3d, nn.Conv3d, x_conv3d, target_conv3d, 
            init_args={'in_channels': 3, 'out_channels': 16, 'kernel_size': 3})
 
-# 9. BatchNorm2d
+
+# 9. BatchNorm1d
+x_bn = torch.randn(16, 32, 3).to(device)
+target_bn = torch.randn(16, 32, 3).to(device)
+test_layer(FPQuantizedBatchNorm1d, nn.BatchNorm1d, x_bn, target_bn, 
+           init_args={'num_features': 32})
+
+# 10. BatchNorm2d
 x_bn = torch.randn(2, 3, 16, 16).to(device)
 target_bn = torch.randn(2, 3, 16, 16).to(device)
 test_layer(FPQuantizedBatchNorm2d, nn.BatchNorm2d, x_bn, target_bn, 
            init_args={'num_features': 3})
 
-# 10. AvgPool2d
+# 11. BatchNorm3d
+x_bn = torch.randn(2, 3, 16, 16, 16).to(device)
+target_bn = torch.randn(2, 3, 16, 16, 16).to(device)
+test_layer(FPQuantizedBatchNorm3d, nn.BatchNorm3d, x_bn, target_bn, 
+           init_args={'num_features': 3})
+
+
+# 12. AvgPool2d
 x_avgpool = torch.randn(2, 3, 16, 16).to(device)
 test_layer(FPQuantizedAvgPool2d, nn.AvgPool2d, x_avgpool, 
            init_args={'kernel_size': 2, 'stride': 2})
 
-# 11. Dropout
+# 13. Dropout
 x_dropout = torch.randn(2, 10).to(device)
 test_layer(FPQuantizedDropout, nn.Dropout, x_dropout, 
            init_args={'p': 0.1})
