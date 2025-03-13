@@ -26,7 +26,7 @@ def test_quantized_optimizers():
     # Test each optimizer
     optimizers = [
         ("SGD", QuantizedSGD(model.parameters(), lr=0.01, momentum=0.9, exp_bits=5, sig_bits=10, rmode=1)),
-        ("RMSprop", QuantizedRMSprop(model.parameters(), lr=0.01, exp_bits=5, sig_bits=10, rmode=5)),
+        ("RMSprop", QuantizedRMSProp(model.parameters(), lr=0.01, exp_bits=5, sig_bits=10, rmode=5)),
         ("Adagrad", QuantizedAdagrad(model.parameters(), lr=0.01, exp_bits=5, sig_bits=10, rmode=4)),
         ("Adam", QuantizedAdam(model.parameters(), lr=0.001, exp_bits=5, sig_bits=10, rmode=6))
     ]

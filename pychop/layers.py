@@ -3,7 +3,7 @@ import torch
 from .fixed_point import FPRound
 from .tch.integer import Chopi
 import torch.nn as nn
-from typing import Tuple
+from typing import Tuple, Union
 import torch.nn.functional as F
 
 class QuantizedLayer(torch.nn.Module):
@@ -106,6 +106,134 @@ class FQuantizedLayer(nn.Module):
         
         return self.quantizer.quantize(x, self.rmode)
 
+
+
+# Quantized Convolutional Layers
+class QuantizedConv1d(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, tuple], 
+                 exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
+
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_weight = self.quantizer.quantize(self.conv.weight)
+        q_bias = self.quantizer.quantize(self.conv.bias)
+        q_input = self.quantizer.quantize(x)
+        return F.conv1d(q_input, q_weight, q_bias, self.conv.stride, self.conv.padding)
+
+class QuantizedConv3d(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, tuple], 
+                 exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
+
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_weight = self.quantizer.quantize(self.conv.weight)
+        q_bias = self.quantizer.quantize(self.conv.bias)
+        q_input = self.quantizer.quantize(x)
+        return F.conv3d(q_input, q_weight, q_bias, self.conv.stride, self.conv.padding)
+
+# Quantized Pooling Layers
+class QuantizedMaxPool1d(nn.Module):
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return F.max_pool1d(q_input, self.kernel_size, self.stride)
+
+class QuantizedMaxPool2d(nn.Module):
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return F.max_pool2d(q_input, self.kernel_size, self.stride)
+
+class QuantizedMaxPool3d(nn.Module):
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return F.max_pool3d(q_input, self.kernel_size, self.stride)
+
+class QuantizedAvgPool(nn.Module):
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return F.avg_pool2d(q_input, self.kernel_size, self.stride)
+
+class QuantizedAvgPool1d(nn.Module):
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return F.avg_pool1d(q_input, self.kernel_size, self.stride)
+
+class QuantizedAvgPool2d(nn.Module):
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return F.avg_pool2d(q_input, self.kernel_size, self.stride)
+
+# Quantized Attention
+class QuantizedAttention(nn.Module):
+    def __init__(self, hidden_size: int, exp_bits: int, sig_bits: int, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.hidden_size = hidden_size
+        self.query = nn.Linear(hidden_size, hidden_size)
+        self.key = nn.Linear(hidden_size, hidden_size)
+        self.value = nn.Linear(hidden_size, hidden_size)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q = self.quantizer.quantize(self.query(x))
+        k = self.quantizer.quantize(self.key(x))
+        v = self.quantizer.quantize(self.value(x))
+        scores = self.quantizer.quantize(torch.matmul(q, k.transpose(-2, -1)) / (self.hidden_size ** 0.5))
+        attn = self.quantizer.quantize(F.softmax(scores, dim=-1))
+        return torch.matmul(attn, v)
+
+    
 
 class QuantizedLinear(nn.Module):
     def __init__(self, in_features: int, out_features: int, exp_bits: int, sig_bits: int, rmode: int = 1):
@@ -256,6 +384,18 @@ class QuantizedLSTM(nn.Module):
         output = torch.cat(outputs, dim=1)
         return output, (h, c)
 
+# Quantized Dropout
+class QuantizedDropout(nn.Module):
+    def __init__(self, p: float, exp_bits: int, sig_bits: int, 
+                 rmode: int = 1):
+        super().__init__()
+        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.dropout = nn.Dropout(p)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.dropout(q_input)
+    
 
 class QuantizedBatchNorm2d(nn.Module):
     def __init__(self, num_features: int, exp_bits: int, sig_bits: int, 
@@ -841,6 +981,7 @@ class FPQuantizedConv1d(nn.Module):
         q_weight = self.quantizer.quantize(self.conv.weight)
         q_bias = self.quantizer.quantize(self.conv.bias) if self.conv.bias is not None else None
         return self.conv._conv_forward(q_x, q_weight, q_bias)
+
 
 
 class FPQuantizedLSTM(nn.Module):
