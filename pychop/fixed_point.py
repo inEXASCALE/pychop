@@ -1,5 +1,4 @@
 import os
-from .tch import FPRound
 
 class Chopf(object):
     """
@@ -25,7 +24,7 @@ class Chopf(object):
 
     """
 
-    def __init__(self, ibits=4, fbits=4, rmode: str = "nearest",):
+    def __init__(self, ibits=4, fbits=4, rmode: int =1):
         if os.environ['chop_backend'] == 'torch':
             # from .tch import fixed_point
             from .tch import FPRound
@@ -37,7 +36,7 @@ class Chopf(object):
             from .np import FPRound
 
         self.rmode = rmode
-        self.fpr = FPRound(ibits, fbits)
+        self.fpr = FPRound(ibits, fbits, self.rmode)
 
     def __call__(self, x):
         """
@@ -49,7 +48,7 @@ class Chopf(object):
         x_q : numpy.ndarray | jax.Array | torch.Tensor, 
             The quantized array.
         """
-        return self.fpr.quantize(x, self.rmode)
+        return self.fpr.quantize(x)
     
 
 

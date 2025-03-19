@@ -2,9 +2,8 @@ import numpy as np
 from typing import Tuple
 
 
-
 class FPRound:
-    def __init__(self, ibits: int, fbits: int):
+    def __init__(self, ibits: int, fbits: int, rmode: int=1):
         """
         Initialize fixed-point simulator.
         
@@ -13,9 +12,18 @@ class FPRound:
         ibits : int, default=4
             The bitwidth of integer part. 
     
-        fractional_bit : int, default=4
+        fbits : int, default=4
             The bitwidth of fractional part. 
-            
+
+        rmode : str | int
+            - 0 or "nearest_odd": Round to nearest value, ties to odd (Not implemented). 
+            - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+            - 2 or "plus_inf": Round towards plus infinity (round up).
+            - 3 or "minus_inf": Round towards minus infinity (round down).
+            - 4 or "toward_zero": Truncate toward zero (no rounding up).
+            - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+
         """
         
         self.ibits = ibits
@@ -24,7 +32,8 @@ class FPRound:
         self.max_value = 2 ** (ibits - 1) - 2 ** (-fbits)
         self.min_value = -2 ** (ibits - 1)
         self.resolution = 2 ** (-fbits)
-
+        self.rmode = rmode
+        
     def _to_fixed_point_components(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Extract sign and magnitude from floating-point input.
@@ -47,8 +56,7 @@ class FPRound:
     def _quantize(self, 
                   x: np.ndarray,
                   sign: np.ndarray,
-                  abs_x: np.ndarray,
-                  rmode: str) -> np.ndarray:
+                  abs_x: np.ndarray) -> np.ndarray:
         """
         Quantize to fixed-point with specified rounding mode.
         
@@ -63,15 +71,6 @@ class FPRound:
         abs_x : numpy.ndarray
             Absolute values of input
             
-        rmode : str | int
-            - 0 or "nearest_odd": Round to nearest value, ties to odd (Not implemented). 
-            - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
-            - 2 or "plus_inf": Round towards plus infinity (round up).
-            - 3 or "minus_inf": Round towards minus infinity (round down).
-            - 4 or "toward_zero": Truncate toward zero (no rounding up).
-            - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
-            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
-
         Returns
         ----------  
         result : numpy.ndarray
@@ -82,31 +81,31 @@ class FPRound:
 
         scaled = abs_x / self.resolution
 
-        if rmode in {"nearest", 1}:
+        if self.rmode in {"nearest", 1}:
             quantized = np.round(scaled)
 
-        elif rmode in {"plus_inf", 2}:
+        elif self.rmode in {"plus_inf", 2}:
             quantized = np.where(sign > 0, np.ceil(scaled), np.floor(scaled))
 
-        elif rmode in {"minus_inf", 3}:
+        elif self.rmode in {"minus_inf", 3}:
             quantized = np.where(sign > 0, np.floor(scaled), np.ceil(scaled))
 
-        elif rmode in {"towards_zero", 4}:
+        elif self.rmode in {"towards_zero", 4}:
             quantized = np.trunc(scaled)
 
-        elif rmode in {"stoc_prop", 5}:
+        elif self.rmode in {"stoc_prop", 5}:
             floor_val = np.floor(scaled)
             fraction = scaled - floor_val
             prob = np.random.random(scaled.shape)
             quantized = np.where(prob < fraction, floor_val + 1, floor_val)
 
-        elif rmode in {"stoc_equal", 6}:
+        elif self.rmode in {"stoc_equal", 6}:
             floor_val = np.floor(scaled)
             prob = np.random.random(scaled.shape)
             quantized = np.where(prob < 0.5, floor_val, floor_val + 1)
 
         else:
-            raise ValueError(f"Unsupported rounding mode: {rmode}")
+            raise ValueError(f"Unsupported rounding mode: {self.rmode}")
 
         result = sign * quantized * self.resolution
         result = np.clip(result, self.min_value, self.max_value)
@@ -116,7 +115,7 @@ class FPRound:
 
         return result
 
-    def quantize(self, x: np.ndarray, rmode: str = "nearest") -> np.ndarray:
+    def quantize(self, x: np.ndarray) -> np.ndarray:
         """
         Convert floating-point tensor to fixed-point representation with specified rounding method.
         
@@ -124,18 +123,14 @@ class FPRound:
         ----------  
         x : numpy.ndarray
             Input tensor
-                        
-        rmode : str
-            One of 'nearest', 'up', 'down', 'towards_zero', 
-            'stochastic_equal', 'stochastic_proportional'
-        
+            
         Returns
         ----------  
         result : numpy.ndarray
             Quantized tensor in fixed-point representation
         """
         sign, abs_x = self._to_fixed_point_components(x)
-        return self._quantize(x, sign, abs_x, rmode)
+        return self._quantize(x, sign, abs_x)
 
     
     def get_format_info(self) -> dict:

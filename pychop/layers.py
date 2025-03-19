@@ -1,6 +1,6 @@
 import torch
 # from .lightchop import LightChop
-from .fixed_point import FPRound
+from .tch.fixed_point import FPRound
 from .tch.integer import Chopi
 import torch.nn as nn
 from typing import Tuple, Union
