@@ -24,7 +24,7 @@ class Chopf(object):
 
     """
 
-    def __init__(self, ibits=4, fbits=4, rmode: int =1):
+    def __init__(self, ibits: int=4, fbits: int=4, rmode: int =1):
         if os.environ['chop_backend'] == 'torch':
             # from .tch import fixed_point
             from .tch import FPRound
