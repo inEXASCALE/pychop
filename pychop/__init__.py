@@ -19,10 +19,11 @@ from typing import Optional
 
 @dataclass
 class Customs:
-    emax: Optional[int] = None
-    t: Optional[int] = None
-    exp_bits: Optional[int] = None
-    sig_bits: Optional[int] = None
+    emax: Optional[int] = None # the maximum value of the exponent.
+    t: Optional[int] = None # the number of bits in the significand (including the hidden bit)
+    exp_bits: Optional[int] = None # the exponent bits
+    sig_bits: Optional[int] = None  # the significand bits (not including the hidden bit)
+
 
 @dataclass
 class Options:
