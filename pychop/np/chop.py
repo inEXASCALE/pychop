@@ -397,8 +397,6 @@ class Chop(object):
         return self.chop_wrapper(result)
 
     def bitwise_or(self, x, y):
-        
-        
         x = self.chop_wrapper(x)
         y = self.chop_wrapper(y)
         result = np.bitwise_or(x, y)
