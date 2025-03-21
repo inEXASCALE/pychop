@@ -213,7 +213,18 @@ class FPRound:
             "resolution": self.resolution
         }
 
-    
+    def __call__(self, x):
+        """
+        x : numpy.ndarray | jax.Array | torch.Tensor,
+            The input array. 
+
+        Returns
+        ----------
+        x_q : numpy.ndarray | jax.Array | torch.Tensor, 
+            The quantized array.
+        """
+        return self.quantize(x)
+        
     # Trigonometric Functions
     def sin(self, x):
         x = self.quantize(x)
