@@ -59,16 +59,14 @@ The supported floating point arithmetic formats include:
 |  'd', 'double', 'fp64'    | IEEE double precision | 11 exponent bits, 52 significand bits |
 |  'c', 'custom'            | custom format | - - |
 
-Users can specify the number of exponent (exp_bits) and significand (sig_bits) bits, enabling precise control over the trade-off between range and precision. 
-For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (1 sign, 5 exponent, 4 significand), ideal for testing minimal precision scenarios.
-
-The code example can be found on the [quick start page](https://github.com/chenxinye/pychop/blob/main/guidance.ipynb).
-
 
 ### Examples
 We will go through the main functionality of ``pychop``, the detail can be referred to the documentation. 
 
 #### (I). Floating point quantization
+Users can specify the number of exponent (exp_bits) and significand (sig_bits) bits, enabling precise control over the trade-off between range and precision. 
+For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (1 sign, 5 exponent, 4 significand), ideal for testing minimal precision scenarios.
+
 Rounding the values with specified precision format:
 
 ``pychop`` supports faster low-precision floating point quantization and also enable GPU emulation (simply move the input to GPU device), with different rounding ways:
@@ -164,6 +162,8 @@ ch = Chopf(ibits=4, fbits=4)
 Xq = ch(X)
 ```
 
+
+The code example can be found on the [guidance1](https://github.com/chenxinye/pychop/example/guidance1.ipynb) and [guidance2](https://github.com/chenxinye/pychop/example/guidance2.ipynb).
 
 #### (III). Integer quantization
 
