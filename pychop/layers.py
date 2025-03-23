@@ -733,9 +733,9 @@ class IntQuantizedConv3d(nn.Module):
 
 # Quantized LSTM Layer (Simplified, custom forward needed for full quantization)
 class IntQuantizedLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers=1, num_bits=8):
+    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=False, num_bits=8):
         super(IntQuantizedLSTM, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=batch_first)
         self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
         self.quantizer_h = Chopi(num_bits=num_bits, symmetric=True)
         self.quantizer_c = Chopi(num_bits=num_bits, symmetric=True)
@@ -765,9 +765,9 @@ class IntQuantizedLSTM(nn.Module):
 
 # Quantized GRU Layer (Simplified, custom forward needed)
 class IntQuantizedGRU(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers=1, num_bits=8):
+    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=False, num_bits=8):
         super(IntQuantizedGRU, self).__init__()
-        self.gru = nn.GRU(input_size, hidden_size, num_layers=num_layers, batch_first=True)
+        self.gru = nn.GRU(input_size, hidden_size, num_layers=num_layers, batch_first=batch_first)
         self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
         self.quantizer_h = Chopi(num_bits=num_bits, symmetric=True)
         self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=True)
@@ -809,8 +809,9 @@ class IntQuantizedAttention(nn.Module):
         w_q = self.quantizer_w(self.attn.in_proj_weight[:self.attn.embed_dim], training=self.training)
         w_k = self.quantizer_w(self.attn.in_proj_weight[self.attn.embed_dim:2*self.attn.embed_dim], training=self.training)
         w_v = self.quantizer_w(self.attn.in_proj_weight[2*self.attn.embed_dim:], training=self.training)
-        out, _ = self.attn(q, k, v)
-        return self.quantizer_out(out, training=self.training)
+        out, weights = self.attn(q, k, v)
+        quantized_output = self.quantizer_out(out, training=self.training)
+        return quantized_output, weights
 
 
 # Quantized BatchNorm2d Layer
@@ -829,7 +830,8 @@ class IntQuantizedBatchNorm1d(nn.Module):
         self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
 
     def forward(self, x):
-        x_q = self.quantizer.quantize(x)
+        # Apply fake quantization during training, true quantization during inference
+        x_q = self.quantizer(x, training=self.training)
 
         # Handle input dimensions
         if x_q.dim() == 2:  # Shape: (N, C)
@@ -840,35 +842,36 @@ class IntQuantizedBatchNorm1d(nn.Module):
             raise ValueError(f"Expected input tensor of 2 or 3 dimensions, got {x_q.dim()}")
 
         if self.training:
-            # Compute batch statistics over appropriate dimensions
+            # Compute batch statistics on fake-quantized input (floating-point)
             batch_mean = x_q.mean(dim=dims)
             batch_var = x_q.var(dim=dims, unbiased=False)
 
-            # Update running statistics
+            # Update running statistics with floating-point values
             with torch.no_grad():
                 self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
                 self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
                 self.num_batches_tracked += 1
 
-            mean = self.quantizer.quantize(batch_mean)
-            var = self.quantizer.quantize(batch_var)
+            mean = batch_mean
+            var = batch_var
         else:
-            mean = self.quantizer.quantize(self.running_mean)
-            var = self.quantizer.quantize(self.running_var)
+            mean = self.running_mean
+            var = self.running_var
 
-        # Quantize parameters
-        weight_q = self.quantizer.quantize(self.weight)
-        bias_q = self.quantizer.quantize(self.bias)
+        # Quantize parameters using fake quantization during training
+        weight_q = self.quantizer(self.weight, training=self.training)
+        bias_q = self.quantizer(self.bias, training=self.training)
 
         # Normalize and scale with proper broadcasting
         if x_q.dim() == 2:
             x_normalized = (x_q - mean) / torch.sqrt(var + self.eps)
-            x_q = weight_q * x_normalized + bias_q
+            x_out = weight_q * x_normalized + bias_q
         else:  # Shape: (N, C, L)
             x_normalized = (x_q - mean.view(1, -1, 1)) / torch.sqrt(var.view(1, -1, 1) + self.eps)
-            x_q = weight_q.view(1, -1, 1) * x_normalized + bias_q.view(1, -1, 1)
+            x_out = weight_q.view(1, -1, 1) * x_normalized + bias_q.view(1, -1, 1)
 
-        return self.quantizer.quantize(x_q)
+        # Apply output quantization
+        return self.quantizer(x_out, training=self.training)
 
 
 
@@ -879,52 +882,52 @@ class IntQuantizedBatchNorm2d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
+        # Initialize the quantizer (assuming Chopi is your quantizer class)
         self.quantizer = Chopi(num_bits=num_bits, symmetric=True)
 
         # Learnable parameters
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
-        
-        # Running statistics buffers
+        # Buffers for running statistics
         self.register_buffer('running_mean', torch.zeros(num_features))
         self.register_buffer('running_var', torch.ones(num_features))
         self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
 
     def forward(self, x):
-        # Quantize input
-        x_q = self.quantizer.quantize(x)
+        # Apply quantization to input
+        # During training, this should return a fake-quantized float tensor
+        x_q = self.quantizer(x, training=self.training)
 
         if self.training:
-            # Compute batch statistics over N, H, W dimensions (N, C, H, W)
+            # Compute batch statistics using the fake-quantized (float) input
             batch_mean = x_q.mean(dim=(0, 2, 3))
             batch_var = x_q.var(dim=(0, 2, 3), unbiased=False)
 
-            # Update running statistics
+            # Update running statistics (in float)
             with torch.no_grad():
                 self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
                 self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
                 self.num_batches_tracked += 1
 
-            # Quantize batch statistics
-            mean = self.quantizer.quantize(batch_mean)
-            var = self.quantizer.quantize(batch_var)
+            mean = batch_mean
+            var = batch_var
         else:
-            # Use quantized running statistics during inference
-            mean = self.quantizer.quantize(self.running_mean)
-            var = self.quantizer.quantize(self.running_var)
+            # Use running statistics during inference
+            mean = self.running_mean
+            var = self.running_var
 
-        # Quantize parameters
-        weight_q = self.quantizer.quantize(self.weight)
-        bias_q = self.quantizer.quantize(self.bias)
+        # Quantize parameters (weight and bias) with fake quantization during training
+        weight_q = self.quantizer(self.weight, training=self.training)
+        bias_q = self.quantizer(self.bias, training=self.training)
 
-        # Normalize and scale
-        # Reshape mean and var to (1, C, 1, 1) for broadcasting
+        # Perform batch normalization with proper broadcasting
         x_normalized = (x_q - mean.view(1, -1, 1, 1)) / torch.sqrt(var.view(1, -1, 1, 1) + self.eps)
-        x_q = weight_q.view(1, -1, 1, 1) * x_normalized + bias_q.view(1, -1, 1, 1)
+        x_out = weight_q.view(1, -1, 1, 1) * x_normalized + bias_q.view(1, -1, 1, 1)
 
-        # Quantize output
-        return self.quantizer.quantize(x_q)
+        # Apply output quantization
+        return self.quantizer(x_out, training=self.training)
 
+        
 
 class IntQuantizedBatchNorm3d(nn.Module):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, num_bits=8):
@@ -941,7 +944,9 @@ class IntQuantizedBatchNorm3d(nn.Module):
         self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
 
     def forward(self, x):
-        x_q = self.quantizer.quantize(x)
+        # Apply quantization to input
+        # During training, this should return a fake-quantized float tensor
+        x_q = self.quantizer(x, training=self.training)
 
         if self.training:
             batch_mean = x_q.mean(dim=(0, 2, 3, 4))
@@ -952,19 +957,19 @@ class IntQuantizedBatchNorm3d(nn.Module):
                 self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
                 self.num_batches_tracked += 1
 
-            mean = self.quantizer.quantize(batch_mean)
-            var = self.quantizer.quantize(batch_var)
+            mean = self.quantizer(batch_mean, training=self.training)
+            var = self.quantizer(batch_var, training=self.training)
         else:
-            mean = self.quantizer.quantize(self.running_mean)
-            var = self.quantizer.quantize(self.running_var)
+            mean = self.quantizer(self.running_mean, training=self.training)
+            var = self.quantizer(self.running_var, training=self.training)
 
-        weight_q = self.quantizer.quantize(self.weight)
-        bias_q = self.quantizer.quantize(self.bias)
+        weight_q = self.quantizer(self.weight, training=self.training)
+        bias_q = self.quantizer(self.bias, training=self.training)
 
         x_normalized = (x_q - mean.view(1, -1, 1, 1, 1)) / torch.sqrt(var.view(1, -1, 1, 1, 1) + self.eps)
         x_q = weight_q.view(1, -1, 1, 1, 1) * x_normalized + bias_q.view(1, -1, 1, 1, 1)
 
-        return self.quantizer.quantize(x_q)
+        return self.quantizer(x_q, training=self.training)
     
 
 

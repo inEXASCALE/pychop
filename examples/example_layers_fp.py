@@ -63,82 +63,83 @@ def test_layer(quantized_class, normal_class, input_tensor, target_tensor=None, 
             assert param.grad is not None, f"No gradients for {name}"
         print(f"{quantized_class.__name__}: Backward pass gradients OK, Loss: {loss.item():.4f}")
 
-# Test Cases
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if __name__ == "__main__":
+    # Test Cases
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 1. Conv1d
-x_conv1d = torch.randn(2, 3, 10).to(device)
-target_conv1d = torch.randn(2, 16, 8).to(device)
-test_layer(FPQuantizedConv1d, nn.Conv1d, x_conv1d, target_conv1d, 
-           init_args={'in_channels': 3, 'out_channels': 16, 'kernel_size': 3})
+    # 1. Conv1d
+    x_conv1d = torch.randn(2, 3, 10).to(device)
+    target_conv1d = torch.randn(2, 16, 8).to(device)
+    test_layer(FPQuantizedConv1d, nn.Conv1d, x_conv1d, target_conv1d, 
+            init_args={'in_channels': 3, 'out_channels': 16, 'kernel_size': 3})
 
-# 2. LSTM
-x_lstm = torch.randn(2, 5, 10).to(device)
-target_lstm = torch.randn(2, 5, 20).to(device)
-test_layer(FPQuantizedLSTM, nn.LSTM, x_lstm, target_lstm, 
-           init_args={'input_size': 10, 'hidden_size': 20, 'num_layers': 1, 'batch_first': True})
+    # 2. LSTM
+    x_lstm = torch.randn(2, 5, 10).to(device)
+    target_lstm = torch.randn(2, 5, 20).to(device)
+    test_layer(FPQuantizedLSTM, nn.LSTM, x_lstm, target_lstm, 
+            init_args={'input_size': 10, 'hidden_size': 20, 'num_layers': 1, 'batch_first': True})
 
-# 3. Attention
-x_attn = torch.randn(5, 2, 32).to(device)  # [seq_len, batch, embed_dim]
-target_attn = torch.randn(5, 2, 32).to(device)
-test_layer(FPQuantizedAttention, nn.MultiheadAttention, x_attn, target_attn, 
-           init_args={'embed_dim': 32, 'num_heads': 4}, key=x_attn, value=x_attn)
+    # 3. Attention
+    x_attn = torch.randn(5, 2, 32).to(device)  # [seq_len, batch, embed_dim]
+    target_attn = torch.randn(5, 2, 32).to(device)
+    test_layer(FPQuantizedAttention, nn.MultiheadAttention, x_attn, target_attn, 
+            init_args={'embed_dim': 32, 'num_heads': 4}, key=x_attn, value=x_attn)
 
-# 4. GRU
-x_gru = torch.randn(2, 5, 10).to(device)
-target_gru = torch.randn(2, 5, 20).to(device)
-test_layer(FPQuantizedGRU, nn.GRU, x_gru, target_gru, 
-           init_args={'input_size': 10, 'hidden_size': 20, 'num_layers': 1, 'batch_first': True})
+    # 4. GRU
+    x_gru = torch.randn(2, 5, 10).to(device)
+    target_gru = torch.randn(2, 5, 20).to(device)
+    test_layer(FPQuantizedGRU, nn.GRU, x_gru, target_gru, 
+            init_args={'input_size': 10, 'hidden_size': 20, 'num_layers': 1, 'batch_first': True})
 
-# 5. Linear
-x_linear = torch.randn(2, 784).to(device)
-target_linear = torch.randn(2, 10).to(device)
-test_layer(FPQuantizedLinear, nn.Linear, x_linear, target_linear, 
-           init_args={'in_features': 784, 'out_features': 10})
+    # 5. Linear
+    x_linear = torch.randn(2, 784).to(device)
+    target_linear = torch.randn(2, 10).to(device)
+    test_layer(FPQuantizedLinear, nn.Linear, x_linear, target_linear, 
+            init_args={'in_features': 784, 'out_features': 10})
 
-# 6. MaxPool2d
-x_maxpool = torch.randn(2, 3, 16, 16).to(device)
-test_layer(FPQuantizedMaxPool2d, nn.MaxPool2d, x_maxpool, 
-           init_args={'kernel_size': 2, 'stride': 2})
+    # 6. MaxPool2d
+    x_maxpool = torch.randn(2, 3, 16, 16).to(device)
+    test_layer(FPQuantizedMaxPool2d, nn.MaxPool2d, x_maxpool, 
+            init_args={'kernel_size': 2, 'stride': 2})
 
-# 7. Conv2d
-x_conv2d = torch.randn(2, 3, 32, 32).to(device)
-target_conv2d = torch.randn(2, 16, 30, 30).to(device)
-test_layer(FPQuantizedConv2d, nn.Conv2d, x_conv2d, target_conv2d, 
-           init_args={'in_channels': 3, 'out_channels': 16, 'kernel_size': 3})
+    # 7. Conv2d
+    x_conv2d = torch.randn(2, 3, 32, 32).to(device)
+    target_conv2d = torch.randn(2, 16, 30, 30).to(device)
+    test_layer(FPQuantizedConv2d, nn.Conv2d, x_conv2d, target_conv2d, 
+            init_args={'in_channels': 3, 'out_channels': 16, 'kernel_size': 3})
 
-# 8. Conv3d
-x_conv3d = torch.randn(2, 3, 10, 10, 10).to(device)
-target_conv3d = torch.randn(2, 16, 8, 8, 8).to(device)
-test_layer(FPQuantizedConv3d, nn.Conv3d, x_conv3d, target_conv3d, 
-           init_args={'in_channels': 3, 'out_channels': 16, 'kernel_size': 3})
-
-
-# 9. BatchNorm1d
-x_bn = torch.randn(16, 32, 3).to(device)
-target_bn = torch.randn(16, 32, 3).to(device)
-test_layer(FPQuantizedBatchNorm1d, nn.BatchNorm1d, x_bn, target_bn, 
-           init_args={'num_features': 32})
-
-# 10. BatchNorm2d
-x_bn = torch.randn(2, 3, 16, 16).to(device)
-target_bn = torch.randn(2, 3, 16, 16).to(device)
-test_layer(FPQuantizedBatchNorm2d, nn.BatchNorm2d, x_bn, target_bn, 
-           init_args={'num_features': 3})
-
-# 11. BatchNorm3d
-x_bn = torch.randn(2, 3, 16, 16, 16).to(device)
-target_bn = torch.randn(2, 3, 16, 16, 16).to(device)
-test_layer(FPQuantizedBatchNorm3d, nn.BatchNorm3d, x_bn, target_bn, 
-           init_args={'num_features': 3})
+    # 8. Conv3d
+    x_conv3d = torch.randn(2, 3, 10, 10, 10).to(device)
+    target_conv3d = torch.randn(2, 16, 8, 8, 8).to(device)
+    test_layer(FPQuantizedConv3d, nn.Conv3d, x_conv3d, target_conv3d, 
+            init_args={'in_channels': 3, 'out_channels': 16, 'kernel_size': 3})
 
 
-# 12. AvgPool2d
-x_avgpool = torch.randn(2, 3, 16, 16).to(device)
-test_layer(FPQuantizedAvgPool2d, nn.AvgPool2d, x_avgpool, 
-           init_args={'kernel_size': 2, 'stride': 2})
+    # 9. BatchNorm1d
+    x_bn = torch.randn(16, 32, 3).to(device)
+    target_bn = torch.randn(16, 32, 3).to(device)
+    test_layer(FPQuantizedBatchNorm1d, nn.BatchNorm1d, x_bn, target_bn, 
+            init_args={'num_features': 32})
 
-# 13. Dropout
-x_dropout = torch.randn(2, 10).to(device)
-test_layer(FPQuantizedDropout, nn.Dropout, x_dropout, 
-           init_args={'p': 0.1})
+    # 10. BatchNorm2d
+    x_bn = torch.randn(2, 3, 16, 16).to(device)
+    target_bn = torch.randn(2, 3, 16, 16).to(device)
+    test_layer(FPQuantizedBatchNorm2d, nn.BatchNorm2d, x_bn, target_bn, 
+            init_args={'num_features': 3})
+
+    # 11. BatchNorm3d
+    x_bn = torch.randn(2, 3, 16, 16, 16).to(device)
+    target_bn = torch.randn(2, 3, 16, 16, 16).to(device)
+    test_layer(FPQuantizedBatchNorm3d, nn.BatchNorm3d, x_bn, target_bn, 
+            init_args={'num_features': 3})
+
+
+    # 12. AvgPool2d
+    x_avgpool = torch.randn(2, 3, 16, 16).to(device)
+    test_layer(FPQuantizedAvgPool2d, nn.AvgPool2d, x_avgpool, 
+            init_args={'kernel_size': 2, 'stride': 2})
+
+    # 13. Dropout
+    x_dropout = torch.randn(2, 10).to(device)
+    test_layer(FPQuantizedDropout, nn.Dropout, x_dropout, 
+            init_args={'p': 0.1})
