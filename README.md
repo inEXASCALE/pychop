@@ -132,21 +132,20 @@ class MLP(nn.Module):
     def __init__(self):
         super(MLP, self).__init__()
         self.flatten = nn.Flatten()
-        self.quant = QuantizedLayer(5, 10, rmode=1) # half precision
+        self.fc1 = nn.Linear(28 * 28, 256)
+        self.relu1 = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
+        self.fc2 = nn.Linear(256, 10)
+        self.quant = QuantizedLayer(exp_bits=5, sig_bits=10, rmode=1) 
+        # 5 exponent bits, 10 explicit significant bits , round to nearest ties to even
 
-        self.layers = nn.Sequential(
-            nn.Linear(28 * 28, 512),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(256, 10)
-        )
-        
     def forward(self, x):
         x = self.quant(self.flatten(x))
-        return self.layers(x)
+        x = self.quant(self.fc1(x))
+        x = self.quant(self.relu1(x))
+        x = self.quant(self.dropout(x))
+        x = self.fc2(x)
+        return x
 ```
 
 
