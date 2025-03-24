@@ -182,6 +182,34 @@ q = ch.quantize(x) # Convert to integers
 dq = ch.dequantize(q) # Convert back to floating points
 ```
 
+
+### Call in MATlAB
+
+If you use Python virtual environments in MATLAB, ensure MATLAB detects it:
+
+```MATLAB
+pe = pyenv('Version', 'your_env\python.exe');
+```
+
+To use ``Pychop`` in your MATLAB environment, similarly, simply load the Pychop module:
+
+```MATLAB
+pc = py.importlib.import_module('pychop');
+ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
+X = rand(100, 100);
+X_q = ch(X);
+```
+
+Or more specifically, use
+```MATLAB
+np = py.importlib.import_module('numpy');
+pc = py.importlib.import_module('pychop');
+ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
+X = np.random.randn(int32(100), int32(100));
+X_q = ch(X);
+```
+
+
 ### Use Cases
  
  * Machine Learning: Test the impact of low-precision arithmetic on model accuracy and training stability, especially for resource-constrained environments like edge devices.
