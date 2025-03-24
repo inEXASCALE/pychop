@@ -26,7 +26,6 @@ class LightChop:
         rounding modes.
 
         Rounding mode to use when quantizing the significand. Options are:
-        - 0 or "nearest_odd": Round to nearest value, ties to odd.
         - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
         - 2 or "plus_inf": Round towards plus infinity (round up).
         - 3 or "minus_inf": Round towards minus infinity (round down).

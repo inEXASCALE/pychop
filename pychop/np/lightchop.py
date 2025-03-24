@@ -3,15 +3,52 @@ from typing import Tuple
 
 
 class LightChop:
+    """
+    A class to simulate different floating-point precisions and rounding modes
+    for PyTorch tensors. This code implements a custom floating-point precision simulator
+    that mimics IEEE 754 floating-point representation with configurable exponent bits (exp_bits),
+    significand bits (sig_bits), and various rounding modes (rmode). 
+    It uses PyTorch tensors for efficient computation and handles special cases like zeros,
+    infinities, NaNs, and subnormal numbers. The code follows IEEE 754 conventions for sign, 
+    exponent bias, implicit leading 1 (for normal numbers), and subnormal number handling.
+
+    Initialize with specific format parameters.
+    Convert to custom float representation with proper IEEE 754 handling
+    
+    Parameters
+    ----------
+    exp_bits: int 
+        Number of bits for exponent.
+
+    sig_bits : int
+        Number of bits for significand (significant digits)
+
+    rmode : int
+        rounding modes.
+
+        Rounding mode to use when quantizing the significand. Options are:
+        - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+        - 2 or "plus_inf": Round towards plus infinity (round up).
+        - 3 or "minus_inf": Round towards minus infinity (round down).
+        - 4 or "toward_zero": Truncate toward zero (no rounding up).
+        - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+        - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+        - 7 or "nearest_ties_to_zero": Round to nearest value, ties to zero.
+        - 8 or "nearest_ties_to_away": Round to nearest value, ties to away.
+
+    random_state : int, default=42
+        random seed for stochastic rounding.
+    """
+
     def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, 
-                 support_denormals: bool = True, random_state: int = 42):
+                 subnormal: bool = True, random_state: int = 42):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
         self.max_exp = 2 ** (exp_bits - 1) - 1
         self.min_exp = -self.max_exp + 1
         self.bias = 2 ** (exp_bits - 1) - 1
         self.rmode = rmode
-        self.support_denormals = support_denormals
+        self.subnormal = subnormal
         
         np.random.seed(random_state)
         
@@ -27,7 +64,7 @@ class LightChop:
         exponent = np.floor(np.log2(np.maximum(abs_x, 2.0**-24)))
         significand = abs_x / (2.0 ** exponent)
         
-        if self.support_denormals:
+        if self.subnormal:
             subnormal_mask = (exponent < self.min_exp)
             significand = np.where(subnormal_mask,
                                 abs_x / (2.0 ** self.min_exp),
@@ -59,7 +96,7 @@ class LightChop:
         
         significand_steps = 2 ** self.sig_bits
         normal_mask = (exponent > 0) & (exponent < exp_max)
-        subnormal_mask = (exponent == 0) & (significand > 0) if self.support_denormals else np.zeros_like(x, dtype=bool)
+        subnormal_mask = (exponent == 0) & (significand > 0) if self.subnormal else np.zeros_like(x, dtype=bool)
         significand_normal = significand - 1.0
         
         if rmode in {"nearest", 1}:
@@ -172,7 +209,7 @@ class LightChop:
         result = np.where(normal_mask,
                         sign * (1.0 + significand_q) * (2.0 ** (exponent - self.bias)),
                         result)
-        if self.support_denormals:
+        if self.subnormal:
             result = np.where(subnormal_mask,
                             sign * significand_q * (2.0 ** self.min_exp),
                             result)
