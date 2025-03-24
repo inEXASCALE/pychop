@@ -188,7 +188,7 @@ dq = ch.dequantize(q) # Convert back to floating points
 If you use Python virtual environments in MATLAB, ensure MATLAB detects it:
 
 ```MATLAB
-pe = pyenv('Version', 'your_env\python.exe');
+pe = pyenv('Version', 'your_env\python.exe'); % or simply pe = pyenv();
 ```
 
 To use ``Pychop`` in your MATLAB environment, similarly, simply load the Pychop module:
