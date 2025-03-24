@@ -14,23 +14,42 @@ class QuantizedCNN(nn.Module):
     def __init__(self, num_bits=8):  # Changed to 8-bit for finer precision
         super(QuantizedCNN, self).__init__()
         self.conv1 = IntQuantizedConv2d(1, 16, 3, padding=1, num_bits=num_bits)
-        self.bn1 = nn.BatchNorm2d(16)
-        self.pool1 = nn.MaxPool2d(2, 2)
+        self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = IntQuantizedConv2d(16, 32, 3, padding=1, num_bits=num_bits)
-        self.bn2 = nn.BatchNorm2d(32)
-        self.pool2 = nn.AvgPool2d(2, 2)
-        self.flatten = nn.Flatten()
         self.fc1 = IntQuantizedLinear(32 * 7 * 7, 128, num_bits=num_bits)
-        self.relu = nn.ReLU()
         self.fc2 = IntQuantizedLinear(128, 10, num_bits=num_bits)
 
     def forward(self, x):
-        x = self.pool1(self.relu(self.conv1(x)))
-        x = self.pool2(self.relu(self.conv2(x)))
-        x = self.flatten(x)
-        x = self.relu(self.fc1(x))
+        x = F.relu(self.conv1(x))
+        x = self.pool(x)
+        x = F.relu(self.conv2(x))
+        x = self.pool(x)
+        x = x.view(-1, 32 * 7 * 7)
+        x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
+    
+# class QuantizedCNN(nn.Module):
+#    def __init__(self, num_bits=8):  # Changed to 8-bit for finer precision
+#        super(QuantizedCNN, self).__init__()
+#        self.conv1 = IntQuantizedConv2d(1, 16, 3, padding=1, num_bits=num_bits)
+#        self.bn1 = nn.BatchNorm2d(16)
+#        self.pool1 = nn.MaxPool2d(2, 2)
+#        self.conv2 = IntQuantizedConv2d(16, 32, 3, padding=1, num_bits=num_bits)
+#        self.bn2 = nn.BatchNorm2d(32)
+#        self.pool2 = nn.AvgPool2d(2, 2)
+#        self.flatten = nn.Flatten()
+#        self.fc1 = IntQuantizedLinear(32 * 7 * 7, 128, num_bits=num_bits)
+#        self.relu = nn.ReLU()
+#        self.fc2 = IntQuantizedLinear(128, 10, num_bits=num_bits)
+#
+#    def forward(self, x):
+#        x = self.pool1(self.relu(self.conv1(x)))
+#        x = self.pool2(self.relu(self.conv2(x)))
+#        x = self.flatten(x)
+#        x = self.relu(self.fc1(x))
+#        x = self.fc2(x)
+#        return x
 
 if __name__ == '__main__':
     # Data Loading

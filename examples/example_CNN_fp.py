@@ -37,11 +37,11 @@ class CNN(nn.Module):
 class QuantizedCNN(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = FPQuantizedConv2d(1, 16, 3, 1, 1, int_bits=8, frac_bits=8)
-        self.pool = FPQuantizedMaxPool2d(2, 2, int_bits=8, frac_bits=8)
-        self.conv2 = FPQuantizedConv2d(16, 32, 3, 1, 1, int_bits=8, frac_bits=8)
-        self.fc1 = FPQuantizedLinear(32 * 7 * 7, 128, int_bits=8, frac_bits=8)
-        self.fc2 = FPQuantizedLinear(128, 10, int_bits=8, frac_bits=8)
+        self.conv1 = FPQuantizedConv2d(1, 16, 3, 1, 1, ibits=8, fbits=8)
+        self.pool = FPQuantizedMaxPool2d(2, 2, ibits=8, fbits=8)
+        self.conv2 = FPQuantizedConv2d(16, 32, 3, 1, 1, ibits=8, fbits=8)
+        self.fc1 = FPQuantizedLinear(32 * 7 * 7, 128, ibits=8, fbits=8)
+        self.fc2 = FPQuantizedLinear(128, 10, ibits=8, fbits=8)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))

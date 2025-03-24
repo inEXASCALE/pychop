@@ -5,6 +5,8 @@ from .tch.integer import Chopi
 import torch.nn as nn
 from typing import Tuple, Union
 import torch.nn.functional as F
+from .tch.lightchop import LightChopSTE
+
 
 class QuantizedLayer(torch.nn.Module):
     """Quantize each element of neural networks"""
@@ -14,7 +16,7 @@ class QuantizedLayer(torch.nn.Module):
                  rmode: int = 1):
         
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.quantizer.quantize(x)
@@ -117,7 +119,7 @@ class QuantizedConv1d(nn.Module):
                  exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
 
         
@@ -133,7 +135,7 @@ class QuantizedConv2d(nn.Module):
                  exp_bits: int, sig_bits: int, stride: int or tuple = 1, 
                  padding: int or tuple = 0, rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.weight = nn.Parameter(torch.randn(out_channels, in_channels, *([kernel_size] * 2 if isinstance(kernel_size, int) else kernel_size)))
         self.bias = nn.Parameter(torch.randn(out_channels))
         self.stride = stride if isinstance(stride, tuple) else (stride, stride)
@@ -152,7 +154,7 @@ class QuantizedConv3d(nn.Module):
                  exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -166,7 +168,7 @@ class QuantizedMaxPool1d(nn.Module):
     def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.kernel_size = kernel_size
         self.stride = stride if stride is not None else kernel_size
         
@@ -178,7 +180,7 @@ class QuantizedMaxPool2d(nn.Module):
     def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.kernel_size = kernel_size
         self.stride = stride if stride is not None else kernel_size
         
@@ -191,7 +193,7 @@ class QuantizedMaxPool3d(nn.Module):
     def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.kernel_size = kernel_size
         self.stride = stride if stride is not None else kernel_size
         
@@ -203,7 +205,7 @@ class QuantizedAvgPool(nn.Module):
     def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.kernel_size = kernel_size
         self.stride = stride if stride is not None else kernel_size
         
@@ -215,7 +217,7 @@ class QuantizedAvgPool1d(nn.Module):
     def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.kernel_size = kernel_size
         self.stride = stride if stride is not None else kernel_size
         
@@ -228,7 +230,7 @@ class QuantizedAvgPool2d(nn.Module):
     def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.kernel_size = kernel_size
         self.stride = stride if stride is not None else kernel_size
         
@@ -241,7 +243,7 @@ class QuantizedAttention(nn.Module):
     def __init__(self, hidden_size: int, exp_bits: int, sig_bits: int, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.hidden_size = hidden_size
         self.query = nn.Linear(hidden_size, hidden_size)
         self.key = nn.Linear(hidden_size, hidden_size)
@@ -260,7 +262,7 @@ class QuantizedAttention(nn.Module):
 class QuantizedLinear(nn.Module):
     def __init__(self, in_features: int, out_features: int, exp_bits: int, sig_bits: int, rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.weight = nn.Parameter(torch.randn(out_features, in_features))
         self.bias = nn.Parameter(torch.randn(out_features))
         
@@ -277,7 +279,7 @@ class QuantizedRNN(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
                  num_layers: int = 1, bias: bool = True, nonlinearity: str = 'tanh', rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -332,7 +334,7 @@ class QuantizedLSTM(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
                  num_layers: int = 1, bias: bool = True, rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -393,7 +395,7 @@ class QuantizedDropout(nn.Module):
     def __init__(self, p: float, exp_bits: int, sig_bits: int, 
                  rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.dropout = nn.Dropout(p)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -407,7 +409,7 @@ class QuantizedBatchNorm1d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
 
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
@@ -462,7 +464,7 @@ class QuantizedBatchNorm1d(nn.Module):
 class QuantizedBatchNorm2d(nn.Module):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
@@ -500,7 +502,7 @@ class QuantizedBatchNorm3d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
 
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
@@ -539,7 +541,7 @@ class QuantizedLayerNorm(nn.Module):
     def __init__(self, normalized_shape: int or tuple, exp_bits: int, sig_bits: int, 
                  eps: float = 1e-5, rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.normalized_shape = normalized_shape if isinstance(normalized_shape, tuple) else (normalized_shape,)
         self.eps = eps
         self.weight = nn.Parameter(torch.ones(self.normalized_shape))
@@ -563,7 +565,7 @@ class QuantizedGRU(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
                  num_layers: int = 1, bias: bool = True, rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -618,7 +620,7 @@ class QuantizedMultiheadAttention(nn.Module):
     def __init__(self, embed_dim: int, num_heads: int, exp_bits: int, sig_bits: int, 
                  dropout: float = 0.0, rmode: int = 1):
         super().__init__()
-        self.quantizer = BFPRound(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
@@ -1415,178 +1417,5 @@ class FPQuantizedDropout(nn.Module):
 
 
 
-
-
-
-class BFPRound:
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
-        """Initialize float precision simulator with custom format and rounding mode."""
-        self.exp_bits = exp_bits
-        self.sig_bits = sig_bits
-        self.rmode = rmode
-        self.max_exp = 2 ** (exp_bits - 1) - 1
-        self.min_exp = -self.max_exp + 1
-        self.bias = 2 ** (exp_bits - 1) - 1  # Bias for IEEE 754-like format
-
-
-    def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
-                                                        torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Convert to custom float representation with proper IEEE 754 handling."""
-        sign = torch.sign(x)
-        abs_x = torch.abs(x)
-        
-        zero_mask = (abs_x == 0)
-        inf_mask = torch.isinf(x)
-        nan_mask = torch.isnan(x)
-        
-        exponent = torch.floor(torch.log2(abs_x.clamp(min=2.0**-24)))  # Minimum denormal
-        significand = abs_x / (2.0 ** exponent)
-        
-        subnormal_mask = (exponent < self.min_exp)
-        significand = torch.where(subnormal_mask, abs_x / (2.0 ** self.min_exp), significand)
-        exponent = torch.where(subnormal_mask, self.min_exp, exponent)
-        
-        return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
-    
-    def _quantize_components(self, 
-                           x: torch.Tensor,
-                           sign: torch.Tensor, 
-                           exponent: torch.Tensor, 
-                           significand: torch.Tensor,
-                           zero_mask: torch.Tensor,
-                           inf_mask: torch.Tensor,
-                           nan_mask: torch.Tensor) -> torch.Tensor:
-        """Quantize components according to IEEE 754 FP16 rules with specified rounding mode."""
-
-        exp_min = 0  
-        exp_max = 2 ** self.exp_bits - 1
-        exponent = exponent.clamp(min=exp_min, max=exp_max)
-        
-        significand_steps = 2 ** self.sig_bits
-        normal_mask = (exponent > 0) & (exponent < exp_max)
-        subnormal_mask = (exponent == 0)
-        significand_normal = significand - 1.0  
-        
-        if self.rmode == 1:
-            significand_q = torch.round(significand_normal * significand_steps) / significand_steps
-            significand_q = torch.where(subnormal_mask, 
-                                   torch.round(significand * significand_steps) / significand_steps, 
-                                   significand_q)
-            
-        elif self.rmode == 2:
-            significand_q = torch.where(sign > 0, 
-                                   torch.ceil(significand_normal * significand_steps),
-                                   torch.floor(significand_normal * significand_steps)) / significand_steps
-            significand_q = torch.where(subnormal_mask, 
-                                   torch.where(sign > 0, 
-                                             torch.ceil(significand * significand_steps), 
-                                             torch.floor(significand * significand_steps)) / significand_steps, 
-                                   significand_q)
-            
-        elif self.rmode == 3:
-            significand_q = torch.where(sign > 0,
-                                   torch.floor(significand_normal * significand_steps),
-                                   torch.ceil(significand_normal * significand_steps)) / significand_steps
-            significand_q = torch.where(subnormal_mask, 
-                                   torch.where(sign > 0, 
-                                             torch.floor(significand * significand_steps), 
-                                             torch.ceil(significand * significand_steps)) / significand_steps, 
-                                   significand_q)
-            
-        elif self.rmode == 4:
-            significand_q = torch.floor(significand_normal * significand_steps) / significand_steps
-            significand_q = torch.where(subnormal_mask, 
-                                   torch.floor(significand * significand_steps) / significand_steps, 
-                                   significand_q)
-            
-        elif self.rmode == 5:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = torch.floor(significand_scaled)
-            fraction = significand_scaled - floor_val
-            prob = torch.rand_like(significand_scaled)
-            significand_q = torch.where(prob < fraction, floor_val + 1, floor_val) / significand_steps
-            significand_q = torch.where(subnormal_mask, 
-                                   torch.where(torch.rand_like(significand) < (significand * significand_steps - torch.floor(significand * significand_steps)), 
-                                             torch.ceil(significand * significand_steps), 
-                                             torch.floor(significand * significand_steps)) / significand_steps, 
-                                   significand_q)
-            
-        elif self.rmode == 6:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = torch.floor(significand_scaled)
-            prob = torch.rand_like(significand_scaled)
-            significand_q = torch.where(prob < 0.5, floor_val, floor_val + 1) / significand_steps
-            significand_q = torch.where(subnormal_mask, 
-                                   torch.where(torch.rand_like(significand) < 0.5, 
-                                             torch.floor(significand * significand_steps), 
-                                             torch.ceil(significand * significand_steps)) / significand_steps, 
-                                   significand_q)
-            
-        elif self.rmode == 7:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = torch.floor(significand_scaled)
-            ceil_val = torch.ceil(significand_scaled)
-            is_half = torch.abs(significand_scaled - floor_val - 0.5) < 1e-6  # Robust tie check
-            significand_q = torch.where(
-                is_half,
-                torch.where(sign >= 0, floor_val, ceil_val),  # Toward zero: positive floor, negative ceil
-                torch.round(significand_scaled)
-            ) / significand_steps
-            significand_subnormal = significand * significand_steps
-            sub_floor = torch.floor(significand_subnormal)
-            sub_ceil = torch.ceil(significand_subnormal)
-            sub_is_half = torch.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
-            significand_q = torch.where(
-                subnormal_mask,
-                torch.where(
-                    sub_is_half,
-                    torch.where(sign >= 0, sub_floor, sub_ceil),
-                    torch.round(significand_subnormal)
-                ) / significand_steps,
-                significand_q
-            )
-            
-        elif self.rmode == 8:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = torch.floor(significand_scaled)
-            ceil_val = torch.ceil(significand_scaled)
-            is_half = torch.abs(significand_scaled - floor_val - 0.5) < 1e-6  # Robust tie check
-            significand_q = torch.where(
-                is_half,
-                torch.where(sign >= 0, ceil_val, floor_val),  # Away from zero: positive ceil, negative floor
-                torch.round(significand_scaled)
-            ) / significand_steps
-            significand_subnormal = significand * significand_steps
-            sub_floor = torch.floor(significand_subnormal)
-            sub_ceil = torch.ceil(significand_subnormal)
-            sub_is_half = torch.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
-            significand_q = torch.where(
-                subnormal_mask,
-                torch.where(
-                    sub_is_half,
-                    torch.where(sign >= 0, sub_ceil, sub_floor),
-                    torch.round(significand_subnormal)
-                ) / significand_steps,
-                significand_q
-            )
-
-        else:
-            raise ValueError(f"Unsupported rounding mode: {self.rmode}")
-        
-        normal_result = sign * (1.0 + significand_q) * (2.0 ** (exponent - self.bias))
-        subnormal_result = sign * significand_q * (2.0 ** self.min_exp)
-        special_result = torch.where(inf_mask, torch.sign(x) * float('inf'), 
-                                   torch.where(nan_mask, float('nan'), 0.0))
-        
-        result = torch.where(normal_mask, normal_result, 
-                           torch.where(subnormal_mask, subnormal_result, 
-                                     torch.where(zero_mask, 0.0, special_result)))
-        
-        return result
-
-    def quantize(self, x: torch.Tensor) -> torch.Tensor:
-        """Quantize tensor to specified precision using the initialized rounding mode."""
-        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-        return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask)
 
 
