@@ -1,14 +1,17 @@
 import numpy as np
 from typing import Tuple
 
+
 class LightChop:
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, random_state: int = 42):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, 
+                 support_denormals: bool = True, random_state: int = 42):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
         self.max_exp = 2 ** (exp_bits - 1) - 1
         self.min_exp = -self.max_exp + 1
         self.bias = 2 ** (exp_bits - 1) - 1
         self.rmode = rmode
+        self.support_denormals = support_denormals
         
         np.random.seed(random_state)
         
@@ -24,13 +27,19 @@ class LightChop:
         exponent = np.floor(np.log2(np.maximum(abs_x, 2.0**-24)))
         significand = abs_x / (2.0 ** exponent)
         
-        subnormal_mask = (exponent < self.min_exp)
-        significand = np.where(subnormal_mask,
-                             abs_x / (2.0 ** self.min_exp),
-                             significand)
-        exponent = np.where(subnormal_mask,
-                          self.min_exp,
-                          exponent)
+        if self.support_denormals:
+            subnormal_mask = (exponent < self.min_exp)
+            significand = np.where(subnormal_mask,
+                                abs_x / (2.0 ** self.min_exp),
+                                significand)
+            exponent = np.where(subnormal_mask,
+                              self.min_exp,
+                              exponent)
+        else:
+            # Flush subnormals to zero
+            subnormal_mask = (exponent < self.min_exp)
+            significand = np.where(subnormal_mask, 0.0, significand)
+            exponent = np.where(subnormal_mask, 0, exponent)
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
     
@@ -50,7 +59,7 @@ class LightChop:
         
         significand_steps = 2 ** self.sig_bits
         normal_mask = (exponent > 0) & (exponent < exp_max)
-        subnormal_mask = (exponent == 0)
+        subnormal_mask = (exponent == 0) & (significand > 0) if self.support_denormals else np.zeros_like(x, dtype=bool)
         significand_normal = significand - 1.0
         
         if rmode in {"nearest", 1}:
@@ -163,9 +172,10 @@ class LightChop:
         result = np.where(normal_mask,
                         sign * (1.0 + significand_q) * (2.0 ** (exponent - self.bias)),
                         result)
-        result = np.where(subnormal_mask,
-                        sign * significand_q * (2.0 ** self.min_exp),
-                        result)
+        if self.support_denormals:
+            result = np.where(subnormal_mask,
+                            sign * significand_q * (2.0 ** self.min_exp),
+                            result)
         result = np.where(zero_mask, 0.0, result)
         result = np.where(inf_mask, np.sign(x) * np.inf, result)
         result = np.where(nan_mask, np.nan, result)
