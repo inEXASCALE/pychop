@@ -73,7 +73,7 @@ Rounding the values with specified precision format:
 
 ```Python
 import pychop
-from pychop.lightchop import LightChop
+from pychop import LightChop
 import numpy as np
 np.random.seed(0)
 
