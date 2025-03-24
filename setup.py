@@ -12,7 +12,7 @@ EMAIL="xinyechenai@gmail.com"
 INREUIRES=["numpy>=1.7.2", "pandas"]
 
 
-AUTHORS="Xinye Chen"
+AUTHORS="Erin Carson, Xinye Chen"
 
 with open("README.md", 'r') as f:
     long_description = f.read()
