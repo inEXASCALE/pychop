@@ -81,8 +81,8 @@ X = np.random.randn(5000, 5000)
 pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
  
 ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
-Xq = ch(X)
-print(Xq[:10, 0])
+X_q = ch(X)
+print(X_q[:10, 0])
 ```
 
 If one is not seeking optimized performance and more emulation supports, one can use the following example. 
@@ -93,7 +93,7 @@ If one is not seeking optimized performance and more emulation supports, one can
 from pychop import Chop
 
 ch = Chop('h') # Standard IEEE 754 half precision
-Xq = ch(X) # Rounding values
+X_q = ch(X) # Rounding values
 ```
 
 One can also customize the precision via:
@@ -103,13 +103,13 @@ pychop.backend('numpy', 1)
 ct1 = Customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
 
 ch = Chop(customs=ct1, rmode=3) # Round towards minus infinity 
-Xq = ch(X)
-print(Xq[:10, 0])
+X_q = ch(X)
+print(X_q[:10, 0])
 
 ct2 = Customs(emax=15, t=11)
 ch = Chop(customs=ct2, rmode=3)
-Xq = ch(X)
-print(Xq[:10, 0])
+X_q = ch(X)
+print(X_q[:10, 0])
 ```
 
 
@@ -158,7 +158,7 @@ pychop.backend('numpy')
 from pychop import Chopf
 
 ch = Chopf(ibits=4, fbits=4)
-Xq = ch(X)
+X_q = ch(X)
 ```
 
 

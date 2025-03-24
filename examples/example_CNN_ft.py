@@ -36,7 +36,7 @@ class StandardCNN(nn.Module):
 
 # Quantized CNN
 class QuantizedCNN(nn.Module):
-    def __init__(self, exp_bits: int = 5, sig_bits: int = 10, rmode: int = 1):
+    def __init__(self, exp_bits=5, sig_bits=10, rmode=1):
         super().__init__()
         self.conv1 = QuantizedConv2d(1, 16, 3, exp_bits, sig_bits, rmode=rmode)
         self.pool = QuantizedMaxPool2d(2, exp_bits, sig_bits, rmode=rmode)
