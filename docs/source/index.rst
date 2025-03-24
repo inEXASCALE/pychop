@@ -106,6 +106,7 @@ To give a shot, one may print information of various precision formats:
    fix_point.rst
    layers.rst
    optimizers.rst
+   matlab.rst
    license
 
 
