@@ -114,7 +114,7 @@ print(X_q[:10, 0])
 
 
 
-Set quantized layer:
+Set quantized layer (seamlessly integrated with Straight-Through Estimator):
 
 ```Python
 import torch
