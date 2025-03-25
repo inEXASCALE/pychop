@@ -3,13 +3,21 @@ import platform
 import logging
 
 
+def get_version(fname):
+    with open(fname) as f:
+        for line in f:
+            if line.startswith("__version__ = '"):
+                return line.split("'")[1]
+    raise RuntimeError('Error in parsing version string.')
+    
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
-VERSION = "0.3.1"
+VERSION = get_version('pychop/__init__.py')
 SETREQUIRES=["numpy"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
 INREUIRES=["numpy>=1.7.2", "pandas"]
+
 
 
 AUTHORS="Erin Carson, Xinye Chen"
