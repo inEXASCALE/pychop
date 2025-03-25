@@ -16,7 +16,7 @@ VERSION = get_version('pychop/__init__.py')
 SETREQUIRES=["numpy"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
-INREUIRES=["numpy>=1.7.2", "pandas"]
+INREUIRES=["numpy>=1.7.2", "pandas", "dask[array]"]
 
 
 
