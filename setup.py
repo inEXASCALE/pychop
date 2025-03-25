@@ -13,10 +13,10 @@ def get_version(fname):
 PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
 VERSION = get_version('pychop/__init__.py')
-SETREQUIRES=["numpy"]
+SETREQUIRES=["numpy",  "dask"]
 MAINTAINER="Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
-INREUIRES=["numpy>=1.7.2", "pandas", "dask[array]"]
+INREUIRES=["numpy>=1.7.2", "pandas", "dask"]
 
 
 
