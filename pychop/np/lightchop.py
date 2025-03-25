@@ -1,6 +1,5 @@
 import numpy as np
-from typing import Tuple
-
+import dask.array as da
 
 class LightChop:
     """
@@ -39,9 +38,8 @@ class LightChop:
     random_state : int, default=42
         random seed for stochastic rounding.
     """
-
     def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, 
-                 subnormal: bool = True, random_state: int = 42):
+                 subnormal: bool = True, random_state: int = 42, chunk_size: int = 10000):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
         self.max_exp = 2 ** (exp_bits - 1) - 1
@@ -49,11 +47,11 @@ class LightChop:
         self.bias = 2 ** (exp_bits - 1) - 1
         self.rmode = rmode
         self.subnormal = subnormal
-        
+        self.sig_steps = 2 ** sig_bits
+        self.chunk_size = chunk_size
         np.random.seed(random_state)
-        
-    def _to_custom_float(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, 
-                                                     np.ndarray, np.ndarray, np.ndarray]:
+
+    def _to_custom_float(self, x: np.ndarray) -> tuple:
         sign = np.sign(x)
         abs_x = np.abs(x)
         
@@ -61,167 +59,130 @@ class LightChop:
         inf_mask = np.isinf(x)
         nan_mask = np.isnan(x)
         
-        exponent = np.floor(np.log2(np.maximum(abs_x, 2.0**-24)))
+        exponent = np.floor(np.log2(np.maximum(abs_x, 1e-38)))
         significand = abs_x / (2.0 ** exponent)
         
         if self.subnormal:
             subnormal_mask = (exponent < self.min_exp)
-            significand = np.where(subnormal_mask,
-                                abs_x / (2.0 ** self.min_exp),
-                                significand)
-            exponent = np.where(subnormal_mask,
-                              self.min_exp,
-                              exponent)
+            significand = np.where(subnormal_mask, abs_x / (2.0 ** self.min_exp), significand)
+            exponent = np.where(subnormal_mask, self.min_exp, exponent)
         else:
-            # Flush subnormals to zero
             subnormal_mask = (exponent < self.min_exp)
             significand = np.where(subnormal_mask, 0.0, significand)
             exponent = np.where(subnormal_mask, 0, exponent)
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
     
-    def _quantize_components(self, 
-                           x: np.ndarray,
-                           sign: np.ndarray, 
-                           exponent: np.ndarray, 
-                           significand: np.ndarray,
-                           zero_mask: np.ndarray,
-                           inf_mask: np.ndarray,
-                           nan_mask: np.ndarray,
-                           rmode: str) -> np.ndarray:
+    def _quantize_components(self, x: np.ndarray, sign: np.ndarray, exponent: np.ndarray, 
+                            significand: np.ndarray, zero_mask: np.ndarray, 
+                            inf_mask: np.ndarray, nan_mask: np.ndarray, rmode) -> np.ndarray:
         
-        exp_min = 0
-        exp_max = 2**self.exp_bits - 1
-        exponent = np.clip(exponent, exp_min, exp_max)
+        exp_max = 2 ** self.exp_bits - 1
+        exponent = np.clip(exponent, 0, exp_max)
         
-        significand_steps = 2 ** self.sig_bits
         normal_mask = (exponent > 0) & (exponent < exp_max)
         subnormal_mask = (exponent == 0) & (significand > 0) if self.subnormal else np.zeros_like(x, dtype=bool)
-        significand_normal = significand - 1.0
+        sig_normal = significand - 1.0
         
-        if rmode in {"nearest", 1}:
-            significand_q = np.round(significand_normal * significand_steps) / significand_steps
-            significand_q = np.where(subnormal_mask,
-                                   np.round(significand * significand_steps) / significand_steps,
-                                   significand_q)
+        sig_steps = self.sig_steps
+        sig_scaled = sig_normal * sig_steps
+        sig_sub_scaled = significand * sig_steps if self.subnormal else None
+        
+        if rmode == 1:  # Nearest
+            sig_q = np.round(sig_scaled) / sig_steps
+            if self.subnormal:
+                sig_q = np.where(subnormal_mask, np.round(sig_sub_scaled) / sig_steps, sig_q)
                 
-        elif rmode in {"plus_inf", 2}:
-            significand_q = np.where(sign > 0,
-                                   np.ceil(significand_normal * significand_steps),
-                                   np.floor(significand_normal * significand_steps)) / significand_steps
-            significand_q = np.where(subnormal_mask,
-                                   np.where(sign > 0,
-                                          np.ceil(significand * significand_steps),
-                                          np.floor(significand * significand_steps)) / significand_steps,
-                                   significand_q)
+        elif rmode == 2:  # Plus infinity
+            sig_q = np.where(sign > 0, np.ceil(sig_scaled), np.floor(sig_scaled)) / sig_steps
+            if self.subnormal:
+                sig_q = np.where(subnormal_mask, 
+                               np.where(sign > 0, np.ceil(sig_sub_scaled), np.floor(sig_sub_scaled)) / sig_steps, 
+                               sig_q)
                 
-        elif rmode in {"minus_inf", 3}:
-            significand_q = np.where(sign > 0,
-                                   np.floor(significand_normal * significand_steps),
-                                   np.ceil(significand_normal * significand_steps)) / significand_steps
-            significand_q = np.where(subnormal_mask,
-                                   np.where(sign > 0,
-                                          np.floor(significand * significand_steps),
-                                          np.ceil(significand * significand_steps)) / significand_steps,
-                                   significand_q)
+        elif rmode == 3:  # Minus infinity
+            sig_q = np.where(sign > 0, np.floor(sig_scaled), np.ceil(sig_scaled)) / sig_steps
+            if self.subnormal:
+                sig_q = np.where(subnormal_mask, 
+                               np.where(sign > 0, np.floor(sig_sub_scaled), np.ceil(sig_sub_scaled)) / sig_steps, 
+                               sig_q)
                 
-        elif rmode in {"towards_zero", 4}:
-            significand_q = np.floor(significand_normal * significand_steps) / significand_steps
-            significand_q = np.where(subnormal_mask,
-                                   np.floor(significand * significand_steps) / significand_steps,
-                                   significand_q)
+        elif rmode == 4:  # Towards zero
+            sig_q = np.floor(sig_scaled) / sig_steps
+            if self.subnormal:
+                sig_q = np.where(subnormal_mask, np.floor(sig_sub_scaled) / sig_steps, sig_q)
                 
-        elif rmode in {"stoc_prop", 5}:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = np.floor(significand_scaled)
-            fraction = significand_scaled - floor_val
-            prob = np.random.random(significand_scaled.shape)
-            significand_q = np.where(prob < fraction, floor_val + 1, floor_val) / significand_steps
-            significand_q = np.where(subnormal_mask,
-                                   np.where(prob < (significand * significand_steps - np.floor(significand * significand_steps)),
-                                          np.floor(significand * significand_steps) + 1,
-                                          np.floor(significand * significand_steps)) / significand_steps,
-                                   significand_q)
+        elif rmode == 5:  # Stochastic proportional
+            floor_val = np.floor(sig_scaled)
+            fraction = sig_scaled - floor_val
+            prob = np.random.random(x.shape)
+            sig_q = np.where(prob < fraction, floor_val + 1, floor_val) / sig_steps
+            if self.subnormal:
+                sub_floor = np.floor(sig_sub_scaled)
+                sub_fraction = sig_sub_scaled - sub_floor
+                sig_q = np.where(subnormal_mask, 
+                               np.where(prob < sub_fraction, sub_floor + 1, sub_floor) / sig_steps, 
+                               sig_q)
                 
-        elif rmode in {"stoc_equal", 6}:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = np.floor(significand_scaled)
-            prob = np.random.random(significand_scaled.shape)
-            significand_q = np.where(prob < 0.5, floor_val, floor_val + 1) / significand_steps
-            significand_q = np.where(subnormal_mask,
-                                   np.where(prob < 0.5,
-                                          np.floor(significand * significand_steps),
-                                          np.floor(significand * significand_steps) + 1) / significand_steps,
-                                   significand_q)
+        elif rmode == 6:  # Stochastic equal
+            floor_val = np.floor(sig_scaled)
+            prob = np.random.random(x.shape)
+            sig_q = np.where(prob < 0.5, floor_val, floor_val + 1) / sig_steps
+            if self.subnormal:
+                sub_floor = np.floor(sig_sub_scaled)
+                sig_q = np.where(subnormal_mask, 
+                               np.where(prob < 0.5, sub_floor, sub_floor + 1) / sig_steps, 
+                               sig_q)
                 
-        elif rmode in {"nearest_ties_to_zero", 7}:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = np.floor(significand_scaled)
-            ceil_val = np.ceil(significand_scaled)
-            is_half = np.abs(significand_scaled - floor_val - 0.5) < 1e-6
-            significand_q = np.where(
-                is_half,
-                np.where(sign >= 0, floor_val, ceil_val),
-                np.round(significand_scaled)
-            ) / significand_steps
-            significand_subnormal = significand * significand_steps
-            sub_floor = np.floor(significand_subnormal)
-            sub_ceil = np.ceil(significand_subnormal)
-            sub_is_half = np.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
-            significand_q = np.where(
-                subnormal_mask,
-                np.where(
-                    sub_is_half,
-                    np.where(sign >= 0, sub_floor, sub_ceil),
-                    np.round(significand_subnormal)
-                ) / significand_steps,
-                significand_q
-            )
-            
-        elif rmode in {"nearest_ties_to_away", 8}:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = np.floor(significand_scaled)
-            ceil_val = np.ceil(significand_scaled)
-            is_half = np.abs(significand_scaled - floor_val - 0.5) < 1e-6
-            significand_q = np.where(
-                is_half,
-                np.where(sign >= 0, ceil_val, floor_val),
-                np.round(significand_scaled)
-            ) / significand_steps
-            significand_subnormal = significand * significand_steps
-            sub_floor = np.floor(significand_subnormal)
-            sub_ceil = np.ceil(significand_subnormal)
-            sub_is_half = np.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
-            significand_q = np.where(
-                subnormal_mask,
-                np.where(
-                    sub_is_half,
-                    np.where(sign >= 0, sub_ceil, sub_floor),
-                    np.round(significand_subnormal)
-                ) / significand_steps,
-                significand_q
-            )
-    
+        elif rmode == 7:  # Nearest, ties to zero
+            floor_val = np.floor(sig_scaled)
+            is_half = np.abs(sig_scaled - floor_val - 0.5) < 1e-6
+            sig_q = np.where(is_half, np.where(sign >= 0, floor_val, floor_val + 1), np.round(sig_scaled)) / sig_steps
+            if self.subnormal:
+                sub_floor = np.floor(sig_sub_scaled)
+                sub_is_half = np.abs(sig_sub_scaled - sub_floor - 0.5) < 1e-6
+                sig_q = np.where(subnormal_mask, 
+                               np.where(sub_is_half, np.where(sign >= 0, sub_floor, sub_floor + 1), 
+                                      np.round(sig_sub_scaled)) / sig_steps, sig_q)
+                
+        elif rmode == 8:  # Nearest, ties away
+            floor_val = np.floor(sig_scaled)
+            is_half = np.abs(sig_scaled - floor_val - 0.5) < 1e-6
+            sig_q = np.where(is_half, np.where(sign >= 0, floor_val + 1, floor_val), np.round(sig_scaled)) / sig_steps
+            if self.subnormal:
+                sub_floor = np.floor(sig_sub_scaled)
+                sub_is_half = np.abs(sig_sub_scaled - sub_floor - 0.5) < 1e-6
+                sig_q = np.where(subnormal_mask, 
+                               np.where(sub_is_half, np.where(sign >= 0, sub_floor + 1, sub_floor), 
+                                      np.round(sig_sub_scaled)) / sig_steps, sig_q)
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
         
-        result = np.zeros_like(x)
-        result = np.where(normal_mask,
-                        sign * (1.0 + significand_q) * (2.0 ** (exponent - self.bias)),
-                        result)
+        result = np.where(normal_mask, sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias)), 0.0)
         if self.subnormal:
-            result = np.where(subnormal_mask,
-                            sign * significand_q * (2.0 ** self.min_exp),
-                            result)
+            result = np.where(subnormal_mask, sign * sig_q * (2.0 ** self.min_exp), result)
         result = np.where(zero_mask, 0.0, result)
-        result = np.where(inf_mask, np.sign(x) * np.inf, result)
+        result = np.where(inf_mask, sign * np.inf, result)
         result = np.where(nan_mask, np.nan, result)
         
         return result
 
     def quantize(self, x: np.ndarray) -> np.ndarray:
-        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-        return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode)
+        # Convert to Dask array if input is large
+        if isinstance(x, np.ndarray) and x.size > self.chunk_size:
+            x_da = da.from_array(x, chunks=self.chunk_size)
+            result = x_da.map_blocks(
+                lambda block: self._quantize_components(
+                    block,
+                    *self._to_custom_float(block),
+                    self.rmode
+                ),
+                dtype=x.dtype
+            )
+            return result.compute()
+        else:
+            sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
+            return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode)
 
     def __call__(self, x: np.ndarray):
         return self.quantize(x)
