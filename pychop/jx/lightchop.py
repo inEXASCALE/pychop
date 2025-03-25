@@ -4,8 +4,7 @@ from jax import jit, vmap
 from functools import partial
 
 class LightChop:
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, 
-                    subnormal: bool = True, random_state: int = 42):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True, random_state: int = 42):
             self.exp_bits = exp_bits
             self.sig_bits = sig_bits
             self.max_exp = 2 ** (exp_bits - 1) - 1
@@ -18,7 +17,7 @@ class LightChop:
 
             self._to_custom_float_vmap = vmap(self._to_custom_float, in_axes=0)
             self._quantize_jit = jit(self._quantize_components, static_argnums=(7,))
-            self._quantize_vmap = vmap(self._quantize_jit, in_axes=(0, 0, 0, 0, 0, 0, 0, None, 0))  
+            self._quantize_vmap = vmap(self._quantize_jit, in_axes=(0, 0, 0, 0, 0, 0, 0, None, 0)) 
 
     def _to_custom_float(self, x):
         sign = jnp.sign(x)
