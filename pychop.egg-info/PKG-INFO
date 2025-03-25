@@ -3,7 +3,7 @@ Name: pychop
 Version: 0.3.1
 Summary: Python code for simulating low precision floating-point arithmetic
 Home-page: https://github.com/nla-group/pychop.git
-Author: Xinye Chen
+Author: Erin Carson, Xinye Chen
 Author-email: xinyechenai@gmail.com
 Maintainer: Xinye Chen
 Maintainer-email: xinyechenai@gmail.com
@@ -18,8 +18,6 @@ Classifier: Operating System :: Unix
 Classifier: Programming Language :: Python :: 3
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: numpy>=1.7.2
-Requires-Dist: pandas
 
 # pychop: efficient low precision quantization library
 
@@ -96,7 +94,7 @@ Rounding the values with specified precision format:
 
 ```Python
 import pychop
-from pychop.lightchop import LightChop
+from pychop import LightChop
 import numpy as np
 np.random.seed(0)
 
@@ -104,8 +102,8 @@ X = np.random.randn(5000, 5000)
 pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
  
 ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
-Xq = ch(X)
-print(Xq[:10, 0])
+X_q = ch(X)
+print(X_q[:10, 0])
 ```
 
 If one is not seeking optimized performance and more emulation supports, one can use the following example. 
@@ -116,7 +114,7 @@ If one is not seeking optimized performance and more emulation supports, one can
 from pychop import Chop
 
 ch = Chop('h') # Standard IEEE 754 half precision
-Xq = ch(X) # Rounding values
+X_q = ch(X) # Rounding values
 ```
 
 One can also customize the precision via:
@@ -126,18 +124,18 @@ pychop.backend('numpy', 1)
 ct1 = Customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
 
 ch = Chop(customs=ct1, rmode=3) # Round towards minus infinity 
-Xq = ch(X)
-print(Xq[:10, 0])
+X_q = ch(X)
+print(X_q[:10, 0])
 
 ct2 = Customs(emax=15, t=11)
 ch = Chop(customs=ct2, rmode=3)
-Xq = ch(X)
-print(Xq[:10, 0])
+X_q = ch(X)
+print(X_q[:10, 0])
 ```
 
 
 
-Set quantized layer:
+Set quantized layer (seamlessly integrated with Straight-Through Estimator):
 
 ```Python
 import torch
@@ -181,7 +179,7 @@ pychop.backend('numpy')
 from pychop import Chopf
 
 ch = Chopf(ibits=4, fbits=4)
-Xq = ch(X)
+X_q = ch(X)
 ```
 
 
@@ -204,6 +202,34 @@ ch = Chopi(num_bits=8, symmetric=False)
 q = ch.quantize(x) # Convert to integers
 dq = ch.dequantize(q) # Convert back to floating points
 ```
+
+
+### Call in MATlAB
+
+If you use Python virtual environments in MATLAB, ensure MATLAB detects it:
+
+```MATLAB
+pe = pyenv('Version', 'your_env\python.exe'); % or simply pe = pyenv();
+```
+
+To use ``Pychop`` in your MATLAB environment, similarly, simply load the Pychop module:
+
+```MATLAB
+pc = py.importlib.import_module('pychop');
+ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
+X = rand(100, 100);
+X_q = ch(X);
+```
+
+Or more specifically, use
+```MATLAB
+np = py.importlib.import_module('numpy');
+pc = py.importlib.import_module('pychop');
+ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
+X = np.random.randn(int32(100), int32(100));
+X_q = ch(X);
+```
+
 
 ### Use Cases
  
