@@ -1,20 +1,26 @@
 import jax
 import jax.numpy as jnp
-from typing import Tuple
-from jax.random import PRNGKey
+from jax import jit, vmap
+from functools import partial
 
 class LightChop:
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, random_state: int = 42):
-        self.exp_bits = exp_bits
-        self.sig_bits = sig_bits
-        self.max_exp = 2 ** (exp_bits - 1) - 1
-        self.min_exp = -self.max_exp + 1
-        self.bias = 2 ** (exp_bits - 1) - 1
-        self.rmode = rmode
-        self.key = PRNGKey(random_state)  # Initialize PRNG key with seed
-        
-    def _to_custom_float(self, x: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, 
-                                                      jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, 
+                    subnormal: bool = True, random_state: int = 42):
+            self.exp_bits = exp_bits
+            self.sig_bits = sig_bits
+            self.max_exp = 2 ** (exp_bits - 1) - 1
+            self.min_exp = -self.max_exp + 1
+            self.bias = 2 ** (exp_bits - 1) - 1
+            self.rmode = rmode
+            self.subnormal = subnormal
+            self.sig_steps = 2 ** sig_bits
+            self.rng_key = jax.random.PRNGKey(random_state)
+
+            self._to_custom_float_vmap = vmap(self._to_custom_float, in_axes=0)
+            self._quantize_jit = jit(self._quantize_components, static_argnums=(7,))
+            self._quantize_vmap = vmap(self._quantize_jit, in_axes=(0, 0, 0, 0, 0, 0, 0, None, 0))  
+
+    def _to_custom_float(self, x):
         sign = jnp.sign(x)
         abs_x = jnp.abs(x)
         
@@ -22,164 +28,132 @@ class LightChop:
         inf_mask = jnp.isinf(x)
         nan_mask = jnp.isnan(x)
         
-        exponent = jnp.floor(jnp.log2(jnp.maximum(abs_x, 2.0**-24)))
+        exponent = jnp.floor(jax.lax.log2(jnp.maximum(abs_x, 1e-38)))
         significand = abs_x / (2.0 ** exponent)
         
-        subnormal_mask = (exponent < self.min_exp)
-        significand = jnp.where(subnormal_mask, 
-                              abs_x / (2.0 ** self.min_exp), 
-                              significand)
-        exponent = jnp.where(subnormal_mask, 
-                           self.min_exp, 
-                           exponent)
+        if self.subnormal:
+            subnormal_mask = (exponent < self.min_exp)
+            significand = jnp.where(subnormal_mask, abs_x / (2.0 ** self.min_exp), significand)
+            exponent = jnp.where(subnormal_mask, self.min_exp, exponent)
+        else:
+            subnormal_mask = (exponent < self.min_exp)
+            significand = jnp.where(subnormal_mask, 0.0, significand)
+            exponent = jnp.where(subnormal_mask, 0, exponent)
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
-    
-    def _quantize_components(self, 
-                           x: jnp.ndarray,
-                           sign: jnp.ndarray, 
-                           exponent: jnp.ndarray, 
-                           significand: jnp.ndarray,
-                           zero_mask: jnp.ndarray,
-                           inf_mask: jnp.ndarray,
-                           nan_mask: jnp.ndarray,
-                           rmode: str) -> jnp.ndarray:
+
+    @partial(jit, static_argnums=(0, 7))
+    def _quantize_components(self, x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, rmode, key):
+        exp_max = 2 ** self.exp_bits - 1
+        exponent = jnp.clip(exponent, 0, exp_max)
         
-        exp_min = 0
-        exp_max = 2**self.exp_bits - 1
-        exponent = jnp.clip(exponent, exp_min, exp_max)
-        
-        significand_steps = 2 ** self.sig_bits
         normal_mask = (exponent > 0) & (exponent < exp_max)
-        subnormal_mask = (exponent == 0)
-        significand_normal = significand - 1.0
+        subnormal_mask = (exponent == 0) & (significand > 0) if self.subnormal else jnp.zeros_like(x, dtype=bool)
+        sig_normal = significand - 1.0
         
-        if rmode in {"nearest", 1}:
-            significand_q = jnp.round(significand_normal * significand_steps) / significand_steps
-            significand_q = jnp.where(subnormal_mask,
-                                    jnp.round(significand * significand_steps) / significand_steps,
-                                    significand_q)
-                
-        elif rmode in {"plus_inf", 2}:
-            significand_q = jnp.where(sign > 0,
-                                    jnp.ceil(significand_normal * significand_steps),
-                                    jnp.floor(significand_normal * significand_steps)) / significand_steps
-            significand_q = jnp.where(subnormal_mask,
-                                    jnp.where(sign > 0,
-                                            jnp.ceil(significand * significand_steps),
-                                            jnp.floor(significand * significand_steps)) / significand_steps,
-                                    significand_q)
-                
-        elif rmode in {"minus_inf", 3}:
-            significand_q = jnp.where(sign > 0,
-                                    jnp.floor(significand_normal * significand_steps),
-                                    jnp.ceil(significand_normal * significand_steps)) / significand_steps
-            significand_q = jnp.where(subnormal_mask,
-                                    jnp.where(sign > 0,
-                                            jnp.floor(significand * significand_steps),
-                                            jnp.ceil(significand * significand_steps)) / significand_steps,
-                                    significand_q)
-                
-        elif rmode in {"towards_zero", 4}:
-            significand_q = jnp.floor(significand_normal * significand_steps) / significand_steps
-            significand_q = jnp.where(subnormal_mask,
-                                    jnp.floor(significand * significand_steps) / significand_steps,
-                                    significand_q)
-                
-        elif rmode in {"stoc_prop", 5}:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = jnp.floor(significand_scaled)
-            fraction = significand_scaled - floor_val
-            # Split and advance the key for each random operation
-            self.key, subkey = jax.random.split(self.key)
-            prob = jax.random.uniform(subkey, shape=significand_scaled.shape)
-            significand_q = jnp.where(prob < fraction, floor_val + 1, floor_val) / significand_steps
-            significand_q = jnp.where(subnormal_mask,
-                                    jnp.where(prob < (significand * significand_steps - jnp.floor(significand * significand_steps)),
-                                            jnp.floor(significand * significand_steps) + 1,
-                                            jnp.floor(significand * significand_steps)) / significand_steps,
-                                    significand_q)
-                
-        elif rmode in {"stoc_equal", 6}:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = jnp.floor(significand_scaled)
-            # Split and advance the key for each random operation
-            self.key, subkey = jax.random.split(self.key)
-            prob = jax.random.uniform(subkey, shape=significand_scaled.shape)
-            significand_q = jnp.where(prob < 0.5, floor_val, floor_val + 1) / significand_steps
-            significand_q = jnp.where(subnormal_mask,
-                                    jnp.where(prob < 0.5,
-                                            jnp.floor(significand * significand_steps),
-                                            jnp.floor(significand * significand_steps) + 1) / significand_steps,
-                                    significand_q)
-                
-        elif rmode in {"nearest_ties_to_zero", 7}:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = jnp.floor(significand_scaled)
-            ceil_val = jnp.ceil(significand_scaled)
-            is_half = jnp.abs(significand_scaled - floor_val - 0.5) < 1e-6
-            significand_q = jnp.where(
-                is_half,
-                jnp.where(sign >= 0, floor_val, ceil_val),
-                jnp.round(significand_scaled)
-            ) / significand_steps
-            significand_subnormal = significand * significand_steps
-            sub_floor = jnp.floor(significand_subnormal)
-            sub_ceil = jnp.ceil(significand_subnormal)
-            sub_is_half = jnp.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
-            significand_q = jnp.where(
-                subnormal_mask,
-                jnp.where(
-                    sub_is_half,
-                    jnp.where(sign >= 0, sub_floor, sub_ceil),
-                    jnp.round(significand_subnormal)
-                ) / significand_steps,
-                significand_q
-            )
-            
-        elif rmode in {"nearest_ties_to_away", 8}:
-            significand_scaled = significand_normal * significand_steps
-            floor_val = jnp.floor(significand_scaled)
-            ceil_val = jnp.ceil(significand_scaled)
-            is_half = jnp.abs(significand_scaled - floor_val - 0.5) < 1e-6
-            significand_q = jnp.where(
-                is_half,
-                jnp.where(sign >= 0, ceil_val, floor_val),
-                jnp.round(significand_scaled)
-            ) / significand_steps
-            significand_subnormal = significand * significand_steps
-            sub_floor = jnp.floor(significand_subnormal)
-            sub_ceil = jnp.ceil(significand_subnormal)
-            sub_is_half = jnp.abs(significand_subnormal - sub_floor - 0.5) < 1e-6
-            significand_q = jnp.where(
-                subnormal_mask,
-                jnp.where(
-                    sub_is_half,
-                    jnp.where(sign >= 0, sub_ceil, sub_floor),
-                    jnp.round(significand_subnormal)
-                ) / significand_steps,
-                significand_q
-            )
-    
-        else:
+        sig_steps = self.sig_steps
+        sig_scaled = sig_normal * sig_steps
+        sig_sub_scaled = significand * sig_steps if self.subnormal else None
+        
+        def nearest(sig_scaled, sig_sub_scaled, subnormal_mask):
+            sig_q = jnp.round(sig_scaled) / sig_steps
+            return jnp.where(subnormal_mask, jnp.round(sig_sub_scaled) / sig_steps, sig_q) if self.subnormal else sig_q
+
+        def plus_inf(sig_scaled, sig_sub_scaled, subnormal_mask, sign):
+            sig_q = jnp.where(sign > 0, jnp.ceil(sig_scaled), jnp.floor(sig_scaled)) / sig_steps
+            if self.subnormal:
+                sig_q_sub = jnp.where(sign > 0, jnp.ceil(sig_sub_scaled), jnp.floor(sig_sub_scaled)) / sig_steps
+                return jnp.where(subnormal_mask, sig_q_sub, sig_q)
+            return sig_q
+
+        def minus_inf(sig_scaled, sig_sub_scaled, subnormal_mask, sign):
+            sig_q = jnp.where(sign > 0, jnp.floor(sig_scaled), jnp.ceil(sig_scaled)) / sig_steps
+            if self.subnormal:
+                sig_q_sub = jnp.where(sign > 0, jnp.floor(sig_sub_scaled), jnp.ceil(sig_sub_scaled)) / sig_steps
+                return jnp.where(subnormal_mask, sig_q_sub, sig_q)
+            return sig_q
+
+        def towards_zero(sig_scaled, sig_sub_scaled, subnormal_mask):
+            sig_q = jnp.floor(sig_scaled) / sig_steps
+            return jnp.where(subnormal_mask, jnp.floor(sig_sub_scaled) / sig_steps, sig_q) if self.subnormal else sig_q
+
+        def stoc_prop(sig_scaled, sig_sub_scaled, subnormal_mask, key):
+            floor_val = jnp.floor(sig_scaled)
+            fraction = sig_scaled - floor_val
+            prob = jax.random.uniform(key, shape=())
+            sig_q = jnp.where(prob < fraction, floor_val + 1, floor_val) / sig_steps
+            if self.subnormal:
+                sub_floor = jnp.floor(sig_sub_scaled)
+                sub_fraction = sig_sub_scaled - sub_floor
+                sig_q_sub = jnp.where(prob < sub_fraction, sub_floor + 1, sub_floor) / sig_steps
+                return jnp.where(subnormal_mask, sig_q_sub, sig_q)
+            return sig_q
+
+        def stoc_equal(sig_scaled, sig_sub_scaled, subnormal_mask, key):
+            floor_val = jnp.floor(sig_scaled)
+            prob = jax.random.uniform(key, shape=())
+            sig_q = jnp.where(prob < 0.5, floor_val, floor_val + 1) / sig_steps
+            if self.subnormal:
+                sub_floor = jnp.floor(sig_sub_scaled)
+                sig_q_sub = jnp.where(prob < 0.5, sub_floor, sub_floor + 1) / sig_steps
+                return jnp.where(subnormal_mask, sig_q_sub, sig_q)
+            return sig_q
+
+        def nearest_ties_zero(sig_scaled, sig_sub_scaled, subnormal_mask, sign):
+            floor_val = jnp.floor(sig_scaled)
+            is_half = jnp.abs(sig_scaled - floor_val - 0.5) < 1e-6
+            sig_q = jnp.where(is_half, jnp.where(sign >= 0, floor_val, floor_val + 1), jnp.round(sig_scaled)) / sig_steps
+            if self.subnormal:
+                sub_floor = jnp.floor(sig_sub_scaled)
+                sub_is_half = jnp.abs(sig_sub_scaled - sub_floor - 0.5) < 1e-6
+                sig_q_sub = jnp.where(sub_is_half, jnp.where(sign >= 0, sub_floor, sub_floor + 1), 
+                                    jnp.round(sig_sub_scaled)) / sig_steps
+                return jnp.where(subnormal_mask, sig_q_sub, sig_q)
+            return sig_q
+
+        def nearest_ties_away(sig_scaled, sig_sub_scaled, subnormal_mask, sign):
+            floor_val = jnp.floor(sig_scaled)
+            is_half = jnp.abs(sig_scaled - floor_val - 0.5) < 1e-6
+            sig_q = jnp.where(is_half, jnp.where(sign >= 0, floor_val + 1, floor_val), jnp.round(sig_scaled)) / sig_steps
+            if self.subnormal:
+                sub_floor = jnp.floor(sig_sub_scaled)
+                sub_is_half = jnp.abs(sig_sub_scaled - sub_floor - 0.5) < 1e-6
+                sig_q_sub = jnp.where(sub_is_half, jnp.where(sign >= 0, sub_floor + 1, sub_floor), 
+                                    jnp.round(sig_sub_scaled)) / sig_steps
+                return jnp.where(subnormal_mask, sig_q_sub, sig_q)
+            return sig_q
+
+        rounding_fns = {
+            1: nearest,
+            2: lambda s, ss, sm: plus_inf(s, ss, sm, sign),
+            3: lambda s, ss, sm: minus_inf(s, ss, sm, sign),
+            4: towards_zero,
+            5: lambda s, ss, sm: stoc_prop(s, ss, sm, key),
+            6: lambda s, ss, sm: stoc_equal(s, ss, sm, key),
+            7: lambda s, ss, sm: nearest_ties_zero(s, ss, sm, sign),
+            8: lambda s, ss, sm: nearest_ties_away(s, ss, sm, sign),
+        }
+        
+        if rmode not in rounding_fns:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
         
-        result = jnp.zeros_like(x)
-        result = jnp.where(normal_mask,
-                         sign * (1.0 + significand_q) * (2.0 ** (exponent - self.bias)),
-                         result)
-        result = jnp.where(subnormal_mask,
-                         sign * significand_q * (2.0 ** self.min_exp),
-                         result)
+        sig_q = rounding_fns[rmode](sig_scaled, sig_sub_scaled, subnormal_mask)
+        
+        result = jnp.where(normal_mask, sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias)), 0.0)
+        if self.subnormal:
+            result = jnp.where(subnormal_mask, sign * sig_q * (2.0 ** self.min_exp), result)
         result = jnp.where(zero_mask, 0.0, result)
-        result = jnp.where(inf_mask, jnp.sign(x) * jnp.inf, result)
+        result = jnp.where(inf_mask, sign * jnp.inf, result)
         result = jnp.where(nan_mask, jnp.nan, result)
         
         return result
 
-    def quantize(self, x: jnp.ndarray) -> jnp.ndarray:
-        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-        return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode)
+    def quantize(self, x):
+        x = jnp.asarray(x)
+        keys = jax.random.split(self.rng_key, x.size)  # Generate unique keys for each element
+        self.rng_key = keys[0]  # Update the key for the next call
+        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float_vmap(x)
+        return self._quantize_vmap(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode, keys[1:])
 
-    def __call__(self, x: jnp.ndarray):
+    def __call__(self, x):
         return self.quantize(x)
