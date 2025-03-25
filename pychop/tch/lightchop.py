@@ -248,20 +248,20 @@ class LightChop:
 
 class LightChopSTE:
     def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True):
-            """Initialize float precision simulator with custom format, rounding mode, and subnormal support."""
-            self.exp_bits = exp_bits
-            self.sig_bits = sig_bits
-            self.rmode = rmode
-            self.subnormal = subnormal
-            self.max_exp = 2 ** (exp_bits - 1) - 1
-            self.min_exp = -self.max_exp + 1
-            self.bias = 2 ** (exp_bits - 1) - 1
-            # Precompute constants
-            self.sig_steps = 2 ** sig_bits
-            self.min_exp_power = 2.0 ** self.min_exp
-            self.exp_min = 0
-            self.exp_max = 2 ** exp_bits - 1
-            self.inv_sig_steps = 1.0 / self.sig_steps  # Precompute inverse for multiplication
+        """Initialize float precision simulator with custom format, rounding mode, and subnormal support."""
+        self.exp_bits = exp_bits
+        self.sig_bits = sig_bits
+        self.rmode = rmode
+        self.subnormal = subnormal
+        self.max_exp = 2 ** (exp_bits - 1) - 1
+        self.min_exp = -self.max_exp + 1
+        self.bias = 2 ** (exp_bits - 1) - 1
+        # Precompute constants
+        self.sig_steps = 2 ** sig_bits
+        self.min_exp_power = 2.0 ** self.min_exp
+        self.exp_min = 0
+        self.exp_max = 2 ** exp_bits - 1
+        self.inv_sig_steps = 1.0 / self.sig_steps  # Precompute inverse for multiplication
 
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
