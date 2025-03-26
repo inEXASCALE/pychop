@@ -1,6 +1,6 @@
 import os
 
-def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True, random_state: int=42, chunk_size: int=1000):
+def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True, chunk_size: int=1000, random_state: int=42):
     """
 
     Parameters
@@ -13,15 +13,14 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
         
     rmode : int, default=1
         Rounding mode to use when quantizing the significand. Options are:
-        - 0 or "nearest_odd": Round to nearest value, ties to odd.
-        - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
-        - 2 or "plus_inf": Round towards plus infinity (round up).
-        - 3 or "minus_inf": Round towards minus infinity (round down).
-        - 4 or "toward_zero": Truncate toward zero (no rounding up).
-        - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
-        - 6 or "stoc_equal": Stochastic rounding with 50% probability.
-        - 7 or "nearest_ties_to_zero": Round to nearest value, ties to zero.
-        - 8 or "nearest_ties_to_away": Round to nearest value, ties to away.
+        - 1 : Round to nearest value, ties to even (IEEE 754 default).
+        - 2 : Round towards plus infinity (round up).
+        - 3 : Round towards minus infinity (round down).
+        - 4 : Truncate toward zero (no rounding up).
+        - 5 : Stochastic rounding proportional to the fractional part.
+        - 6 : Stochastic rounding with 50% probability.
+        - 7 : Round to nearest value, ties to zero.
+        - 8 : Round to nearest value, ties to away.
 
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
@@ -37,6 +36,6 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
     else:
         from .np.lightchop import LightChop
 
-    return LightChop(exp_bits, sig_bits, rmode, subnormal, random_state, chunk_size)
+    return LightChop(exp_bits, sig_bits, rmode, subnormal, chunk_size, random_state)
 
 

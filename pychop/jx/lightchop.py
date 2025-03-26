@@ -28,19 +28,21 @@ class LightChop:
         rounding modes.
 
         Rounding mode to use when quantizing the significand. Options are:
-        - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
-        - 2 or "plus_inf": Round towards plus infinity (round up).
-        - 3 or "minus_inf": Round towards minus infinity (round down).
-        - 4 or "toward_zero": Truncate toward zero (no rounding up).
-        - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
-        - 6 or "stoc_equal": Stochastic rounding with 50% probability.
-        - 7 or "nearest_ties_to_zero": Round to nearest value, ties to zero.
-        - 8 or "nearest_ties_to_away": Round to nearest value, ties to away.
+        - 1 : Round to nearest value, ties to even (IEEE 754 default).
+        - 2 : Round towards plus infinity (round up).
+        - 3 : Round towards minus infinity (round down).
+        - 4 : Truncate toward zero (no rounding up).
+        - 5 : Stochastic rounding proportional to the fractional part.
+        - 6 : Stochastic rounding with 50% probability.
+        - 7 : Round to nearest value, ties to zero.
+        - 8 : Round to nearest value, ties to away.
 
     random_state : int, default=42
         random seed for stochastic rounding.
     """
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True, random_state: int = 42, chunk_size: int = 1000):
+    
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True, 
+                 chunk_size: int = 1000, random_state: int = 42):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
         self.max_exp = 2 ** (exp_bits - 1) - 1

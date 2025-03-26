@@ -1,6 +1,6 @@
 import os
 
-def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, random_state: int=42):
+def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True, random_state: int=42, chunk_size: int=1000):
     """
 
     Parameters
@@ -37,6 +37,6 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, random_state: int=42
     else:
         from .np.lightchop import LightChop
 
-    return LightChop(exp_bits, sig_bits, rmode, random_state)
+    return LightChop(exp_bits, sig_bits, rmode, subnormal, random_state, chunk_size)
 
 
