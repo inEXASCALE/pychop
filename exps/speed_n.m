@@ -4,7 +4,6 @@ clc;
 pc = py.importlib.import_module('pychop');
 np = py.importlib.import_module('numpy');
 th = py.importlib.import_module('torch');
-jx = py.importlib.import_module('jax');
 % torch.cuda.is_available()
 
 addpath("../tests/chop")
@@ -12,7 +11,7 @@ pe = pyenv()
 % Define matrix sizes
 rng(0);
 
-sizes = 2.^[7, 9]; % [128, 512, 2048, 8192, 32768] % , 11, 13, 15
+sizes = 2.^[6, 8, 10, 12, 14]; % [128, 512, 2048, 8192, 32768] % 
 
 % Define rounding modes supported by chop
 rounding_modes = [1, 2, 3, 4, 5, 6]; % 1: nearest (even), 2: up, 3: down, 4: zero, 5: stochastic (prop) 6. stochastic (uniform)
@@ -37,11 +36,6 @@ runtimes_all_th = zeros(length(sizes), length(rounding_modes), num_runs);
 % Initialize average runtime storage (after discarding first run) for pychop
 runtimes_avg_th = zeros(length(sizes), length(rounding_modes));
 
-% Initialize runtime storage (for all runs) for pychop
-runtimes_all_jx = zeros(length(sizes), length(rounding_modes), num_runs);
-% Initialize average runtime storage (after discarding first run) for pychop
-runtimes_avg_jx = zeros(length(sizes), length(rounding_modes));
-
 
 % Initialize runtime storage (for all runs) for pychop
 runtimes_all_np2 = zeros(length(sizes), length(rounding_modes), num_runs);
@@ -52,11 +46,6 @@ runtimes_avg_np2 = zeros(length(sizes), length(rounding_modes));
 runtimes_all_th2 = zeros(length(sizes), length(rounding_modes), num_runs);
 % Initialize average runtime storage (after discarding first run) for pychop
 runtimes_avg_th2 = zeros(length(sizes), length(rounding_modes));
-
-% Initialize runtime storage (for all runs) for pychop
-runtimes_all_jx2 = zeros(length(sizes), length(rounding_modes), num_runs);
-% Initialize average runtime storage (after discarding first run) for pychop
-runtimes_avg_jx2 = zeros(length(sizes), length(rounding_modes));
 
 
 % Set chop options for half precision
@@ -84,7 +73,6 @@ for i = 1:length(sizes)
         for k = 1:num_runs
             A_np = np.array(A);
             A_th = th.from_numpy(A_np); % torch array
-            A_jx = jx.numpy.float64(A_np); % jax array
 
             pc.backend('torch');
             ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=j);
@@ -110,19 +98,6 @@ for i = 1:length(sizes)
             A_chopped_th = ch2(A_np);
             runtimes_all_th2(i, j, k) = toc;
 
-            pc.backend('jax');
-            jx.config.update("jax_enable_x64", true);
-
-            ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=j);
-            ch2 = pc.Chop('h', rmode=j);
-
-            tic;
-            A_chopped_jx = ch(A_jx);
-            runtimes_all_jx(i, j, k) = toc;
-
-            tic;
-            A_chopped_jx = ch2(A_jx);
-            runtimes_all_jx2(i, j, k) = toc;
 
             tic;
             A_chopped = chop(A, options);
@@ -134,11 +109,9 @@ for i = 1:length(sizes)
 
         runtimes_avg_np(i, j) = mean(runtimes_all_np(i, j, 2:end));
         runtimes_avg_th(i, j) = mean(runtimes_all_th(i, j, 2:end));
-        runtimes_avg_jx(i, j) = mean(runtimes_all_jx(i, j, 2:end));
 
         runtimes_avg_np2(i, j) = mean(runtimes_all_np2(i, j, 2:end));
         runtimes_avg_th2(i, j) = mean(runtimes_all_th2(i, j, 2:end));
-        runtimes_avg_jx2(i, j) = mean(runtimes_all_jx2(i, j, 2:end));
     end
 end
 
@@ -186,17 +159,6 @@ writetable(T, 'results/chop_runtimes_avg_th.csv');
 disp('Results saved to chop_runtimes_avg_th.csv');
 
 
-%%% jax data
-save('results/chop_runtimes_avg_jx.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_jx');
-
-csv_data = [sizes', runtimes_avg_jx];
-header = ['Size', mode_names]; 
-
-T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg_jx.csv');
-
-disp('Results saved to chop_runtimes_avg_jx.csv');
-
 
 
 
@@ -221,14 +183,3 @@ T = array2table(csv_data, 'VariableNames', header);
 writetable(T, 'results/chop_runtimes_avg_th2.csv');
 
 disp('Results saved to chop_runtimes_avg_th2.csv');
-
-%%% jax data 2
-save('results/chop_runtimes_avg_jx2.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_jx2');
-
-csv_data = [sizes', runtimes_avg_jx2];
-header = ['Size', mode_names];
-
-T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg_jx2.csv');
-
-disp('Results saved to chop_runtimes_avg_jx2.csv');
