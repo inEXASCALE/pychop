@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # List of CSV files and their corresponding method names
 csv_files = {
@@ -26,18 +27,29 @@ x_indices = range(len(sizes))
 # Rounding modes (column names excluding 'Size')
 rounding_modes = dataframes['MATLAB chop'].columns[1:].tolist()  # ['Nearest (even)', 'Up', ...]
 
+# Reference method for ratio (MATLAB chop)
+reference_method = 'MATLAB chop'
+
 # Create a separate plot for each rounding mode
 for mode in rounding_modes:
     plt.figure(figsize=(10, 6))
     
-    # Plot each method's runtime for this rounding mode with semilogy
+    # Get the reference runtime (MATLAB chop) for this rounding mode
+    reference_runtimes = dataframes[reference_method][mode].values
+    
+    # Plot each method's runtime ratio for this rounding mode with semilogy
     for method, df in dataframes.items():
-        plt.semilogy(x_indices, df[mode], marker='o', label=method)
+        if method != reference_method:  # Skip the reference method itself
+            # Compute ratios as reference / method, avoiding division by zero or invalid values
+            runtime_ratios = np.where(df[mode].values != 0, 
+                                    reference_runtimes / df[mode].values, 
+                                    np.nan)  # Use NaN for invalid cases
+            plt.semilogy(x_indices, runtime_ratios, marker='o', label=method)
     
     # Customize the plot
-    plt.title(f'Average Runtime vs Matrix Size\nRounding Mode: {mode}', fontsize=14)
+    plt.title(f'Runtime Ratio vs Matrix Size\nRounding Mode: {mode}', fontsize=14)
     plt.xlabel('Matrix Size (n x n)', fontsize=12)
-    plt.ylabel('Average Runtime (seconds)', fontsize=12)
+    plt.ylabel(f'Runtime Ratio ({reference_method} / Method)', fontsize=12)
     
     # Set x-ticks with labels in the form of 2^exponent
     plt.xticks(x_indices, [f'$2^{{{exp}}}$' for exp in exponents])
@@ -50,11 +62,11 @@ for mode in rounding_modes:
     plt.tight_layout()
     
     # Save the plot as PDF with tight bounding box
-    plt.savefig(f'results/runtime_comparison_{mode.replace(" ", "_")}.pdf', 
+    plt.savefig(f'results/runtime_ratio_comparison_{mode.replace(" ", "_")}.pdf', 
                 format='pdf', 
                 bbox_inches='tight')
     
     # Close the figure to free memory
     plt.close()
 
-print("Semilogy PDF plots generated for all rounding modes with base-2 exponent x-labels and tight bounding box.")
+print("Semilogy PDF plots with runtime ratios (MATLAB chop / Method) generated for all rounding modes with base-2 exponent x-labels and tight bounding box.")
