@@ -7,7 +7,7 @@ import numpy as np
 from time import time
 import pandas as pd
 import torch
-
+import gc
 
 rounding_modes = 6
 num_runs = 6
@@ -55,6 +55,7 @@ for i in range(sizes):
     print(f"\nData {i+1}")
 
     for j in range(rounding_modes):
+
         print(f"Rounding {columns[j]}")
 
         for k in range(num_runs):
@@ -62,7 +63,7 @@ for i in range(sizes):
             
             ch1 = LightChop(exp_bits=5, sig_bits=10, rmode=j+1)
             ch2 = Chop('h', rmode=j+1)
-
+            
             st = time()
             ch1(X)
             et = time()
@@ -107,6 +108,8 @@ for i in range(sizes):
             et = time()
 
             runtimes_all_th2_gpu[i, j, k] = et - st
+
+            gc.collect()
 
         runtimes_avg_np[i, j] = np.mean(runtimes_all_np[i, j, 1:])
         runtimes_avg_th[i, j] = np.mean(runtimes_all_th[i, j, 1:])

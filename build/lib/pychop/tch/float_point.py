@@ -692,83 +692,103 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, r
                 
     return x
 
+# Optimized versions with consistent output
 def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, randfunc=None, *argv, **kwargs):
     if randfunc is None:
         randfunc = lambda n: torch.rand(n, device=x.device)
-        
+
+    # Precompute constants
     emin = 1 - emax
     xmin = 2 ** emin
     emins = emin + 1 - t
     xmins = 2 ** emins
     xmax = 2 ** emax * (2 - 2 ** (1 - t))
-    
-    e = torch.floor(torch.log2(torch.abs(x))).int()
+
+    # Efficient exponent calculation
+    abs_x = torch.abs(x)
+    e = torch.log2(abs_x).floor().int()
     ktemp = (e < emin) & (e >= emins)
-              
+
+    # Minimize tensor creation
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = torch.zeros_like(ktemp, dtype=torch.bool, device=x.device)
-        k_norm = torch.ones_like(ktemp, dtype=torch.bool, device=x.device)
+        k_sub = torch.empty_like(ktemp, dtype=torch.bool, device=x.device).fill_(False)
+        k_norm = torch.empty_like(ktemp, dtype=torch.bool, device=x.device).fill_(True)
 
-    w = torch.pow(2.0, t - 1 - e[k_norm].float()).to(x.device)
-    x[k_norm] = stochastic_rounding(x=x[k_norm] * w, flip=flip, p=p, t=t, randfunc=randfunc)
-    x[k_norm] *= 1 / w
-    
+    # Normal range: avoid in-place to match original
+    w = torch.pow(2.0, t - 1 - e[k_norm].float())
+    x_norm = x[k_norm] * w
+    x_norm = stochastic_rounding(x_norm, flip=flip, p=p, t=t, randfunc=randfunc) * (1 / w)
+    x[k_norm] = x_norm
+
+    # Subnormal range: avoid in-place to match original
     if k_sub.any():
         temp = emin - e[k_sub]
-        t1 = t - torch.max(temp, torch.zeros_like(temp, device=x.device))
-        x[k_sub] = stochastic_rounding(x=x[k_sub] * torch.pow(2, t1 - 1 - e[k_sub].float()), 
-                                       flip=flip, p=p, t=t, randfunc=randfunc) * torch.pow(2, e[k_sub].float() - (t1 - 1))
-        
+        t1 = t - torch.clamp(temp, min=0)  # Optimized with clamp
+        w_sub = torch.pow(2.0, t1 - 1 - e[k_sub].float())
+        x_sub = x[k_sub] * w_sub
+        x_sub = stochastic_rounding(x_sub, flip=flip, p=p, t=t, randfunc=randfunc) * torch.pow(2.0, e[k_sub].float() - (t1 - 1))
+        x[k_sub] = x_sub
+
+    # Boundary handling with vectorized operations
     if explim:
-        x[(x > xmax) & (x != float('inf'))] = xmax
-        x[(x < -xmax) & (x != float('-inf'))] = -xmax
+        x.masked_fill_((x > xmax) & (x != float('inf')), xmax)
+        x.masked_fill_((x < -xmax) & (x != float('-inf')), -xmax)
         min_rep = xmin if subnormal == 0 else xmins
-        k_small = torch.abs(x) < min_rep
-        x[k_small] = 0
-                
+        x.masked_fill_(abs_x < min_rep, 0)
+
     return x
 
 def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, randfunc=None, *argv, **kwargs):
     if randfunc is None:
         randfunc = lambda n: torch.rand(n, device=x.device)
-        
+
+    # Precompute constants
     emin = 1 - emax
     xmin = 2 ** emin
     emins = emin + 1 - t
     xmins = 2 ** emins
-    
-    e = torch.floor(torch.log2(torch.abs(x))).int()
+    xboundary = 2 ** emax * (2 - 0.5 * 2 ** (1 - t))
+
+    # Efficient exponent calculation
+    abs_x = torch.abs(x)
+    e = torch.log2(abs_x).floor().int()
     ktemp = (e < emin) & (e >= emins)
-              
+
+    # Minimize tensor creation
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
     else:
-        k_sub = torch.zeros_like(ktemp, dtype=torch.bool, device=x.device)
-        k_norm = torch.ones_like(ktemp, dtype=torch.bool, device=x.device)
+        k_sub = torch.empty_like(ktemp, dtype=torch.bool, device=x.device).fill_(False)
+        k_norm = torch.empty_like(ktemp, dtype=torch.bool, device=x.device).fill_(True)
 
-    w = torch.pow(2.0, t - 1 - e[k_norm].float()).to(x.device)
-    x[k_norm] = stochastic_rounding_equal(x=x[k_norm] * w, flip=flip, p=p, t=t, randfunc=randfunc)
-    x[k_norm] *= 1 / w
-    
+    # Normal range: avoid in-place to match original
+    w = torch.pow(2.0, t - 1 - e[k_norm].float())
+    x_norm = x[k_norm] * w
+    x_norm = stochastic_rounding_equal(x_norm, flip=flip, p=p, t=t, randfunc=randfunc) * (1 / w)
+    x[k_norm] = x_norm
+
+    # Subnormal range: avoid in-place to match original
     if k_sub.any():
         temp = emin - e[k_sub]
-        t1 = t - torch.max(temp, torch.zeros_like(temp, device=x.device))
-        x[k_sub] = stochastic_rounding_equal(x=x[k_sub] * torch.pow(2, t1 - 1 - e[k_sub].float()), 
-                                             flip=flip, p=p, t=t, randfunc=randfunc) * torch.pow(2, e[k_sub].float() - (t1 - 1))
-        
+        t1 = t - torch.clamp(temp, min=0)  # Optimized with clamp
+        w_sub = torch.pow(2.0, t1 - 1 - e[k_sub].float())
+        x_sub = x[k_sub] * w_sub
+        x_sub = stochastic_rounding_equal(x_sub, flip=flip, p=p, t=t, randfunc=randfunc) * torch.pow(2.0, e[k_sub].float() - (t1 - 1))
+        x[k_sub] = x_sub
+
+    # Boundary handling with vectorized operations
     if explim:
-        xboundary = 2 ** emax * (2 - 0.5 * 2 ** (1 - t))
-        x[x >= xboundary] = float('inf')
-        x[x <= -xboundary] = float('-inf')
+        x.masked_fill_(x >= xboundary, float('inf'))
+        x.masked_fill_(x <= -xboundary, float('-inf'))
         min_rep = xmin if subnormal == 0 else xmins
-        k_small = torch.abs(x) < min_rep
-        x[k_small] = 0
+        x.masked_fill_(abs_x < min_rep, 0)
 
     return x
+
 
 def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
     if randfunc is None:
@@ -793,6 +813,7 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
     
     return y
 
+
 def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
     y = torch.ceil(x)
     
@@ -807,6 +828,7 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
             y[k] = sign(y[k]) * u
     
     return y
+
 
 def round_towards_minus_inf(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
     y = torch.floor(x)
@@ -823,6 +845,7 @@ def round_towards_minus_inf(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
     
     return y
 
+
 def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
     y = ((x >= 0) | (x == float('-inf'))) * torch.floor(x) + ((x < 0) | (x == float('inf'))) * torch.ceil(x)
     
@@ -837,6 +860,7 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
             y[k] = sign(y[k]) * u
     
     return y
+
 
 def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
     if randfunc is None:
@@ -893,6 +917,7 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
             y[k] = sign(y[k]) * u
     
     return y
+
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
     if randfunc is None:
