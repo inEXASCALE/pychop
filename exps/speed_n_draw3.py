@@ -32,7 +32,7 @@ reference_method = 'MATLAB chop'
 
 # Create a separate plot for each rounding mode
 for mode in rounding_modes:
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 8))
     
     # Get the reference runtime (MATLAB chop) for this rounding mode
     reference_runtimes = dataframes[reference_method][mode].values
@@ -44,19 +44,19 @@ for mode in rounding_modes:
             runtime_ratios = np.where(df[mode].values != 0, 
                                     reference_runtimes / df[mode].values, 
                                     np.nan)  # Use NaN for invalid cases
-            plt.semilogy(x_indices, runtime_ratios, marker='o', label=method)
+            plt.plot(x_indices, runtime_ratios, marker='o', label=method)
     
     # Customize the plot
     plt.title(f'Runtime Ratio vs Matrix Size\nRounding Mode: {mode}', fontsize=14)
-    plt.xlabel('Matrix Size (n x n)', fontsize=12)
-    plt.ylabel(f'Runtime Ratio ({reference_method} / Method)', fontsize=12)
+    plt.xlabel('Matrix Size (n x n)', fontsize=15)
+    plt.ylabel(f'Runtime Ratio ({reference_method} / Method)', fontsize=15)
     
     # Set x-ticks with labels in the form of 2^exponent
     plt.xticks(x_indices, [f'$2^{{{exp}}}$' for exp in exponents])
     
     # Enable grid for both major and minor ticks on the y-axis
     plt.grid(True, which="both", ls="--")
-    plt.legend(title='Method', fontsize=10)
+    plt.legend(title='Method', fontsize=15)
     
     # Adjust layout to prevent label cutoff
     plt.tight_layout()

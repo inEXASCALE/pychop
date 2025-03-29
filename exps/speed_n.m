@@ -36,6 +36,10 @@ runtimes_all_th = zeros(length(sizes), length(rounding_modes), num_runs);
 % Initialize average runtime storage (after discarding first run) for pychop
 runtimes_avg_th = zeros(length(sizes), length(rounding_modes));
 
+% Initialize runtime storage (for all runs) for pychop
+runtimes_all_th_gpu = zeros(length(sizes), length(rounding_modes), num_runs);
+% Initialize average runtime storage (after discarding first run) for pychop
+runtimes_avg_th_gpu = zeros(length(sizes), length(rounding_modes));
 
 % Initialize runtime storage (for all runs) for pychop
 runtimes_all_np2 = zeros(length(sizes), length(rounding_modes), num_runs);
@@ -47,6 +51,10 @@ runtimes_all_th2 = zeros(length(sizes), length(rounding_modes), num_runs);
 % Initialize average runtime storage (after discarding first run) for pychop
 runtimes_avg_th2 = zeros(length(sizes), length(rounding_modes));
 
+% Initialize runtime storage (for all runs) for pychop
+runtimes_all_th2_gpu = zeros(length(sizes), length(rounding_modes), num_runs);
+% Initialize average runtime storage (after discarding first run) for pychop
+runtimes_avg_th2_gpu = zeros(length(sizes), length(rounding_modes));
 
 % Set chop options for half precision
 options.format = 'h'; % Half precision (fp16)
@@ -73,6 +81,7 @@ for i = 1:length(sizes)
         for k = 1:num_runs
             A_np = np.array(A);
             A_th = th.from_numpy(A_np); % torch array
+            A_th_gpu = A_th.to('cuda');
 
             pc.backend('torch');
             ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=j);
@@ -80,24 +89,32 @@ for i = 1:length(sizes)
 
             tic;
             A_chopped_th = ch(A_th);
-            runtimes_all_np(i, j, k) = toc;
+            runtimes_all_th(i, j, k) = toc;
             
             tic;
             A_chopped_th = ch2(A_th);
-            runtimes_all_np2(i, j, k) = toc;
+            runtimes_all_th2(i, j, k) = toc;
             
+            tic;
+            A_chopped_th = ch(A_th_gpu);
+            runtimes_all_th_gpu(i, j, k) = toc;
+            
+            tic;
+            A_chopped_th = ch2(A_th_gpu);
+            runtimes_all_th2_gpu(i, j, k) = toc;
+
+
             pc.backend('numpy');
             ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=j);
             ch2 = pc.Chop('h', rmode=j);
 
             tic;
             A_chopped_th = ch(A_np);
-            runtimes_all_th(i, j, k) = toc;
+            runtimes_all_np(i, j, k) = toc;
 
             tic;
             A_chopped_th = ch2(A_np);
-            runtimes_all_th2(i, j, k) = toc;
-
+            runtimes_all_np2(i, j, k) = toc;
 
             tic;
             A_chopped = chop(A, options);
@@ -109,9 +126,11 @@ for i = 1:length(sizes)
 
         runtimes_avg_np(i, j) = mean(runtimes_all_np(i, j, 2:end));
         runtimes_avg_th(i, j) = mean(runtimes_all_th(i, j, 2:end));
+        runtimes_avg_th_gpu(i, j) = mean(runtimes_all_th_gpu(i, j, 2:end));
 
         runtimes_avg_np2(i, j) = mean(runtimes_all_np2(i, j, 2:end));
         runtimes_avg_th2(i, j) = mean(runtimes_all_th2(i, j, 2:end));
+        runtimes_avg_th2_gpu(i, j) = mean(runtimes_all_th2_gpu(i, j, 2:end));
     end
 end
 
@@ -158,8 +177,16 @@ writetable(T, 'results/chop_runtimes_avg_th.csv');
 
 disp('Results saved to chop_runtimes_avg_th.csv');
 
+%%% torch data gpu
+save('results/chop_runtimes_avg_th_gpu.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th');
 
+csv_data = [sizes', runtimes_avg_th_gpu]; 
+header = ['Size', mode_names]; 
 
+T = array2table(csv_data, 'VariableNames', header);
+writetable(T, 'results/chop_runtimes_avg_th_gpu.csv');
+
+disp('Results saved to chop_runtimes_avg_th_gpu.csv');
 
 
 %%% numpy data 2
@@ -183,3 +210,14 @@ T = array2table(csv_data, 'VariableNames', header);
 writetable(T, 'results/chop_runtimes_avg_th2.csv');
 
 disp('Results saved to chop_runtimes_avg_th2.csv');
+
+%%% torch data 2 gpu
+save('results/chop_runtimes_avg_th2_gpu.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th2');
+
+csv_data = [sizes', runtimes_avg_th2_gpu];
+header = ['Size', mode_names]; 
+
+T = array2table(csv_data, 'VariableNames', header);
+writetable(T, 'results/chop_runtimes_avg_th2_gpu.csv');
+
+disp('Results saved to chop_runtimes_avg_th2_gpu.csv');
