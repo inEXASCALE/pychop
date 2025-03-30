@@ -10,7 +10,7 @@ import torch
 import gc
 
 rounding_modes = 6
-num_runs = 6
+num_runs = 11
 
 arr_sizes = [2**6, 2**8, 2**10, 2**12, 2**14]
 columns = ["Nearest (even)","Up","Down","Zero","Stochastic (prop)","Stochastic (uniform)"]
@@ -28,9 +28,9 @@ runtimes_all_th = np.zeros((sizes, rounding_modes, num_runs))
 runtimes_avg_th = np.zeros((sizes, rounding_modes))
 
 # Initialize runtime storage (for all runs) for pychop
-runtimes_all_th_gpu = np.zeros((sizes, rounding_modes, num_runs))
-# Initialize average runtime storage (after discarding first run) for pychop
-runtimes_avg_th_gpu = np.zeros((sizes, rounding_modes))
+# runtimes_all_th_gpu = np.zeros((sizes, rounding_modes, num_runs))
+# # Initialize average runtime storage (after discarding first run) for pychop
+# runtimes_avg_th_gpu = np.zeros((sizes, rounding_modes))
 
 # Initialize runtime storage (for all runs) for pychop
 runtimes_all_np2 = np.zeros((sizes, rounding_modes, num_runs))
@@ -43,9 +43,9 @@ runtimes_all_th2 = np.zeros((sizes, rounding_modes, num_runs))
 runtimes_avg_th2 = np.zeros((sizes, rounding_modes))
 
 # Initialize runtime storage (for all runs) for pychop
-runtimes_all_th2_gpu = np.zeros((sizes, rounding_modes, num_runs))
+# runtimes_all_th2_gpu = np.zeros((sizes, rounding_modes, num_runs))
 # Initialize average runtime storage (after discarding first run) for pychop
-runtimes_avg_th2_gpu = np.zeros((sizes, rounding_modes))
+# runtimes_avg_th2_gpu = np.zeros((sizes, rounding_modes))
 
 for i in range(sizes):
     hd5 = h5py.File(f"data/random/A{i+1}.mat", 'r')
@@ -95,29 +95,39 @@ for i in range(sizes):
             runtimes_all_th2[i, j, k] = et - st
 
             # GPU
-            X_th = X_th.to('cuda')
+            # X_th = X_th.to('cuda')
 
-            st = time()
-            ch1(X_th)
-            et = time()
+            # try:
+            #     st = time()
+            #     ch1(X_th)
+            #     et = time()
 
-            runtimes_all_th_gpu[i, j, k] = et - st
+            #     runtimes_all_th_gpu[i, j, k] = et - st
+            # except:
+            #     runtimes_all_th_gpu[i, j, k] = -1
+            #     print("CUDA allocation fails")
+                
+            
+            # try:
+            #     st = time()
+            #     ch2(X_th)
+            #     et = time()
 
-            st = time()
-            ch2(X_th)
-            et = time()
-
-            runtimes_all_th2_gpu[i, j, k] = et - st
+            #     runtimes_all_th2_gpu[i, j, k] = et - st
+            # except:
+            #     runtimes_all_th2_gpu[i, j, k] = -1
+            #     print("CUDA allocation fails")
+                
 
             gc.collect()
 
         runtimes_avg_np[i, j] = np.mean(runtimes_all_np[i, j, 1:])
         runtimes_avg_th[i, j] = np.mean(runtimes_all_th[i, j, 1:])
-        runtimes_avg_th_gpu[i, j] = np.mean(runtimes_all_th_gpu[i, j, 1:])
+        # runtimes_avg_th_gpu[i, j] = np.mean(runtimes_all_th_gpu[i, j, 1:])
 
         runtimes_avg_np2[i, j] = np.mean(runtimes_all_np2[i, j, 1:])
         runtimes_avg_th2[i, j] = np.mean(runtimes_all_th2[i, j, 1:])
-        runtimes_avg_th2_gpu[i, j] = np.mean(runtimes_all_th2_gpu[i, j, 1:])
+        # runtimes_avg_th2_gpu[i, j] = np.mean(runtimes_all_th2_gpu[i, j, 1:])
 
 
 runtimes_avg_np = pd.DataFrame(runtimes_avg_np, columns=columns)
@@ -126,13 +136,15 @@ runtimes_avg_np2 = pd.DataFrame(runtimes_avg_np2, columns=columns)
 runtimes_avg_th = pd.DataFrame(runtimes_avg_th, columns=columns)
 runtimes_avg_th2 = pd.DataFrame(runtimes_avg_th2, columns=columns)
 
-runtimes_avg_th_gpu = pd.DataFrame(runtimes_avg_th_gpu, columns=columns)
-runtimes_avg_th2_gpu = pd.DataFrame(runtimes_avg_th2_gpu, columns=columns)
+# runtimes_avg_th_gpu = pd.DataFrame(runtimes_avg_th_gpu, columns=columns)
+# runtimes_avg_th2_gpu = pd.DataFrame(runtimes_avg_th2_gpu, columns=columns)
 
 runtimes_avg_np.index = arr_sizes[:sizes]
 runtimes_avg_th.index = arr_sizes[:sizes]
+# runtimes_avg_th_gpu.index = arr_sizes[:sizes]
 runtimes_avg_np2.index = arr_sizes[:sizes]
 runtimes_avg_th2.index = arr_sizes[:sizes]
+# runtimes_avg_th2_gpu.index = arr_sizes[:sizes]
 
 runtimes_avg_np.to_csv("pychop_runtimes_avg_np.csv", index=True, header=True)
 runtimes_avg_np2.to_csv("pychop_runtimes_avg_np2.csv", index=True, header=True)
@@ -140,5 +152,5 @@ runtimes_avg_np2.to_csv("pychop_runtimes_avg_np2.csv", index=True, header=True)
 runtimes_avg_th.to_csv("pychop_runtimes_avg_th.csv", index=True, header=True)
 runtimes_avg_th2.to_csv("pychop_runtimes_avg_th2.csv", index=True, header=True)
 
-runtimes_avg_th_gpu.to_csv("pychop_runtimes_avg_th_gpu.csv", index=True, header=True)
-runtimes_avg_th2_gpu.to_csv("pychop_runtimes_avg_th2_gpu.csv", index=True, header=True)
+# runtimes_avg_th_gpu.to_csv("pychop_runtimes_avg_th_gpu.csv", index=True, header=True)
+# runtimes_avg_th2_gpu.to_csv("pychop_runtimes_avg_th2_gpu.csv", index=True, header=True)
