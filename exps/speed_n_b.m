@@ -188,7 +188,6 @@ header = ['Size', mode_names];
 
 T = array2table(csv_data, 'VariableNames', header);
 writetable(T, 'results/chop_runtimes_avg_th_gpu_b.csv');
-
 disp('Results saved to chop_runtimes_avg_th_gpu_b.csv');
 
 
@@ -200,7 +199,6 @@ header = ['Size', mode_names];
 
 T = array2table(csv_data, 'VariableNames', header);
 writetable(T, 'results/chop_runtimes_avg_np2_b.csv');
-
 disp('Results saved to chop_runtimes_avg_np2_b.csv');
 
 %%% torch data 2
@@ -211,7 +209,6 @@ header = ['Size', mode_names];
 
 T = array2table(csv_data, 'VariableNames', header);
 writetable(T, 'results/chop_runtimes_avg_th2_b.csv');
-
 disp('Results saved to chop_runtimes_avg_th2_b.csv');
 
 %%% torch data 2 gpu
@@ -222,5 +219,4 @@ header = ['Size', mode_names];
 
 T = array2table(csv_data, 'VariableNames', header);
 writetable(T, 'results/chop_runtimes_avg_th2_gpu_b.csv');
-
 disp('Results saved to chop_runtimes_avg_th2_gpu_b.csv');

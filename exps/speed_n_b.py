@@ -62,7 +62,7 @@ for i in range(sizes):
             pychop.backend('numpy')
             
             ch1 = LightChop(exp_bits=8, sig_bits=7, rmode=j+1)
-            ch2 = Chop('h', rmode=j+1)
+            ch2 = Chop('b', rmode=j+1)
             
             st = time()
             ch1(X)
@@ -146,11 +146,11 @@ runtimes_avg_np2.index = arr_sizes[:sizes]
 runtimes_avg_th2.index = arr_sizes[:sizes]
 # runtimes_avg_th2_gpu.index = arr_sizes[:sizes]
 
-runtimes_avg_np.to_csv("pychop_runtimes_avg_np_b.csv", index=True, header=True)
-runtimes_avg_np2.to_csv("pychop_runtimes_avg_np2_b.csv", index=True, header=True)
+runtimes_avg_np.to_csv("results/pychop_runtimes_avg_np_b.csv", index=True, header=True)
+runtimes_avg_np2.to_csv("results/pychop_runtimes_avg_np2_b.csv", index=True, header=True)
 
-runtimes_avg_th.to_csv("pychop_runtimes_avg_th_b.csv", index=True, header=True)
-runtimes_avg_th2.to_csv("pychop_runtimes_avg_th2_b.csv", index=True, header=True)
+runtimes_avg_th.to_csv("results/pychop_runtimes_avg_th_b.csv", index=True, header=True)
+runtimes_avg_th2.to_csv("results/pychop_runtimes_avg_th2_b.csv", index=True, header=True)
 
-# runtimes_avg_th_gpu.to_csv("pychop_runtimes_avg_th_gpu.csv", index=True, header=True)
-# runtimes_avg_th2_gpu.to_csv("pychop_runtimes_avg_th2_gpu.csv", index=True, header=True)
+# runtimes_avg_th_gpu.to_csv("results/pychop_runtimes_avg_th_gpu.csv", index=True, header=True)
+# runtimes_avg_th2_gpu.to_csv("results/pychop_runtimes_avg_th2_gpu.csv", index=True, header=True)
