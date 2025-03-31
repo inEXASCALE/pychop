@@ -56,7 +56,7 @@ runtimes_all_th2_gpu = zeros(length(sizes), length(rounding_modes), num_runs);
 runtimes_avg_th2_gpu = zeros(length(sizes), length(rounding_modes));
 
 % Set chop options for half precision
-options.format = 'h'; % Half precision (fp16)
+options.format = 'b'; % bhalf precision (bf16)
 options.subnormal = 1; % Support subnormal numbers (optional, set to 0 to flush to zero)
 
 
@@ -69,7 +69,7 @@ for i = 1:length(sizes)
     % Generate random matrix (single precision input as required by chop)
     A = rand(n, n); % single(rand(n, n));
     % save(strcat(strcat("data/random/A", string(i)), ".mat"), "A");
-    save(strcat(strcat("data/random/A", string(i)), ".mat"), "A", "-v7.3");
+    % save(strcat(strcat("data/random/A_b", string(i)), ".mat"), "A", "-v7.3");
     % Loop over rounding modes
 
     for j = 1:length(rounding_modes)
@@ -83,7 +83,7 @@ for i = 1:length(sizes)
             A_np = np.array(A);
 
             pc.backend('numpy');
-            ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=j);
+            ch = pc.LightChop(exp_bits=8, sig_bits=7, rmode=j);
             ch2 = pc.Chop('h', rmode=j);
 
             tic;
@@ -147,80 +147,80 @@ for i = 1:length(sizes)
 end
 
 %%% matlab data
-save('results/chop_runtimes_avg.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg');
+save('results/chop_runtimes_avg_b.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg');
 
 % Create a table with sizes as the first column and runtimes for each mode as subsequent columns
 csv_data = [sizes', runtimes_avg];
 header = ['Size', mode_names]; % Cell array for column names
 
 T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg.csv');
+writetable(T, 'results/chop_runtimes_avg_b.csv');
 
-disp('Results saved to chop_runtimes_avg.csv');
+disp('Results saved to chop_runtimes_avg_b.csv');
 
 %%% numpy data
-save('results/chop_runtimes_avg_np.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_np');
+save('results/chop_runtimes_avg_np_b.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_np');
 
 csv_data = [sizes', runtimes_avg_np];
 header = ['Size', mode_names];
 
 T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg_np.csv');
+writetable(T, 'results/chop_runtimes_avg_np_b.csv');
 
-disp('Results saved to chop_runtimes_avg_np.csv');
+disp('Results saved to chop_runtimes_avg_np_b.csv');
 
 %%% torch data
-save('results/chop_runtimes_avg_th.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th');
+save('results/chop_runtimes_avg_th_b.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th');
 
 csv_data = [sizes', runtimes_avg_th];
 header = ['Size', mode_names]; 
 
 T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg_th.csv');
+writetable(T, 'results/chop_runtimes_avg_th_b.csv');
 
-disp('Results saved to chop_runtimes_avg_th.csv');
+disp('Results saved to chop_runtimes_avg_th_b.csv');
 
 %%% torch data gpu
-save('results/chop_runtimes_avg_th_gpu.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th');
+save('results/chop_runtimes_avg_th_gpu_b.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th');
 
 csv_data = [sizes', runtimes_avg_th_gpu]; 
 header = ['Size', mode_names]; 
 
 T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg_th_gpu.csv');
+writetable(T, 'results/chop_runtimes_avg_th_gpu_b.csv');
 
-disp('Results saved to chop_runtimes_avg_th_gpu.csv');
+disp('Results saved to chop_runtimes_avg_th_gpu_b.csv');
 
 
 %%% numpy data 2
-save('results/chop_runtimes_avg_np2.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_np2');
+save('results/chop_runtimes_avg_np2_b.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_np2');
 
 csv_data = [sizes', runtimes_avg_np2];
 header = ['Size', mode_names];
 
 T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg_np2.csv');
+writetable(T, 'results/chop_runtimes_avg_np2_b.csv');
 
-disp('Results saved to chop_runtimes_avg_np2.csv');
+disp('Results saved to chop_runtimes_avg_np2_b.csv');
 
 %%% torch data 2
-save('results/chop_runtimes_avg_th2.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th2');
+save('results/chop_runtimes_avg_th2_b.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th2');
 
 csv_data = [sizes', runtimes_avg_th2];
 header = ['Size', mode_names]; 
 
 T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg_th2.csv');
+writetable(T, 'results/chop_runtimes_avg_th2_b.csv');
 
-disp('Results saved to chop_runtimes_avg_th2.csv');
+disp('Results saved to chop_runtimes_avg_th2_b.csv');
 
 %%% torch data 2 gpu
-save('results/chop_runtimes_avg_th2_gpu.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th2');
+save('results/chop_runtimes_avg_th2_gpu_b.mat', 'sizes', 'rounding_modes', 'mode_names', 'runtimes_all', 'runtimes_avg_th2');
 
 csv_data = [sizes', runtimes_avg_th2_gpu];
 header = ['Size', mode_names]; 
 
 T = array2table(csv_data, 'VariableNames', header);
-writetable(T, 'results/chop_runtimes_avg_th2_gpu.csv');
+writetable(T, 'results/chop_runtimes_avg_th2_gpu_b.csv');
 
-disp('Results saved to chop_runtimes_avg_th2_gpu.csv');
+disp('Results saved to chop_runtimes_avg_th2_gpu_b.csv');

@@ -72,7 +72,7 @@ for mode in rounding_modes:
     plt.tight_layout()
     
     # Save the plot as PDF with tight bounding box
-    plt.savefig(f'results/runtime_ratio_comparison_{mode.replace(" ", "_")}.pdf', 
+    plt.savefig(f'results/runtime_ratio_comparison_{mode.replace(" ", "_")}_b.pdf', 
                 format='pdf', 
                 bbox_inches='tight')
     

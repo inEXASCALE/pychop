@@ -42,7 +42,7 @@ for i in range(sizes):
         for k in range(num_runs):
             pychop.backend('torch')
             
-            ch1 = LightChop(exp_bits=5, sig_bits=10, rmode=j+1)
+            ch1 = LightChop(exp_bits=8, sig_bits=7, rmode=j+1)
             ch2 = Chop('h', rmode=j+1)
             
             # GPU
@@ -78,5 +78,5 @@ runtimes_avg_th2_gpu = pd.DataFrame(runtimes_avg_th2_gpu, columns=columns)
 
 runtimes_avg_th_gpu.index = arr_sizes[:sizes]
 runtimes_avg_th2_gpu.index = arr_sizes[:sizes]
-runtimes_avg_th_gpu.to_csv("results/pychop_runtimes_avg_th_gpu.csv", index=True, header=True)
-runtimes_avg_th2_gpu.to_csv("results/pychop_runtimes_avg_th2_gpu.csv", index=True, header=True)
+runtimes_avg_th_gpu.to_csv("pychop_runtimes_avg_th_gpu_b.csv", index=True, header=True)
+runtimes_avg_th2_gpu.to_csv("pychop_runtimes_avg_th2_gpu_b.csv", index=True, header=True)

@@ -1,6 +1,7 @@
 import os
 
-def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True, chunk_size: int=1000, random_state: int=42):
+def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True, 
+              chunk_size: int=800, random_state: int=42):
     """
 
     Parameters
@@ -21,6 +22,18 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
         - 6 : Stochastic rounding with 50% probability.
         - 7 : Round to nearest value, ties to zero.
         - 8 : Round to nearest value, ties to away.
+
+    subnormal : boolean, default=True
+        Whether or not to support subnormal numbers.
+        If set `subnormal=False`, subnormals are flushed to zero.
+        
+    chunk_size : int, default=800
+        the number of elements in each smaller sub-array (or chunk) that a 
+        large array is divided into for parallel processing; smaller chunks
+        enable more parallelism but increase overhead, while larger chunks 
+        reduce overhead but demand more memory. Essentially, chunk size is 
+        the granular unit of work Dask manages, balancing 
+        computation efficiency and memory constraints. 
 
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
