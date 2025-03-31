@@ -104,7 +104,6 @@ if __name__ == '__main__':
     # Device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
     # Train and Compare
     print("Training Normal CNN:")
     normal_cnn = CNN()
