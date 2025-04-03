@@ -4,9 +4,7 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.backends.backend_pdf import PdfPages
 from torch.amp import GradScaler, autocast
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision.models import resnet50, ResNet50_Weights
@@ -16,6 +14,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Cutout(object):
     def __init__(self, n_holes, length):
+        torch.manual_seed(42)
         self.n_holes = n_holes
         self.length = length
 
@@ -34,7 +33,6 @@ class Cutout(object):
         img = img * mask.to(img.device)
         return img
 
-# Mixup function
 def mixup_data(x, y, alpha=1.0):
     if alpha > 0:
         lam = np.random.beta(alpha, alpha)
@@ -49,7 +47,6 @@ def mixup_data(x, y, alpha=1.0):
 def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
-# 1. Load Datasets with Enhanced Augmentation
 def load_data(dataset_name):
     if dataset_name == "MNIST":
         transform_train = transforms.Compose([
@@ -68,6 +65,9 @@ def load_data(dataset_name):
         num_classes = 10
         input_channels = 1
         input_size = 28
+        trainloader = DataLoader(trainset, batch_size=64, shuffle=True, num_workers=2)
+        testloader = DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
+        valloader = None
     elif dataset_name == "FashionMNIST":
         transform_train = transforms.Compose([
             transforms.RandomRotation(15),
@@ -86,6 +86,9 @@ def load_data(dataset_name):
         num_classes = 10
         input_channels = 1
         input_size = 28
+        trainloader = DataLoader(trainset, batch_size=64, shuffle=True, num_workers=2)
+        testloader = DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
+        valloader = None
     elif dataset_name == "Caltech101":
         transform_train = transforms.Compose([
             transforms.Lambda(lambda img: img.convert('RGB')),
@@ -108,13 +111,17 @@ def load_data(dataset_name):
         train_size = int(0.7 * len(full_dataset))
         val_size = int(0.15 * len(full_dataset))
         test_size = len(full_dataset) - train_size - val_size
-        trainset, valset, testset = torch.utils.data.random_split(full_dataset, [train_size, val_size, test_size])
+        generator = torch.Generator().manual_seed(42)
+        trainset, valset, testset = torch.utils.data.random_split(full_dataset, [train_size, val_size, test_size], generator=generator)
         trainset.dataset.transform = transform_train
         valset.dataset.transform = transform_test
         testset.dataset.transform = transform_test
         num_classes = 102
         input_channels = 3
         input_size = 224
+        trainloader = DataLoader(trainset, batch_size=64, shuffle=True, num_workers=2)
+        testloader = DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
+        valloader = DataLoader(valset, batch_size=64, shuffle=False, num_workers=2)
     elif dataset_name == "OxfordIIITPet":
         transform_train = transforms.Compose([
             transforms.Lambda(lambda img: img.convert('RGB')),
@@ -138,31 +145,28 @@ def load_data(dataset_name):
         num_classes = 37
         input_channels = 3
         input_size = 224
+        trainloader = DataLoader(trainset, batch_size=64, shuffle=True, num_workers=2)
+        testloader = DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
+        valloader = None
     else:
         raise ValueError("Unknown dataset")
     
-    trainloader = DataLoader(trainset, batch_size=64, shuffle=True, num_workers=2)
-    testloader = DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
-    valloader = DataLoader(valset, batch_size=64, shuffle=False, num_workers=2) if dataset_name == "Caltech101" else None
     return trainloader, valloader, testloader, num_classes, input_channels, input_size
 
-# 2. Define Enhanced ResNet50 Model
 class ResNet(nn.Module):
     def __init__(self, input_channels, num_classes):
         super(ResNet, self).__init__()
+        torch.manual_seed(42)
         self.backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
-        # Adapt input channels for grayscale datasets (MNIST/FashionMNIST)
         if input_channels == 1:
             self.backbone.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        # Modify the final fully connected layer
         in_features = self.backbone.fc.in_features
         self.backbone.fc = nn.Linear(in_features, num_classes)
 
     def forward(self, x):
         return self.backbone(x)
 
-# 3. Training Function with Mixed Precision and Scheduler
-def train_model(model, trainloader, valloader, epochs=50):
+def train_model(model, trainloader, valloader, testloader, epochs=20):
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs)
@@ -188,7 +192,8 @@ def train_model(model, trainloader, valloader, epochs=50):
         scheduler.step()
         print(f"Epoch {epoch+1}, Train Loss: {running_loss / len(trainloader):.4f}")
         
-        if valloader:  # Validation for Caltech101
+        # Validation
+        if valloader:
             model.eval()
             correct, total = 0, 0
             with torch.no_grad():
@@ -203,82 +208,36 @@ def train_model(model, trainloader, valloader, epochs=50):
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
                 torch.save(model.state_dict(), f"{dataset}_best_model.pth")
-
+                print(f"Saved best model with Val Acc: {best_val_acc:.2f}%")
+        
+        # Test accuracy for diagnostics
+        model.eval()
+        correct, total = 0, 0
+        with torch.no_grad():
+            for inputs, labels in testloader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                _, predicted = torch.max(outputs, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        test_acc = 100 * correct / total
+        print(f"Test Accuracy: {test_acc:.2f}%")
+    
+    # Save final model for all datasets
+    torch.save(model.state_dict(), f"{dataset}_final_model.pth")
+    print(f"Saved final model as {dataset}_final_model.pth with Test Acc: {test_acc:.2f}%")
+    
     return best_val_acc if valloader else None
 
-# 4. FP16 Inference
-def inference_fp16(model, testloader):
-    model.eval()
-    model.to(device).half()
-    correct, total = 0, 0
-    predictions, ground_truth, images = [], [], []
-    with torch.no_grad():
-        for inputs, labels in testloader:
-            inputs, labels = inputs.to(device).half(), labels.to(device)
-            outputs = model(inputs)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            predictions.extend(predicted.cpu().numpy())
-            ground_truth.extend(labels.cpu().numpy())
-            images.extend(inputs.cpu().float().numpy())
-    accuracy = 100 * correct / total
-    return accuracy, predictions, ground_truth, images
-
-# 5. Visualization Functions
-def visualize_predictions(predictions, ground_truth, dataset_name, pdf):
-    plt.figure(figsize=(10, 4))
-    colors = ['green' if p == g else 'red' for p, g in zip(predictions[:20], ground_truth[:20])]
-    plt.bar(range(20), predictions[:20], color=colors, alpha=0.7)
-    plt.plot(range(20), ground_truth[:20], 'bo-', label='Ground Truth')
-    plt.title(f"Predictions vs Ground Truth ({dataset_name})")
-    plt.xlabel("Sample Index")
-    plt.ylabel("Class Label")
-    plt.legend()
-    plt.tight_layout()
-    pdf.savefig()
-    plt.close()
-
-def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
-    fig, axes = plt.subplots(2, 10, figsize=(15, 3))
-    for i, ax in enumerate(axes.flat):
-        if i < len(images):
-            img = images[i].transpose(1, 2, 0)
-            if img.shape[2] == 1:
-                img = img.squeeze(2)
-                ax.imshow(img, cmap='gray')
-            else:
-                img = (img - img.min()) / (img.max() - img.min())
-                ax.imshow(img)
-            color = 'green' if predictions[i] == ground_truth[i] else 'red'
-            ax.set_title(f"Pred: {predictions[i]}\nTrue: {ground_truth[i]}", color=color, fontsize=8)
-            ax.axis('off')
-    plt.suptitle(f"Image Predictions ({dataset_name})", y=1.05)
-    plt.tight_layout()
-    pdf.savefig()
-    plt.close()
-
-# 6. Main Execution
+# Main Execution for Training
 datasets = ["MNIST", "FashionMNIST", "Caltech101", "OxfordIIITPet"]
 for dataset in datasets:
-    print(f"\nProcessing {dataset}")
+    print(f"\nTraining {dataset}")
     trainloader, valloader, testloader, num_classes, input_channels, input_size = load_data(dataset)
     
-    # Initialize and train model
     model = ResNet(input_channels, num_classes).to(device)
-    best_val_acc = train_model(model, trainloader, valloader, epochs=5)
+    best_val_acc = train_model(model, trainloader, valloader, testloader, epochs=30)
     
-    # Load best model for Caltech101
+    print(f"Training completed for {dataset}")
     if dataset == "Caltech101" and best_val_acc:
-        model.load_state_dict(torch.load(f"{dataset}_best_model.pth"))
-    
-    # PDF file for saving visualizations
-    pdf_filename = f"{dataset}_visualizations.pdf"
-    with PdfPages(pdf_filename) as pdf:
-        # FP16 Inference
-        acc_fp16, preds_fp16, gt_fp16, images_fp16 = inference_fp16(model, testloader)
-        print(f"{dataset} FP16 Accuracy: {acc_fp16:.2f}%")
-        visualize_predictions(preds_fp16, gt_fp16, f"{dataset} FP16", pdf)
-        visualize_images(images_fp16, preds_fp16, gt_fp16, f"{dataset} FP16", pdf)
-    
-    print(f"Visualizations saved to {pdf_filename}")
+        print(f"Best model saved as {dataset}_best_model.pth with Val Acc: {best_val_acc:.2f}%")

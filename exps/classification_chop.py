@@ -251,7 +251,7 @@ def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
                 img = (img - img.min()) / (img.max() - img.min())
                 ax.imshow(img)
             color = 'green' if predictions[i] == ground_truth[i] else 'red'
-            ax.set_title(f"Pred: {predictions[i]}\nTrue: {ground_truth[i]}", color=color, fontsize=8)
+            ax.set_title(f"Pred: {predictions[i]} True: {ground_truth[i]}", color=color, fontsize=8)
             ax.axis('off')
     plt.suptitle(f"Image Predictions ({dataset_name})", y=1.05)
     plt.tight_layout()

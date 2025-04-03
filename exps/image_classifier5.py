@@ -225,22 +225,23 @@ def inference_fp16(model, testloader):
     accuracy = 100 * correct / total
     return accuracy, predictions, ground_truth, images
 
-# 5. Visualization Functions
 def visualize_predictions(predictions, ground_truth, dataset_name, pdf):
-    plt.figure(figsize=(10, 4))
+    plt.figure(figsize=(8, 3))  # Reduced from (10, 4)
     colors = ['green' if p == g else 'red' for p, g in zip(predictions[:20], ground_truth[:20])]
-    plt.bar(range(20), predictions[:20], color=colors, alpha=0.7)
-    plt.plot(range(20), ground_truth[:20], 'bo-', label='Ground Truth')
-    plt.title(f"Predictions vs Ground Truth ({dataset_name})")
-    plt.xlabel("Sample Index")
-    plt.ylabel("Class Label")
-    plt.legend()
-    plt.tight_layout()
-    pdf.savefig()
+    plt.bar(range(20), predictions[:20], color=colors, alpha=0.7, width=0.6)  # Added width parameter
+    plt.plot(range(20), ground_truth[:20], 'bo-', label='Ground Truth', markersize=4)  # Smaller markers
+    plt.title(f"Predictions vs Ground Truth ({dataset_name})", fontsize=10)  # Smaller font
+    plt.xlabel("Sample Index", fontsize=8)
+    plt.ylabel("Class Label", fontsize=8)
+    plt.legend(fontsize=8)
+    plt.xticks(fontsize=6)
+    plt.yticks(fontsize=6)
+    plt.tight_layout(pad=0.5)  # Reduced padding
+    pdf.savefig(bbox_inches='tight')  # Tight bounding box
     plt.close()
 
 def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
-    fig, axes = plt.subplots(2, 10, figsize=(15, 3))
+    fig, axes = plt.subplots(2, 10, figsize=(12, 2.5))  # Reduced from (15, 3)
     for i, ax in enumerate(axes.flat):
         if i < len(images):
             img = images[i].transpose(1, 2, 0)
@@ -251,12 +252,14 @@ def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
                 img = (img - img.min()) / (img.max() - img.min())
                 ax.imshow(img)
             color = 'green' if predictions[i] == ground_truth[i] else 'red'
-            ax.set_title(f"Pred: {predictions[i]}\nTrue: {ground_truth[i]}", color=color, fontsize=8)
+            ax.set_title(f"Pred:{predictions[i]}, True:{ground_truth[i]}", 
+                        color=color, fontsize=6, pad=2)  # Smaller font, reduced padding
             ax.axis('off')
-    plt.suptitle(f"Image Predictions ({dataset_name})", y=1.05)
-    plt.tight_layout()
-    pdf.savefig()
+    plt.suptitle(f"Image Predictions ({dataset_name})", y=1.02, fontsize=10)  # Closer title, smaller font
+    plt.tight_layout(pad=0.3)  # Reduced padding
+    pdf.savefig(bbox_inches='tight')  # Tight bounding box
     plt.close()
+
 
 # 6. Main Execution
 datasets = ["MNIST", "FashionMNIST", "Caltech101", "OxfordIIITPet"]
