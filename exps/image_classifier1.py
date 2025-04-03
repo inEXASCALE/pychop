@@ -24,7 +24,6 @@ class DNN(nn.Module):
         x = self.flatten(x)
         return self.layers(x)
 
-# Quantization functions (unchanged)
 def quantize_to_int8(tensor, scale, zero_point):
     q_tensor = torch.round(tensor / scale + zero_point)
     q_tensor = torch.clamp(q_tensor, -128, 127)
@@ -63,7 +62,6 @@ def load_data(dataset_name):
     
     return train_loader, test_loader
 
-# Training function (unchanged)
 def train_model(model, train_loader, epochs=5):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters())
@@ -79,7 +77,7 @@ def train_model(model, train_loader, epochs=5):
             running_loss += loss.item()
         print(f'Epoch {epoch+1}, Loss: {running_loss/len(train_loader):.4f}')
 
-# Modified evaluation with visualization
+
 def evaluate_and_visualize(model, test_loader, dataset_name, quantized=False, scale=None, zero_point=None):
     model.eval()
     correct = 0
@@ -104,7 +102,6 @@ def evaluate_and_visualize(model, test_loader, dataset_name, quantized=False, sc
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
             
-            # Collect samples for image visualization (first batch only)
             if i == 0:
                 sample_images = images.cpu().numpy()
                 sample_preds = predicted.cpu().numpy()
@@ -112,7 +109,6 @@ def evaluate_and_visualize(model, test_loader, dataset_name, quantized=False, sc
     
     accuracy = 100 * correct / total
     
-    # Visualization 1: Scatter plot of predictions vs ground truth
     plt.figure(figsize=(10, 8))
     colors = ['green' if p == l else 'red' for p, l in zip(all_preds, all_labels)]
     plt.scatter(range(len(all_labels)), all_labels, c=colors, alpha=0.5, label='Ground Truth')
@@ -128,7 +124,6 @@ def evaluate_and_visualize(model, test_loader, dataset_name, quantized=False, sc
         pdf.savefig()
     plt.close()
     
-    # Visualization 2: Sample images with predicted labels
     fig, axes = plt.subplots(4, 4, figsize=(10, 10))
     for i, ax in enumerate(axes.flat):
         if i < len(sample_images):
@@ -147,7 +142,6 @@ def evaluate_and_visualize(model, test_loader, dataset_name, quantized=False, sc
     
     return accuracy
 
-# Main execution
 def main():
     datasets = ['mnist', 'fashion_mnist']
     
@@ -155,17 +149,14 @@ def main():
         print(f"\nProcessing {dataset.upper()} dataset")
         train_loader, test_loader = load_data(dataset)
         
-        # Initialize and train model
         model = DNN()
         print("Training model...")
         train_model(model, train_loader)
         
-        # Evaluate FP32
         print("Evaluating FP32 model...")
         fp32_accuracy = evaluate_and_visualize(model, test_loader, dataset.upper())
         print(f"FP32 Accuracy: {fp32_accuracy:.2f}%")
         
-        # Calibration for INT8
         model.eval()
         with torch.no_grad():
             for images, _ in test_loader:
@@ -173,7 +164,6 @@ def main():
                 scale, zero_point = get_quantization_params(outputs)
                 break
         
-        # Evaluate INT8
         print("Evaluating INT8 model...")
         int8_accuracy = evaluate_and_visualize(model, test_loader, dataset.upper(), True, scale, zero_point)
         print(f"INT8 Accuracy: {int8_accuracy:.2f}%")

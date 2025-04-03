@@ -1,5 +1,6 @@
 from pychop import LightChop
 import numpy as np
+from time import time
 
 X_np = np.random.randn(10000, 5000) # Numpy array
 

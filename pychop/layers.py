@@ -8,6 +8,19 @@ import torch.nn.functional as F
 from .tch.lightchop import LightChopSTE
 
 
+def ft_quamtized_model(model, chop, verbose=True):
+    state_dict = model.state_dict()
+
+    for key in state_dict.keys():
+        state_dict[key] = chop(state_dict[key])  
+
+    model.load_state_dict(state_dict)
+    if verbose:
+        for name, param in model.named_parameters():
+            print(f"{name}: {param.data}")
+
+    return model
+
 class QuantizedLayer(torch.nn.Module):
     """Quantize each element of neural networks"""
     def __init__(self, 

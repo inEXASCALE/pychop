@@ -11,11 +11,9 @@ from torch.amp import GradScaler, autocast
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision.models import resnet50, ResNet50_Weights
 
-# Set random seed and device
 torch.manual_seed(42)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Custom Cutout augmentation
 class Cutout(object):
     def __init__(self, n_holes, length):
         self.n_holes = n_holes

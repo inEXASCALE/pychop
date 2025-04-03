@@ -8,11 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 
-# Set random seed and device
 torch.manual_seed(42)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Custom Cutout augmentation
 class Cutout(object):
     def __init__(self, n_holes, length):
         self.n_holes = n_holes
@@ -78,6 +76,7 @@ def load_data(dataset_name):
         num_classes = 10
         input_channels = 1
         input_size = 28
+
     elif dataset_name == "FashionMNIST":
         transform_train = transforms.Compose([
             transforms.RandomRotation(10),
@@ -95,51 +94,7 @@ def load_data(dataset_name):
         num_classes = 10
         input_channels = 1
         input_size = 28
-    elif dataset_name == "Caltech101":
-        transform_train = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomCrop(224, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.Grayscale(num_output_channels=3),
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-            Cutout(n_holes=1, length=32),
-        ])
-        transform_test = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.Grayscale(num_output_channels=3),
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ])
-        full_dataset = torchvision.datasets.Caltech101(root='./data', download=True, transform=transform_train)
-        train_size = int(0.8 * len(full_dataset))
-        test_size = len(full_dataset) - train_size
-        trainset, testset = torch.utils.data.random_split(full_dataset, [train_size, test_size])
-        testset.dataset.transform = transform_test
-        num_classes = 102
-        input_channels = 3
-        input_size = 224
-    elif dataset_name == "OxfordIIITPet":
-        transform_train = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomCrop(224, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.Grayscale(num_output_channels=3),
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-            Cutout(n_holes=1, length=32),
-        ])
-        transform_test = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.Grayscale(num_output_channels=3),
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ])
-        trainset = torchvision.datasets.OxfordIIITPet(root='./data', split='trainval', download=True, transform=transform_train)
-        testset = torchvision.datasets.OxfordIIITPet(root='./data', split='test', download=True, transform=transform_test)
-        num_classes = 37
-        input_channels = 3
-        input_size = 224
+
     else:
         raise ValueError("Unknown dataset")
     
@@ -147,10 +102,9 @@ def load_data(dataset_name):
     testloader = DataLoader(testset, batch_size=64, shuffle=False, num_workers=2, collate_fn=custom_collate)
     return trainloader, testloader, num_classes, input_channels, input_size
 
-# 2. Define Enhanced CNN Model with QAT
-class EnhancedCNN(nn.Module):
+class CNN(nn.Module):
     def __init__(self, input_channels, num_classes, input_size=28):
-        super(EnhancedCNN, self).__init__()
+        super(CNN, self).__init__()
         self.conv1 = nn.Conv2d(input_channels, 32, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
@@ -293,6 +247,7 @@ def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
             color = 'green' if predictions[i] == ground_truth[i] else 'red'
             ax.set_title(f"Pred: {predictions[i]}\nTrue: {ground_truth[i]}", color=color, fontsize=8)
             ax.axis('off')
+            
     plt.suptitle(f"Image Predictions ({dataset_name})", y=1.05)
     plt.tight_layout()
     pdf.savefig()
@@ -305,7 +260,7 @@ for dataset in datasets:
     trainloader, testloader, num_classes, input_channels, input_size = load_data(dataset)
     
     # Initialize and train model with QAT
-    model = EnhancedCNN(input_channels, num_classes, input_size).to(device)
+    model = CNN(input_channels, num_classes, input_size).to(device)
     train_model(model, trainloader, epochs=10)
     
     # PDF file for saving visualizations

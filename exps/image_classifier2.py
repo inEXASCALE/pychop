@@ -11,7 +11,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 torch.manual_seed(42)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Custom Cutout augmentation
 class Cutout(object):
     def __init__(self, n_holes, length):
         self.n_holes = n_holes
@@ -47,7 +46,6 @@ def mixup_data(x, y, alpha=1.0):
 def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
-# 1. Load Datasets with Augmentation
 def load_data(dataset_name):
     if dataset_name == "MNIST":
         transform_train = transforms.Compose([

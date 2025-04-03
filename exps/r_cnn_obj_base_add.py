@@ -262,7 +262,6 @@ def main():
     print(f"FP32 - Latency: {np.mean(latencies_fp32):.2f} ± {np.std(latencies_fp32):.2f} ms, mAP: {map_fp32:.3f}")
     print(f"Quantized ({bit_width}-bit) - Latency: {np.mean(latencies_quant):.2f} ± {np.std(latencies_quant):.2f} ms, mAP: {map_quant:.3f}")
 
-    # Save Results to CSV
     save_results_to_csv(latencies_fp32, latencies_quant, map_fp32, map_quant, bit_width)
 
     # Plot and Save Performance Trade-off
