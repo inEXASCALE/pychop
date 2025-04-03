@@ -21,6 +21,7 @@ import requests
 import zipfile
 import csv
 from datetime import datetime
+from pychop.layers import post_quantization
 
 
 pychop.backend("torch")
@@ -68,17 +69,12 @@ def download_coco_val2017():
 
 
 
-
 def get_quantized_faster_rcnn(chop):
     """Load and quantize Faster R-CNN model weights."""
     model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
     model.eval()
     
-    with torch.no_grad():
-        for name, param in model.named_parameters():
-            quantized_param = chop(param)
-            param.copy_(quantized_param)
-    
+    model = post_quantization(model, chop)
     return model.cuda()
 
 
@@ -117,6 +113,7 @@ def run_inference(model, loader, use_amp=False, max_images=None, quantizer=None)
                 for output, target in zip(outputs, targets):
                     if not target:
                         continue
+                    
                     boxes = output["boxes"].cpu().numpy()
                     scores = output["scores"].cpu().numpy()
                     labels = output["labels"].cpu().numpy()
@@ -228,7 +225,7 @@ def plot_detection(images, outputs, targets, prefix="detection"):
 
 def plot_detection_all(images, outputs, targets, prefix="detection"):
     """Visualize predictions and ground truth for first 6 images in a single plot."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Limit to 8 images or available images if less than 6
     num_images = min(8, len(images))
@@ -328,7 +325,7 @@ if __name__ == "__main__":
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["Mode", "Rounding", "Mean Latency (ms)", "Std Latency (ms)", "mAP@0.5:0.95"])
-        writer.writerow(["FP32 (built-in)", "1", f"{np.mean(latencies_fp32):.2f}", f"{np.std(latencies_fp32):.2f}", f"{map_fp32:.3f}"])
+        writer.writerow(["FP32 (reference)", "1", f"{np.mean(latencies_fp32):.2f}", f"{np.std(latencies_fp32):.2f}", f"{map_fp32:.3f}"])
         
         # Quantized Model
         for i in [1, 2, 3, 4, 5, 6]:#np.arange(1, 3):
@@ -336,12 +333,14 @@ if __name__ == "__main__":
             quantizer_ft52 = LightChop(exp_bits=5, sig_bits=2, rmode=i)
             quantizer_ft43 = LightChop(exp_bits=4, sig_bits=3, rmode=i)
             quantizer_ft87 = LightChop(exp_bits=8, sig_bits=7, rmode=i)
+            quantizer_tf32 = LightChop(exp_bits=8, sig_bits=10, rmode=i)
             quantizer_ft510 = LightChop(exp_bits=5, sig_bits=10, rmode=i)
             quantizer_ft823 = LightChop(exp_bits=8, sig_bits=23, rmode=i)
 
             model_quant_ft52 = get_quantized_faster_rcnn(quantizer_ft52)
             model_quant_ft43 = get_quantized_faster_rcnn(quantizer_ft43)
             model_quant_ft87 = get_quantized_faster_rcnn(quantizer_ft87)
+            model_quant_tf32 = get_quantized_faster_rcnn(quantizer_tf32)
             model_quant_ft510 = get_quantized_faster_rcnn(quantizer_ft510)
             model_quant_ft823 = get_quantized_faster_rcnn(quantizer_ft823)
 
@@ -357,6 +356,12 @@ if __name__ == "__main__":
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft43)
             
             map_quant43 = evaluate_coco(preds_quant43, coco_gt, ids_quant43)
+
+            print(f"Running quantized inference (simulated (tf32)...")
+            latencies_quanttf32, preds_quanttf32, img_quanttf32, out_quanttf32, ids_quanttf32 = run_inference(model_quant_tf32, 
+                                            loader, use_amp=False, max_images=max_images, quantizer=quantizer_tf32)
+            
+            map_quanttf32 = evaluate_coco(preds_quanttf32, coco_gt, ids_quanttf32)
 
             print(f"Running quantized inference (simulated (87)...")
             latencies_quant87, preds_quant87, img_quant87, out_quant87, ids_quant87 = run_inference(model_quant_ft87, 
@@ -380,6 +385,7 @@ if __name__ == "__main__":
             print(f"FP32 - Latency: {np.mean(latencies_fp32):.2f} ± {np.std(latencies_fp32):.2f} ms, mAP: {map_fp32:.3f}")
             print(f"Quantized (43) - Latency: {np.mean(latencies_quant43):.2f} ± {np.std(latencies_quant43):.2f} ms, mAP: {map_quant43:.3f}")
             print(f"Quantized (52) - Latency: {np.mean(latencies_quant52):.2f} ± {np.std(latencies_quant52):.2f} ms, mAP: {map_quant52:.3f}")
+            print(f"Quantized (tf32) - Latency: {np.mean(latencies_quanttf32):.2f} ± {np.std(latencies_quanttf32):.2f} ms, mAP: {map_quanttf32:.3f}")
             print(f"Quantized (87) - Latency: {np.mean(latencies_quant87):.2f} ± {np.std(latencies_quant87):.2f} ms, mAP: {map_quant87:.3f}")
             print(f"Quantized (510) - Latency: {np.mean(latencies_quant510):.2f} ± {np.std(latencies_quant510):.2f} ms, mAP: {map_quant510:.3f}")
             print(f"Quantized (823) - Latency: {np.mean(latencies_quant823):.2f} ± {np.std(latencies_quant823):.2f} ms, mAP: {map_quant823:.3f}")
@@ -388,6 +394,7 @@ if __name__ == "__main__":
             targets = [loader.dataset[i][1] for i in range(batch_size)]
             plot_detection_all(img_quant43, out_quant43, targets, prefix=f"detection_quant_43_r{i}")
             plot_detection_all(img_quant52, out_quant52, targets, prefix=f"detection_quant_52_r{i}")
+            plot_detection_all(img_quanttf32, out_quanttf32, targets, prefix=f"detection_quant_tf32_r{i}")
             plot_detection_all(img_quant87, out_quant87, targets, prefix=f"detection_quant_87_r{i}")
             plot_detection_all(img_quant510, out_quant510, targets, prefix=f"detection_quant_510_r{i}")
             plot_detection_all(img_quant823, out_quant823, targets, prefix=f"detection_quant_823_r{i}")
@@ -396,6 +403,7 @@ if __name__ == "__main__":
             writer.writerow(["q43", f"{i}", f"{np.mean(latencies_quant43):.2f}", f"{np.std(latencies_quant43):.2f}", f"{map_quant43:.3f}"])
             writer.writerow(["q52", f"{i}", f"{np.mean(latencies_quant52):.2f}", f"{np.std(latencies_quant52):.2f}", f"{map_quant52:.3f}"])
             writer.writerow(["bfloat16", f"{i}", f"{np.mean(latencies_quant87):.2f}", f"{np.std(latencies_quant87):.2f}", f"{map_quant87:.3f}"])
+            writer.writerow(["tf32", f"{i}", f"{np.mean(latencies_quanttf32):.2f}", f"{np.std(latencies_quanttf32):.2f}", f"{map_quanttf32:.3f}"])
             writer.writerow(["half", f"{i}", f"{np.mean(latencies_quant510):.2f}", f"{np.std(latencies_quant510):.2f}", f"{map_quant510:.3f}"])
             writer.writerow(["FP32", f"{i}", f"{np.mean(latencies_quant823):.2f}", f"{np.std(latencies_quant823):.2f}", f"{map_quant823:.3f}"])
 

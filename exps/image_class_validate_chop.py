@@ -3,7 +3,7 @@ import sys
 sys.path.append('../')
 import pychop
 from pychop import LightChop
-from pychop.layers import post_quantization_ft
+from pychop.layers import post_quantization
 
 pychop.backend("torch")
 
@@ -104,26 +104,61 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         return self.backbone(x)
+"""
+format	description	bits
+'q43', 'fp8-e4m3'	NVIDIA quarter precision	4 exponent bits, 3 significand bits
+'q52', 'fp8-e5m2'	NVIDIA quarter precision	5 exponent bits, 2 significand bits
+'b', 'bfloat16'	bfloat16	8 exponent bits, 7 significand bits
+'h', 'half', 'fp16'	IEEE half precision	5 exponent bits, 10 significand bits
+'s', 'single', 'fp32'	IEEE single precision	8 exponent bits, 23 significand bits
+'d', 'double', 'fp64'	IEEE double precision	11 exponent bits, 52 significand bits
+'c', 'custom'	custom format	- -
+"""
 
-def inference(model, testloader):
+float_type = {
+    "q43": (4, 3),
+    "q52": (5, 2),
+    "cumstom(5, 5)": (5, 5),
+    "cumstom(5, 7)": (5, 7),
+    "half": (5, 10),
+    "bfloat16": (8, 7),
+    "tf32": (8, 10),
+    "fp32": (8, 23),
+}
+
+rounding_mode = [1, 2, 3, 4, 5, 6]
+
+
+def inference(model, testloader, chop):
     model.eval()
-    model.to(device).half()
+    # model.to(device).half()
+    model = post_quantization(model, chop)
+    model.to(device)
     correct, total = 0, 0
-    predictions, ground_truth, images = [], [], []
+    predictions, ground_truth, images, pred_probs = [], [], [], []
     with torch.no_grad():
         for inputs, labels in testloader:
-            inputs, labels = inputs.to(device).half(), labels.to(device)
+            inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
-            _, predicted = torch.max(outputs.data, 1)
+            # Get probabilities using softmax
+            probabilities = torch.softmax(outputs, dim=1)
+            # Get both the max probabilities and predicted classes
+            max_probs, predicted = torch.max(probabilities.data, 1)
+            
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
+            
+            # Extend the lists with results
             predictions.extend(predicted.cpu().numpy())
             ground_truth.extend(labels.cpu().numpy())
             images.extend(inputs.cpu().float().numpy())
-    accuracy = 100 * correct / total
-    return accuracy, predictions, ground_truth, images
+            pred_probs.extend(max_probs.cpu().numpy())
 
-def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
+    accuracy = 100 * correct / total
+    return accuracy, predictions, ground_truth, images, pred_probs
+
+
+def visualize_images(images, predictions, ground_truth, pred_probs, dataset_name, pdf):
     fig, axes = plt.subplots(2, 10, figsize=(12, 2.5))
     for i, ax in enumerate(axes.flat):
         if i < len(images):
@@ -135,11 +170,12 @@ def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
                 img = (img - img.min()) / (img.max() - img.min())
                 ax.imshow(img)
             color = 'green' if predictions[i] == ground_truth[i] else 'red'
-            ax.set_title(f"Pred:{predictions[i]}, True:{ground_truth[i]}", 
-                        color=color, fontsize=6, pad=2)
+            ax.set_title(f"Pred:{predictions[i]} (Prob:{np.round(pred_probs[i],2):.2f}) \nTrue:{ground_truth[i]}", 
+                        color=color, fontsize=8, pad=2)
             ax.axis('off')
-    plt.suptitle(f"Image Predictions ({dataset_name})", y=1.02, fontsize=10)
-    plt.tight_layout(pad=0.3)
+
+    # plt.suptitle(f"Image Predictions ({dataset_name})", y=1.02, fontsize=10)
+    plt.tight_layout(pad=0.8)
     pdf.savefig(bbox_inches='tight')
     plt.close()
 
@@ -156,10 +192,17 @@ for dataset in datasets:
     except FileNotFoundError:
         print(f"Warning: {model_file} not found for {dataset}. Using pre-trained weights.")
     
-    pdf_filename = f"{dataset}_visualizations.pdf"
-    with PdfPages(pdf_filename) as pdf:
-        acc_fp16, preds_fp16, gt_fp16, images_fp16 = inference(model, testloader)
-        print(f"{dataset} FP16 Accuracy: {acc_fp16:.2f}%")
-        visualize_images(images_fp16, preds_fp16, gt_fp16, f"{dataset} FP16", pdf)
     
+    
+    for key in float_type:
+        for rd in rounding_mode:
+            pdf_filename = f"{dataset}_{key}_{rd}_visualizations.pdf"
+            with PdfPages(pdf_filename) as pdf:
+                bits_alloc = float_type[key]
+                choper = LightChop(exp_bits=bits_alloc[0], sig_bits=bits_alloc[1], rmode=rd)
+                acclow_prec, predslow_prec, gtlow_prec, imageslow_prec, pred_probs = inference(model, testloader, choper)
+                print(f"{dataset} {key} rounding{rd} - Accuracy: {acclow_prec:.2f}%")
+                visualize_images(imageslow_prec, predslow_prec, gtlow_prec, pred_probs, f"{dataset}_{key}_{rd}", pdf)
+        print()
+
     print(f"Visualizations saved to {pdf_filename}")

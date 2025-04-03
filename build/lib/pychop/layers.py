@@ -7,19 +7,51 @@ from typing import Tuple, Union
 import torch.nn.functional as F
 from .tch.lightchop import LightChopSTE
 
-
-def post_quantization_ft(model, chop, verbose=True):
-    state_dict = model.state_dict()
-
+def post_quantization(model, chop, eval_mode=True, verbose=False):
+    """
+    Perform post-training quantization on a copy of a PyTorch model for simulation purposes.
+    
+    Args:
+        model (torch.nn.Module): The PyTorch model to quantize (remains unchanged).
+        chop: Object with a quantize method (e.g., rounds to specific floating-point values).
+        eval_mode (bool): If True, set the copied model to evaluation mode. Default: True.
+        verbose (bool): If True, print parameter names and quantized data. Default: False.
+    
+    Returns:
+        torch.nn.Module: A new quantized copy of the model.
+    """
+    import copy
+    # Create a deep copy of the model to avoid modifying the original
+    quantized_model = copy.deepcopy(model)
+    
+    # Set the copied model to evaluation mode if specified
+    if eval_mode:
+        quantized_model.eval()
+    
+    # Get the state dict of the copied model
+    state_dict = quantized_model.state_dict()
+    
+    # Quantize each tensor in the state dict
     for key in state_dict.keys():
-        state_dict[key] = chop(state_dict[key])  
-
-    model.load_state_dict(state_dict)
+        original_tensor = state_dict[key]
+        quantized_tensor = chop.quantize(original_tensor)
+        
+        # Ensure the quantized tensor matches the original's shape
+        if quantized_tensor.shape != original_tensor.shape:
+            raise ValueError(f"Shape mismatch for {key}: {original_tensor.shape} vs {quantized_tensor.shape}")
+        
+        state_dict[key] = quantized_tensor
+    
+    # Load the quantized state dict back into the copied model
+    quantized_model.load_state_dict(state_dict)
+    
+    # Optional verbose output for debugging
     if verbose:
-        for name, param in model.named_parameters():
+        print("Post-Quantization Results:")
+        for name, param in quantized_model.named_parameters():
             print(f"{name}: {param.data}")
-
-    return model
+    
+    return quantized_model
 
 
 

@@ -54,6 +54,7 @@ The supported floating point arithmetic formats include:
 | 'q43', 'fp8-e4m3'         | NVIDIA quarter precision | 4 exponent bits, 3 significand  bits |
 | 'q52', 'fp8-e5m2'         | NVIDIA quarter precision | 5 exponent bits, 2 significand bits |
 |  'b', 'bfloat16'          | bfloat16 | 8 exponent bits, 7 significand bits  |
+|  't', 'tf32'              | TensorFloat-32 | 8 exponent bits, 10 significand bits |
 |  'h', 'half', 'fp16'      | IEEE half precision | 5 exponent bits, 10 significand bits  |
 |  's', 'single', 'fp32'    | IEEE single precision |  8 exponent bits, 23 significand bits  |
 |  'd', 'double', 'fp64'    | IEEE double precision | 11 exponent bits, 52 significand bits |
