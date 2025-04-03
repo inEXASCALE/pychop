@@ -61,7 +61,7 @@ def download_coco_val2017():
         root=img_dir, annFile=ann_file, transform=F.to_tensor
     )
     loader = torch.utils.data.DataLoader(
-        dataset, batch_size=6, shuffle=False, num_workers=4,
+        dataset, batch_size=8, shuffle=False, num_workers=4,
         collate_fn=lambda x: tuple(zip(*x)), pin_memory=True
     )
     return loader, dataset.coco
@@ -230,14 +230,14 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
     """Visualize predictions and ground truth for first 6 images in a single plot."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    # Limit to 6 images or available images if less than 6
-    num_images = min(6, len(images))
+    # Limit to 8 images or available images if less than 6
+    num_images = min(8, len(images))
     if num_images == 0:
         print("No images available for visualization!")
         return
     
-    # Create a 2x3 grid of subplots with adjusted figure size
-    fig, axes = plt.subplots(2, 3, figsize=(15, 10), constrained_layout=True)
+    # Create a 2x5 grid of subplots with adjusted figure size
+    fig, axes = plt.subplots(2, 4, figsize=(16, 10), constrained_layout=True)
     axes = axes.flatten()  # Flatten the 2D array of axes for easier iteration
     
     for i in range(num_images):
@@ -260,11 +260,11 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
         if target:  # Check if target is not empty
             for ann in target:
                 x, y, w, h = ann["bbox"]
-                rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor="g", 
+                rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor="darkred", 
                                        facecolor="none", linestyle="--")
                 axes[i].add_patch(rect)
-                axes[i].text(x, y-5, f"GT {ann['category_id']}", color="white", 
-                           bbox=dict(facecolor="green", alpha=0.5))
+                axes[i].text(x, y-5, f"GT {ann['category_id']}", color="black", 
+                           bbox=dict(facecolor="tomato", alpha=0.5))
 
         # Plot predicted boxes (red solid)
         if "boxes" in output:  # Check if output contains boxes
@@ -275,10 +275,10 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
                 if score > 0.5 and label > 0:
                     x, y, x2, y2 = box
                     rect = patches.Rectangle((x, y), x2 - x, y2 - y, linewidth=2, 
-                                          edgecolor="r", facecolor="none")
+                                          edgecolor="darkgreen", facecolor="none")
                     axes[i].add_patch(rect)
-                    axes[i].text(x, y-5, f"Pred {label} ({score:.2f})", color="white", 
-                               bbox=dict(facecolor="red", alpha=0.5))
+                    axes[i].text(x, y-5, f"Pred {label} ({score:.2f})", color="black", 
+                               bbox=dict(facecolor="yellowgreen", alpha=0.45))
 
         # Set title with image ID if available
         # image_id = target[0]["image_id"] if target and len(target) > 0 else f"Unknown_{i}"
@@ -286,16 +286,16 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
         axes[i].axis("off")
 
     # Hide any unused subplots
-    for i in range(num_images, 6):
+    for i in range(num_images, 8):
         axes[i].axis("off")
 
     # Add main title
     plt.suptitle("Object Detection (Red: Predictions, Green: Ground Truth)", 
-                fontsize=16, y=1.05)
+                fontsize=23, y=1.03)
     
     # Save the figure
     filename = f"{prefix}.png"
-    plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.savefig(filename, bbox_inches='tight', dpi=400)
     plt.close(fig)  # Close figure to free memory
     
     print(f"Detection visualization saved to: {filename}")
@@ -327,21 +327,23 @@ if __name__ == "__main__":
 
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Mode", "Mean Latency (ms)", "Std Latency (ms)", "mAP@0.5:0.95"])
-        writer.writerow(["FP32", f"{np.mean(latencies_fp32):.2f}", f"{np.std(latencies_fp32):.2f}", f"{map_fp32:.3f}"])
+        writer.writerow(["Mode", "Rounding", "Mean Latency (ms)", "Std Latency (ms)", "mAP@0.5:0.95"])
+        writer.writerow(["FP32 (built-in)", "1", f"{np.mean(latencies_fp32):.2f}", f"{np.std(latencies_fp32):.2f}", f"{map_fp32:.3f}"])
         
         # Quantized Model
-        for i in [1, 6]:#np.arange(1, 3):
+        for i in [1, 2, 3, 4, 5, 6]:#np.arange(1, 3):
+            print("\n\n---------------------------------")
             quantizer_ft52 = LightChop(exp_bits=5, sig_bits=2, rmode=i)
             quantizer_ft43 = LightChop(exp_bits=4, sig_bits=3, rmode=i)
             quantizer_ft87 = LightChop(exp_bits=8, sig_bits=7, rmode=i)
             quantizer_ft510 = LightChop(exp_bits=5, sig_bits=10, rmode=i)
+            quantizer_ft823 = LightChop(exp_bits=8, sig_bits=23, rmode=i)
 
             model_quant_ft52 = get_quantized_faster_rcnn(quantizer_ft52)
             model_quant_ft43 = get_quantized_faster_rcnn(quantizer_ft43)
             model_quant_ft87 = get_quantized_faster_rcnn(quantizer_ft87)
             model_quant_ft510 = get_quantized_faster_rcnn(quantizer_ft510)
-
+            model_quant_ft823 = get_quantized_faster_rcnn(quantizer_ft823)
 
             print(f"Running quantized inference (simulated (52)...")
             latencies_quant52, preds_quant52, img_quant52, out_quant52, ids_quant52 = run_inference(model_quant_ft52, 
@@ -368,12 +370,19 @@ if __name__ == "__main__":
             
             map_quant510 = evaluate_coco(preds_quant510, coco_gt, ids_quant510)
 
+            print(f"Running quantized inference (simulated (823)...")
+            latencies_quant823, preds_quant823, img_quant823, out_quant823, ids_quant823 = run_inference(model_quant_ft823, 
+                                            loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft823)
+            
+            map_quant823 = evaluate_coco(preds_quant823, coco_gt, ids_quant823)
+
             # Print Results
             print(f"FP32 - Latency: {np.mean(latencies_fp32):.2f} ± {np.std(latencies_fp32):.2f} ms, mAP: {map_fp32:.3f}")
             print(f"Quantized (43) - Latency: {np.mean(latencies_quant43):.2f} ± {np.std(latencies_quant43):.2f} ms, mAP: {map_quant43:.3f}")
             print(f"Quantized (52) - Latency: {np.mean(latencies_quant52):.2f} ± {np.std(latencies_quant52):.2f} ms, mAP: {map_quant52:.3f}")
             print(f"Quantized (87) - Latency: {np.mean(latencies_quant87):.2f} ± {np.std(latencies_quant87):.2f} ms, mAP: {map_quant87:.3f}")
             print(f"Quantized (510) - Latency: {np.mean(latencies_quant510):.2f} ± {np.std(latencies_quant510):.2f} ms, mAP: {map_quant510:.3f}")
+            print(f"Quantized (823) - Latency: {np.mean(latencies_quant823):.2f} ± {np.std(latencies_quant823):.2f} ms, mAP: {map_quant823:.3f}")
             
             batch_size = len(img_quant43)
             targets = [loader.dataset[i][1] for i in range(batch_size)]
@@ -381,11 +390,13 @@ if __name__ == "__main__":
             plot_detection_all(img_quant52, out_quant52, targets, prefix=f"detection_quant_52_r{i}")
             plot_detection_all(img_quant87, out_quant87, targets, prefix=f"detection_quant_87_r{i}")
             plot_detection_all(img_quant510, out_quant510, targets, prefix=f"detection_quant_510_r{i}")
+            plot_detection_all(img_quant823, out_quant823, targets, prefix=f"detection_quant_823_r{i}")
 
             # writer.writerow([f"Quantized ({quantizer_int4.num_bits}-bit)", f"{np.mean(latencies_quant4):.2f}", f"{np.std(latencies_quant4):.2f}", f"{map_quant4:.3f}"])
-            writer.writerow([f"Quantized (q43) - {i}", f"{np.mean(latencies_quant43):.2f}", f"{np.std(latencies_quant43):.2f}", f"{map_quant43:.3f}"])
-            writer.writerow([f"Quantized (q52) - {i}", f"{np.mean(latencies_quant52):.2f}", f"{np.std(latencies_quant52):.2f}", f"{map_quant52:.3f}"])
-            writer.writerow([f"Quantized (bfloat15) - {i}", f"{np.mean(latencies_quant87):.2f}", f"{np.std(latencies_quant87):.2f}", f"{map_quant87:.3f}"])
-            writer.writerow([f"Quantized (half) - {i}", f"{np.mean(latencies_quant510):.2f}", f"{np.std(latencies_quant510):.2f}", f"{map_quant510:.3f}"])
+            writer.writerow(["q43", f"{i}", f"{np.mean(latencies_quant43):.2f}", f"{np.std(latencies_quant43):.2f}", f"{map_quant43:.3f}"])
+            writer.writerow(["q52", f"{i}", f"{np.mean(latencies_quant52):.2f}", f"{np.std(latencies_quant52):.2f}", f"{map_quant52:.3f}"])
+            writer.writerow(["bfloat16", f"{i}", f"{np.mean(latencies_quant87):.2f}", f"{np.std(latencies_quant87):.2f}", f"{map_quant87:.3f}"])
+            writer.writerow(["half", f"{i}", f"{np.mean(latencies_quant510):.2f}", f"{np.std(latencies_quant510):.2f}", f"{map_quant510:.3f}"])
+            writer.writerow(["FP32", f"{i}", f"{np.mean(latencies_quant823):.2f}", f"{np.std(latencies_quant823):.2f}", f"{map_quant823:.3f}"])
 
         print(f"Results saved to {filename}")

@@ -1,0 +1,4 @@
+Mode,Mean Latency (ms),Std Latency (ms),mAP@0.5:0.95
+FP32,44.12,22.65,0.421
+Quantized (8-bit),38.55,4.21,0.422
+Quantized (16-bit),38.51,4.23,0.421
