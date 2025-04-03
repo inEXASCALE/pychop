@@ -15,7 +15,7 @@ import zipfile
 
 def download_coco_val2017():
     """Download and prepare COCO val2017 dataset."""
-    data_dir = "./coco_val2017"
+    data_dir = "./data/coco_val2017"
     img_dir = os.path.join(data_dir, "val2017")
     ann_file = os.path.join(data_dir, "annotations/instances_val2017.json")
     

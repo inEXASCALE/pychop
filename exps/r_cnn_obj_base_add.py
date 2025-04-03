@@ -17,7 +17,7 @@ from datetime import datetime
 
 def download_coco_val2017():
     """Download and prepare COCO val2017 dataset."""
-    data_dir = "./coco_val2017"
+    data_dir = "./data/coco_val2017"
     img_dir = os.path.join(data_dir, "val2017")
     ann_file = os.path.join(data_dir, "annotations/instances_val2017.json")
     
@@ -49,7 +49,7 @@ def download_coco_val2017():
         root=img_dir, annFile=ann_file, transform=F.to_tensor
     )
     loader = torch.utils.data.DataLoader(
-        dataset, batch_size=4, shuffle=False, num_workers=4,
+        dataset, batch_size=6, shuffle=False, num_workers=4,
         collate_fn=lambda x: tuple(zip(*x)), pin_memory=True
     )
     return loader, dataset.coco
@@ -231,6 +231,82 @@ def plot_detection(images, outputs, targets, prefix="detection"):
     
     print(f"Detection visualizations saved to: {', '.join(saved_files)}")
 
+
+def plot_detection_all(images, outputs, targets, prefix="detection"):
+    """Visualize predictions and ground truth for first 6 images in a single plot."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Limit to 6 images or available images if less than 6
+    num_images = min(6, len(images))
+    if num_images == 0:
+        print("No images available for visualization!")
+        return
+    
+    # Create a 2x3 grid of subplots with adjusted figure size
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10), constrained_layout=True)
+    axes = axes.flatten()  # Flatten the 2D array of axes for easier iteration
+    
+    for i in range(num_images):
+        # Ensure we have valid image, output, and target data
+        if i >= len(outputs) or i >= len(targets):
+            print(f"Warning: Missing output or target data for image {i}")
+            axes[i].axis("off")
+            continue
+            
+        image = images[i]
+        output = outputs[i]
+        target = targets[i]
+        
+        # Convert image tensor to numpy array and ensure correct format
+        img = image.permute(1, 2, 0).numpy()
+        img = np.clip(img, 0, 1)
+        axes[i].imshow(img)
+
+        # Plot ground truth boxes (green dashed)
+        if target:  # Check if target is not empty
+            for ann in target:
+                x, y, w, h = ann["bbox"]
+                rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor="g", 
+                                       facecolor="none", linestyle="--")
+                axes[i].add_patch(rect)
+                axes[i].text(x, y-5, f"GT {ann['category_id']}", color="white", 
+                           bbox=dict(facecolor="green", alpha=0.5))
+
+        # Plot predicted boxes (red solid)
+        if "boxes" in output:  # Check if output contains boxes
+            boxes = output["boxes"].cpu().numpy()
+            scores = output["scores"].cpu().numpy()
+            labels = output["labels"].cpu().numpy()
+            for box, score, label in zip(boxes, scores, labels):
+                if score > 0.5 and label > 0:
+                    x, y, x2, y2 = box
+                    rect = patches.Rectangle((x, y), x2 - x, y2 - y, linewidth=2, 
+                                          edgecolor="r", facecolor="none")
+                    axes[i].add_patch(rect)
+                    axes[i].text(x, y-5, f"Pred {label} ({score:.2f})", color="white", 
+                               bbox=dict(facecolor="red", alpha=0.5))
+
+        # Set title with image ID if available
+        image_id = target[0]["image_id"] if target and len(target) > 0 else f"Unknown_{i}"
+        axes[i].set_title(f"Image {image_id}")
+        axes[i].axis("off")
+
+    # Hide any unused subplots
+    for i in range(num_images, 6):
+        axes[i].axis("off")
+
+    # Add main title
+    plt.suptitle("Object Detection (Red: Predictions, Green: Ground Truth)", 
+                fontsize=16, y=1.05)
+    
+    # Save the figure
+    filename = f"{prefix}_6images_{timestamp}.png"
+    plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.close(fig)  # Close figure to free memory
+    
+    print(f"Detection visualization saved to: {filename}")
+
+
 def main():
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. This script requires a GPU.")
@@ -271,6 +347,8 @@ def main():
     batch_size = len(img_quant)
     targets = [loader.dataset[i][1] for i in range(batch_size)]
     plot_detection(img_quant, out_quant, targets, prefix=f"detection_quant_{bit_width}bit")
+    plot_detection_all(img_quant, out_quant, targets, prefix=f"detection_quant_{bit_width}bit")
+
 
 if __name__ == "__main__":
     main()
