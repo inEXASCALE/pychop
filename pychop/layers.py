@@ -9,6 +9,7 @@ from .tch.lightchop import LightChopSTE
 
 
 def post_quantization_ft(model, chop, verbose=True):
+    # for experimental simulations!
     state_dict = model.state_dict()
 
     for key in state_dict.keys():

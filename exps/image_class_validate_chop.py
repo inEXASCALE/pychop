@@ -1,3 +1,12 @@
+import sys
+# appending a path
+sys.path.append('../')
+import pychop
+from pychop import LightChop
+from pychop.layers import post_quantization_ft
+
+pychop.backend("torch")
+
 import torch
 import torch.nn as nn
 import torchvision
@@ -96,7 +105,7 @@ class ResNet(nn.Module):
     def forward(self, x):
         return self.backbone(x)
 
-def inference_fp16(model, testloader):
+def inference(model, testloader):
     model.eval()
     model.to(device).half()
     correct, total = 0, 0
@@ -113,21 +122,6 @@ def inference_fp16(model, testloader):
             images.extend(inputs.cpu().float().numpy())
     accuracy = 100 * correct / total
     return accuracy, predictions, ground_truth, images
-
-def visualize_predictions(predictions, ground_truth, dataset_name, pdf):
-    plt.figure(figsize=(8, 3))
-    colors = ['green' if p == g else 'red' for p, g in zip(predictions[:20], ground_truth[:20])]
-    plt.bar(range(20), predictions[:20], color=colors, alpha=0.7, width=0.6)
-    plt.plot(range(20), ground_truth[:20], 'bo-', label='Ground Truth', markersize=4)
-    plt.title(f"Predictions vs Ground Truth ({dataset_name})", fontsize=10)
-    plt.xlabel("Sample Index", fontsize=8)
-    plt.ylabel("Class Label", fontsize=8)
-    plt.legend(fontsize=8)
-    plt.xticks(fontsize=6)
-    plt.yticks(fontsize=6)
-    plt.tight_layout(pad=0.5)
-    pdf.savefig(bbox_inches='tight')
-    plt.close()
 
 def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
     fig, axes = plt.subplots(2, 10, figsize=(12, 2.5))
@@ -149,7 +143,6 @@ def visualize_images(images, predictions, ground_truth, dataset_name, pdf):
     pdf.savefig(bbox_inches='tight')
     plt.close()
 
-# Main Execution for Evaluation and Visualization
 datasets = ["MNIST", "FashionMNIST", "Caltech101", "OxfordIIITPet"]
 for dataset in datasets:
     print(f"\nEvaluating {dataset}")
@@ -165,9 +158,8 @@ for dataset in datasets:
     
     pdf_filename = f"{dataset}_visualizations.pdf"
     with PdfPages(pdf_filename) as pdf:
-        acc_fp16, preds_fp16, gt_fp16, images_fp16 = inference_fp16(model, testloader)
+        acc_fp16, preds_fp16, gt_fp16, images_fp16 = inference(model, testloader)
         print(f"{dataset} FP16 Accuracy: {acc_fp16:.2f}%")
-        visualize_predictions(preds_fp16, gt_fp16, f"{dataset} FP16", pdf)
         visualize_images(images_fp16, preds_fp16, gt_fp16, f"{dataset} FP16", pdf)
     
     print(f"Visualizations saved to {pdf_filename}")
