@@ -118,8 +118,9 @@ format	description	bits
 float_type = {
     "q43": (4, 3),
     "q52": (5, 2),
-    "cumstom(5, 5)": (5, 5),
-    "cumstom(5, 7)": (5, 7),
+    "custom(5, 5)": (5, 5),
+    "custom(5, 7)": (5, 7),
+    "custom(8, 4)": (8, 4),
     "half": (5, 10),
     "bfloat16": (8, 7),
     "tf32": (8, 10),
@@ -196,7 +197,7 @@ for dataset in datasets:
     
     for key in float_type:
         for rd in rounding_mode:
-            pdf_filename = f"{dataset}_{key}_{rd}_visualizations.pdf"
+            pdf_filename = f"class_images/{dataset}_{key}_{rd}_visualizations.pdf"
             with PdfPages(pdf_filename) as pdf:
                 bits_alloc = float_type[key]
                 choper = LightChop(exp_bits=bits_alloc[0], sig_bits=bits_alloc[1], rmode=rd)
