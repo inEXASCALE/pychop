@@ -12,7 +12,7 @@ import gc
 rounding_modes = 6
 num_runs = 11
 
-arr_sizes = [2**8, 2**9, 2**10, 2**11, 2**12, 2**13]
+arr_sizes = [2000, 4000, 6000, 8000, 10000]#[2**8, 2**9, 2**10, 2**11, 2**12, 2**13]
 columns = ["Nearest (even)","Up","Down","Zero","Stochastic (prop)","Stochastic (uniform)"]
 
 sizes = len(arr_sizes)

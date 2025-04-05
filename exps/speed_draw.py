@@ -2,7 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# List of CSV files and their corresponding method names
 csv_files = {
     'chop_runtimes_avg.csv': 'chop (MATLAB)',
     'chop_runtimes_avg_np.csv': 'LightChop (MATLAB, NumPy backend)',
@@ -25,15 +24,16 @@ base_path = 'results/'
 # Load all CSV files into a dictionary of DataFrames
 dataframes = {method: pd.read_csv(base_path + file) for file, method in csv_files.items()}
 
-# Define sizes explicitly as powers of 2: 2^[8, 9, 10, 11, 12, 13]
-sizes = [256, 512, 1024, 2048, 4096, 8192]
-exponents = [8, 9, 10, 11, 12, 13]  # Corresponding exponents for 2^n
+# Define new sizes
+sizes = [2000, 4000, 6000, 8000, 10000]
 
-# Indices for equal spacing (0, 1, 2, 3, 4, 5)
+# Indices for equal spacing (0, 1, 2, 3, 4)
 x_indices = range(len(sizes))
 
 # Rounding modes (column names excluding 'Size')
 rounding_modes = dataframes['chop (MATLAB)'].columns[1:].tolist()  # ['Nearest (even)', 'Up', ...]
+rounding_mode_names = ['Round to nearest', 'Round up', 'Round down', 
+                      'Round toward zero', 'Stochastic (prob.)', 'Stochastic (uniform)']
 
 # Reference method for ratio
 reference_method = 'chop (MATLAB)'
@@ -43,9 +43,13 @@ colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
           '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', '#aec7e8', '#ffbb78']
 markers = ['o', 's', '^', 'v', 'D', 'P', '*', 'h', 'x', '+', 'd', '<']
 
-# Create a separate plot for each rounding mode
-for mode in rounding_modes:
-    plt.figure(figsize=(10, 9))
+# Create a single figure with 6 subplots (2 rows, 3 columns)
+fig, axes = plt.subplots(2, 3, figsize=(21, 12), sharex=True, sharey=True)
+axes = axes.flatten()  # Flatten the 2D array of axes for easier iteration
+
+# Plot each rounding mode in its own subplot
+for idx, mode in enumerate(rounding_modes):
+    ax = axes[idx]
     
     # Get the reference runtime for this rounding mode
     reference_runtimes = dataframes[reference_method][mode].values
@@ -59,7 +63,7 @@ for mode in rounding_modes:
                                     np.nan)  # Use NaN for invalid cases
             # Use dashed line for methods with "MATLAB" in the name, solid otherwise
             linestyle = '--' if 'MATLAB' in method else '-'
-            plt.semilogy(x_indices, runtime_ratios, 
+            ax.semilogy(x_indices, runtime_ratios, 
                         linestyle=linestyle, 
                         marker=markers[i % len(markers)], 
                         color=colors[i % len(colors)], 
@@ -67,32 +71,30 @@ for mode in rounding_modes:
                         markersize=8, 
                         label=method)
     
-    # Customize the plot
-    plt.title(f'Runtime Ratio vs Matrix Size (half precision)\nRounding Mode: {mode}', fontsize=18)
-    plt.xlabel('Matrix Size', fontsize=16)
-    plt.ylabel(f'Runtime Ratio ({reference_method} / Pychop Methods)', fontsize=16)
+    # Customize each subplot
+    ax.set_title(f'{rounding_mode_names[idx]}', fontsize=18)
+    ax.set_xlabel('Matrix Size', fontsize=18)
+    ax.set_ylabel(f'Runtime Ratio', fontsize=18)
     
-    # Set x-ticks with labels in the form of 2^exponent and increase tick size
-    plt.xticks(x_indices, [f'$2^{{{exp}}}$' for exp in exponents], fontsize=14)
-    plt.yticks(fontsize=14)
+    # Set x-ticks with labels showing the actual sizes
+    ax.set_xticks(x_indices)
+    ax.set_xticklabels([f'{size}' for size in sizes], fontsize=18)
+    ax.tick_params(axis='both', labelsize=18)
     
     # Enable grid for both major and minor ticks on the y-axis
-    plt.grid(True, which="both", ls="--")
-    
-    # Add legend with transparency, centered outside, and larger font size
-    plt.legend(fontsize=14, title_fontsize=16, 
-              loc='center', bbox_to_anchor=(0.5, -0.4), 
-              framealpha=0, ncol=2)
-    
-    # Adjust layout to prevent label cutoff
-    plt.tight_layout()
-    
-    # Save the plot as PDF with tight bounding box
-    plt.savefig(f'results/runtime_ratio_comparison_{mode.replace(" ", "_")}.pdf', 
-                format='pdf', 
-                bbox_inches='tight')
-    
-    # Close the figure to free memory
-    plt.close()
+    ax.grid(True, which="both", ls="--")
 
-print("Semilogy PDF plots with runtime ratios (MATLAB chop / Method) generated for all rounding modes with base-2 exponent x-labels, distinct styles, and tight bounding box.")
+# Add a single legend outside the subplots at the bottom
+handles, labels = axes[0].get_legend_handles_labels()  # Get handles and labels from first subplot
+fig.legend(handles, labels, fontsize=17, title_fontsize=17, 
+           loc='center', bbox_to_anchor=(0.5, -0.1), 
+           framealpha=0, ncol=2)
+
+plt.tight_layout()
+
+plt.savefig('results/runtime_ratio_comparison_subplots.pdf', 
+            format='pdf', 
+            bbox_inches='tight')
+
+# Close the figure to free memory
+plt.close()

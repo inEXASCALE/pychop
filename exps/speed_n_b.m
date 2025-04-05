@@ -11,7 +11,7 @@ pe = pyenv()
 % Define matrix sizes
 rng(0);
 
-sizes = 2.^[8, 9, 10, 11, 12, 13]; % original: [128, 512, 2048, 8192, 32768] 
+sizes = [2000, 4000, 6000, 8000, 10000]; % original: [128, 512, 2048, 8192, 32768] - 2.^[8, 9, 10, 11, 12, 13]
 
 % Define rounding modes supported by chop
 rounding_modes = [1, 2, 3, 4, 5, 6]; % 1: nearest (even), 2: up, 3: down, 4: zero, 5: stochastic (prop) 6. stochastic (uniform)
