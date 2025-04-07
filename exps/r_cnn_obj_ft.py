@@ -181,46 +181,46 @@ def evaluate_coco(predictions, coco_gt, image_ids):
 #     print(f"Results saved to {filename}")
 
 
-def plot_detection(images, outputs, targets, prefix="detection"):
-    """Visualize predictions and ground truth for first batch and save to PNGs."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    saved_files = []
-    
-    for i, (image, output, target) in enumerate(zip(images, outputs, targets)):
-        fig, ax = plt.subplots(1, figsize=(12, 9))
-        img = image.permute(1, 2, 0).numpy()
-        img = np.clip(img, 0, 1)
-        ax.imshow(img)
-
-        for ann in target:
-            x, y, w, h = ann["bbox"]
-            rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor="g", facecolor="none", linestyle="--")
-            ax.add_patch(rect)
-            plt.text(x, y, f"GT {ann['category_id']}", color="white", bbox=dict(facecolor="green", alpha=0.5))
-
-        boxes = output["boxes"].cpu().numpy()
-        scores = output["scores"].cpu().numpy()
-        labels = output["labels"].cpu().numpy()
-        for box, score, label in zip(boxes, scores, labels):
-            if score > 0.5 and label > 0:
-                x, y, x2, y2 = box
-                rect = patches.Rectangle((x, y), x2 - x, y2 - y, linewidth=2, edgecolor="r", facecolor="none")
-                ax.add_patch(rect)
-                plt.text(x, y, f"Pred {label} ({score:.2f})", color="white", bbox=dict(facecolor="red", alpha=0.5))
-
-        image_id = target[0]["image_id"]
-        plt.title(f"Object Detection (Image {image_id}, Red: Pred, Green: GT)")
-        plt.axis("off")
-        
-        filename = f"obj_images/{prefix}_image_{image_id}.png"
-        plt.savefig(filename)
-        plt.close(fig)  # Close figure to free memory
-        saved_files.append(filename)
-        
-        if i >= 1:  # Limit to first two images
-            break
-    
-    print(f"Detection visualizations saved to: {', '.join(saved_files)}")
+# def plot_detection(images, outputs, targets, prefix="detection"):
+#     """Visualize predictions and ground truth for first batch and save to PNGs."""
+#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#     saved_files = []
+#     
+#     for i, (image, output, target) in enumerate(zip(images, outputs, targets)):
+#         fig, ax = plt.subplots(1, figsize=(12, 9))
+#         img = image.permute(1, 2, 0).numpy()
+#         img = np.clip(img, 0, 1)
+#         ax.imshow(img)
+# 
+#         for ann in target:
+#             x, y, w, h = ann["bbox"]
+#             rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor="g", facecolor="none", linestyle="--")
+#             ax.add_patch(rect)
+#             plt.text(x, y, f"GT {ann['category_id']}", color="white", bbox=dict(facecolor="green", alpha=0.5))
+# 
+#         boxes = output["boxes"].cpu().numpy()
+#         scores = output["scores"].cpu().numpy()
+#         labels = output["labels"].cpu().numpy()
+#         for box, score, label in zip(boxes, scores, labels):
+#             if score > 0.5 and label > 0:
+#                 x, y, x2, y2 = box
+#                 rect = patches.Rectangle((x, y), x2 - x, y2 - y, linewidth=2, edgecolor="r", facecolor="none")
+#                 ax.add_patch(rect)
+#                 plt.text(x, y, f"Pred {label} ({score:.2f})", color="white", bbox=dict(facecolor="red", alpha=0.5))
+# 
+#         image_id = target[0]["image_id"]
+#         plt.title(f"Object Detection (Image {image_id}, Red: Pred, Green: GT)")
+#         plt.axis("off")
+#         
+#         filename = f"obj_images/{prefix}_image_{image_id}.png"
+#         plt.savefig(filename)
+#         plt.close(fig)  # Close figure to free memory
+#         saved_files.append(filename)
+#         
+#         if i >= 1:  # Limit to first two images
+#             break
+#     
+#     print(f"Detection visualizations saved to: {', '.join(saved_files)}")
 
 
 def plot_detection_all(images, outputs, targets, prefix="detection"):
@@ -282,13 +282,11 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
         # axes[i].set_title(f"Image {image_id}")
         axes[i].axis("off")
 
-    # Hide any unused subplots
     for i in range(num_images, 8):
         axes[i].axis("off")
 
-    # Add main title
-    plt.suptitle("Object Detection (Red: Ground Truth, Green: Predictions)", 
-                fontsize=19, y=1.03)
+    # plt.suptitle("Object Detection (Red: Ground Truth, Green: Predictions)", 
+    #            fontsize=19, y=1.03)
     
     # Save the figure
     filename = f"obj_images/{prefix}.png"
