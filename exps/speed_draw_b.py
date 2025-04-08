@@ -2,7 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# List of CSV files and their corresponding method names
 csv_files = {
     'chop_runtimes_avg_b.csv': 'chop (MATLAB)',
     'chop_runtimes_avg_np_b.csv': 'LightChop (MATLAB, NumPy backend)',
@@ -19,13 +18,10 @@ csv_files = {
     'pychop_runtimes_avg_th2_gpu_b.csv': 'Chop (Python, GPU, PyTorch backend)',
 }
 
-# Base path to CSV files (adjust if needed)
 base_path = 'results/'
 
-# Load all CSV files into a dictionary of DataFrames
 dataframes = {method: pd.read_csv(base_path + file) for file, method in csv_files.items()}
 
-# Define new sizes
 sizes = [2000, 4000, 6000, 8000, 10000]
 
 # Indices for equal spacing (0, 1, 2, 3, 4)
@@ -36,19 +32,15 @@ rounding_modes = dataframes['chop (MATLAB)'].columns[1:].tolist()  # ['Nearest (
 rounding_mode_names = ['Round to nearest', 'Round up', 'Round down', 
                       'Round toward zero', 'Stochastic (prob.)', 'Stochastic (uniform)']
 
-# Reference method for ratio
 reference_method = 'chop (MATLAB)'
 
-# Define distinct colors and markers for clarity
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', 
           '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', '#aec7e8', '#ffbb78']
 markers = ['o', 's', '^', 'v', 'D', 'P', '*', 'h', 'x', '+', 'd', '<']
 
-# Create a single figure with 6 subplots (2 rows, 3 columns)
 fig, axes = plt.subplots(2, 3, figsize=(21, 12), sharex=True, sharey=True)
 axes = axes.flatten()  # Flatten the 2D array of axes for easier iteration
 
-# Plot each rounding mode in its own subplot
 for idx, mode in enumerate(rounding_modes):
     ax = axes[idx]
     
@@ -72,22 +64,18 @@ for idx, mode in enumerate(rounding_modes):
                         markersize=8, 
                         label=method)
     
-    # Customize each subplot
-    ax.set_title(f'{rounding_mode_names[idx]}', fontsize=18)
-    ax.set_xlabel('Matrix Size', fontsize=18)
-    ax.set_ylabel(f'Runtime Ratio', fontsize=18)
+    ax.set_title(f'{rounding_mode_names[idx]}', fontsize=19)
+    ax.set_xlabel('Matrix Size', fontsize=19)
+    ax.set_ylabel(f'Runtime Ratio', fontsize=19)
     
-    # Set x-ticks with labels showing the actual sizes
     ax.set_xticks(x_indices)
-    ax.set_xticklabels([f'{size}' for size in sizes], fontsize=18)
-    ax.tick_params(axis='both', labelsize=18)
+    ax.set_xticklabels([f'{size}' for size in sizes], fontsize=19)
+    ax.tick_params(axis='both', labelsize=20)
     
-    # Enable grid for both major and minor ticks on the y-axis
     ax.grid(True, which="both", ls="--")
 
-# Add a single legend outside the subplots at the bottom
-handles, labels = axes[0].get_legend_handles_labels()  # Get handles and labels from first subplot
-fig.legend(handles, labels, fontsize=17, title_fontsize=17, 
+handles, labels = axes[0].get_legend_handles_labels()  
+fig.legend(handles, labels, fontsize=20, title_fontsize=20, 
            loc='center', bbox_to_anchor=(0.5, -0.1), 
            framealpha=0, ncol=2)
 
