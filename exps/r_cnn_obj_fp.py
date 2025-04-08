@@ -4,7 +4,7 @@ import sys
 # appending a path
 sys.path.append('../')
 import pychop
-from pychop import LightChop
+from pychop import Chopf
 
 import torchvision
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
@@ -74,7 +74,7 @@ def get_quantized_faster_rcnn(chop):
     model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
     model.eval()
     
-    model = post_quantization(model, chop)
+    model = post_quantization(model, chop, verbose=True)
     return model.cuda()
 
 
@@ -101,9 +101,9 @@ def run_inference(model, loader, use_amp=False, max_images=None, quantizer=None)
                     outputs = model(images)
 
                 for output in outputs:
-                    #if quantizer is not None:
-                    #    output["boxes"] = #quantizer(output["boxes"])
-                    #    output["scores"] = #quantizer(output["scores"])
+                    if quantizer is not None:
+                        output["boxes"] = output["boxes"]
+                        output["scores"] = output["scores"]
                         
                     output["labels"] = output["labels"]# .float()
 
@@ -318,7 +318,7 @@ if __name__ == "__main__":
 
 
     # save_results_to_csv(latencies_fp32, latencies_quant, map_fp32, map_quant, quantizer_int8)
-    filename = f"obj_detect_results_ft.csv"
+    filename = f"obj_detect_results_fp.csv"
 
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
@@ -328,16 +328,16 @@ if __name__ == "__main__":
         # Quantized Model
         for i in [1, 2, 3, 4, 5, 6]:#np.arange(1, 3):
             print("\n\n---------------------------------")
-            quantizer_ft52 = LightChop(exp_bits=5, sig_bits=2, rmode=i)
-            quantizer_ft43 = LightChop(exp_bits=4, sig_bits=3, rmode=i)
-            quantizer_ft55 = LightChop(exp_bits=5, sig_bits=5, rmode=i)
-            quantizer_ft57 = LightChop(exp_bits=5, sig_bits=7, rmode=i)
+            quantizer_ft52 = Chopf(ibits=5, fbits=2, rmode=i)
+            quantizer_ft43 = Chopf(ibits=4, fbits=3, rmode=i)
+            quantizer_ft55 = Chopf(ibits=5, fbits=5, rmode=i)
+            quantizer_ft57 = Chopf(ibits=5, fbits=7, rmode=i)
             
-            quantizer_ft84 = LightChop(exp_bits=8, sig_bits=4, rmode=i)
-            quantizer_ft87 = LightChop(exp_bits=8, sig_bits=7, rmode=i)
-            quantizer_tf32 = LightChop(exp_bits=8, sig_bits=10, rmode=i)
-            quantizer_ft510 = LightChop(exp_bits=5, sig_bits=10, rmode=i)
-            quantizer_ft823 = LightChop(exp_bits=8, sig_bits=23, rmode=i)
+            quantizer_ft84 = Chopf(ibits=8, fbits=4, rmode=i)
+            quantizer_ft87 = Chopf(ibits=8, fbits=7, rmode=i)
+            quantizer_tf32 = Chopf(ibits=8, fbits=10, rmode=i)
+            quantizer_ft510 = Chopf(ibits=5, fbits=10, rmode=i)
+            quantizer_ft823 = Chopf(ibits=8, fbits=23, rmode=i)
 
             model_quant_ft52 = get_quantized_faster_rcnn(quantizer_ft52)
             model_quant_ft43 = get_quantized_faster_rcnn(quantizer_ft43)
@@ -420,16 +420,16 @@ if __name__ == "__main__":
             
             batch_size = len(img_quant43)
             targets = [loader.dataset[i][1] for i in range(batch_size)]
-            plot_detection_all(img_quant43, out_quant43, targets, prefix=f"detection_quant_43_r{i}")
-            plot_detection_all(img_quant52, out_quant52, targets, prefix=f"detection_quant_52_r{i}")
-            plot_detection_all(img_quant55, out_quant55, targets, prefix=f"detection_quant_55_r{i}")
-            plot_detection_all(img_quant57, out_quant57, targets, prefix=f"detection_quant_57_r{i}")
+            plot_detection_all(img_quant43, out_quant43, targets, prefix=f"detection_quant_43_fp_r{i}")
+            plot_detection_all(img_quant52, out_quant52, targets, prefix=f"detection_quant_52_fp_r{i}")
+            plot_detection_all(img_quant55, out_quant55, targets, prefix=f"detection_quant_55_fp_r{i}")
+            plot_detection_all(img_quant57, out_quant57, targets, prefix=f"detection_quant_57_fp_r{i}")
 
-            plot_detection_all(img_quant84, out_quant84, targets, prefix=f"detection_quant_84_r{i}")
-            plot_detection_all(img_quanttf32, out_quanttf32, targets, prefix=f"detection_quant_tf32_r{i}")
-            plot_detection_all(img_quant87, out_quant87, targets, prefix=f"detection_quant_87_r{i}")
-            plot_detection_all(img_quant510, out_quant510, targets, prefix=f"detection_quant_510_r{i}")
-            plot_detection_all(img_quant823, out_quant823, targets, prefix=f"detection_quant_823_r{i}")
+            plot_detection_all(img_quant84, out_quant84, targets, prefix=f"detection_quant_84_fp_r{i}")
+            plot_detection_all(img_quanttf32, out_quanttf32, targets, prefix=f"detection_quant_tf32_fp_r{i}")
+            plot_detection_all(img_quant87, out_quant87, targets, prefix=f"detection_quant_87_fp_r{i}")
+            plot_detection_all(img_quant510, out_quant510, targets, prefix=f"detection_quant_510_fp_r{i}")
+            plot_detection_all(img_quant823, out_quant823, targets, prefix=f"detection_quant_823_fp_r{i}")
 
             # writer.writerow([f"Quantized ({quantizer_int4.num_bits}-bit)", f"{np.mean(latencies_quant4):.2f}", f"{np.std(latencies_quant4):.2f}", f"{map_quant4:.3f}"])
             writer.writerow(["q43", f"{i}", f"{np.mean(latencies_quant43):.2f}", f"{np.std(latencies_quant43):.2f}", f"{map_quant43:.3f}"])
