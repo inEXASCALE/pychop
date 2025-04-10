@@ -141,10 +141,10 @@ class MLP(nn.Module):
         # 5 exponent bits, 10 explicit significant bits , round to nearest ties to even
 
     def forward(self, x):
-        x = self.quant(self.flatten(x))
-        x = self.quant(self.fc1(x))
-        x = self.quant(self.relu1(x))
-        x = self.quant(self.dropout(x))
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.dropout(x)
         x = self.fc2(x)
         return x
 ```
