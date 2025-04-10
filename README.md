@@ -136,7 +136,7 @@ class MLP(nn.Module):
         self.flatten = nn.Flatten()
         self.fc1 = QuantizedLinear(256, 256, exp_bits, sig_bits, rmode=rmode)
         self.relu1 = nn.ReLU()
-        self.dropout = QuantizedDropout(0.2, exp_bits, sig_bits, rmode=rmode)
+        self.dropout = nn.Dropout(0.2)
         self.fc2 = QuantizedLinear(256, 10, exp_bits, sig_bits, rmode=rmode)
         # 5 exponent bits, 10 explicit significant bits , round to nearest ties to even
 
@@ -166,11 +166,11 @@ class MLP(nn.Module):
         self.quant = QuantizedLayer(exp_bits=5, sig_bits=10, rmode=1) 
 
     def forward(self, x):
-        x = self.quant(self.flatten(x))
+        x = self.flatten(x)
         x = self.quant(self.fc1(x))
-        x = self.quant(self.relu1(x))
-        x = self.quant(self.dropout(x))
-        x = self.fc2(x)
+        x = self.relu1(x)
+        x = self.dropout(x)
+        x = self.quant(self.fc2(x))
         return x
 ```
 
