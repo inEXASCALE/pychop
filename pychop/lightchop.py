@@ -22,6 +22,7 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
         - 6 : Stochastic rounding with 50% probability.
         - 7 : Round to nearest value, ties to zero.
         - 8 : Round to nearest value, ties to away.
+        - 9 : Round to odd.
 
     subnormal : boolean, default=True
         Whether or not to support subnormal numbers.
