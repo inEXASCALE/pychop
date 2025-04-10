@@ -34,7 +34,6 @@ class LightChop:
         - 6 : Stochastic rounding with 50% probability.
         - 7 : Round to nearest value, ties to zero.
         - 8 : Round to nearest value, ties to away.
-        - 9 : Round to odd.
 
     subnormal : boolean, default=True
         Whether or not to support subnormal numbers.
@@ -66,7 +65,6 @@ class LightChop:
         self.chunk_size = chunk_size
         np.random.seed(random_state)
 
-
     def _to_custom_float(self, x: np.ndarray) -> tuple:
         sign = np.sign(x)
         abs_x = np.abs(x)
@@ -89,7 +87,6 @@ class LightChop:
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
     
-
     def _quantize_components(self, x: np.ndarray, sign: np.ndarray, exponent: np.ndarray, 
                             significand: np.ndarray, zero_mask: np.ndarray, 
                             inf_mask: np.ndarray, nan_mask: np.ndarray, rmode) -> np.ndarray:
@@ -97,7 +94,7 @@ class LightChop:
         exponent = np.clip(exponent, 0, self.exp_max)
         
         normal_mask = (exponent > 0) & (exponent < self.exp_max)
-        subcategory_mask = (exponent == 0) & (significand > 0) if self.subnormal else np.zeros_like(x, dtype=bool)
+        subnormal_mask = (exponent == 0) & (significand > 0) if self.subnormal else np.zeros_like(x, dtype=bool)
         sig_normal = significand - 1.0
         
         sig_steps = self.sig_steps
@@ -113,15 +110,15 @@ class LightChop:
             sig_q = np.where(sign > 0, np.ceil(sig_scaled), np.floor(sig_scaled)) / sig_steps
             if self.subnormal:
                 sig_q = np.where(subnormal_mask, 
-                            np.where(sign > 0, np.ceil(sig_sub_scaled), np.floor(sig_sub_scaled)) / sig_steps, 
-                            sig_q)
+                               np.where(sign > 0, np.ceil(sig_sub_scaled), np.floor(sig_sub_scaled)) / sig_steps, 
+                               sig_q)
                 
         elif rmode == 3:  # Minus infinity
             sig_q = np.where(sign > 0, np.floor(sig_scaled), np.ceil(sig_scaled)) / sig_steps
             if self.subnormal:
                 sig_q = np.where(subnormal_mask, 
-                            np.where(sign > 0, np.floor(sig_sub_scaled), np.ceil(sig_sub_scaled)) / sig_steps, 
-                            sig_q)
+                               np.where(sign > 0, np.floor(sig_sub_scaled), np.ceil(sig_sub_scaled)) / sig_steps, 
+                               sig_q)
                 
         elif rmode == 4:  # Towards zero
             sig_q = np.floor(sig_scaled) / sig_steps
@@ -137,8 +134,8 @@ class LightChop:
                 sub_floor = np.floor(sig_sub_scaled)
                 sub_fraction = sig_sub_scaled - sub_floor
                 sig_q = np.where(subnormal_mask, 
-                            np.where(prob < sub_fraction, sub_floor + 1, sub_floor) / sig_steps, 
-                            sig_q)
+                               np.where(prob < sub_fraction, sub_floor + 1, sub_floor) / sig_steps, 
+                               sig_q)
                 
         elif rmode == 6:  # Stochastic equal
             floor_val = np.floor(sig_scaled)
@@ -147,8 +144,8 @@ class LightChop:
             if self.subnormal:
                 sub_floor = np.floor(sig_sub_scaled)
                 sig_q = np.where(subnormal_mask, 
-                            np.where(prob < 0.5, sub_floor, sub_floor + 1) / sig_steps, 
-                            sig_q)
+                               np.where(prob < 0.5, sub_floor, sub_floor + 1) / sig_steps, 
+                               sig_q)
                 
         elif rmode == 7:  # Nearest, ties to zero
             floor_val = np.floor(sig_scaled)
@@ -158,8 +155,8 @@ class LightChop:
                 sub_floor = np.floor(sig_sub_scaled)
                 sub_is_half = np.abs(sig_sub_scaled - sub_floor - 0.5) < 1e-6
                 sig_q = np.where(subnormal_mask, 
-                            np.where(sub_is_half, np.where(sign >= 0, sub_floor, sub_floor + 1), 
-                                        np.round(sig_sub_scaled)) / sig_steps, sig_q)
+                               np.where(sub_is_half, np.where(sign >= 0, sub_floor, sub_floor + 1), 
+                                      np.round(sig_sub_scaled)) / sig_steps, sig_q)
                 
         elif rmode == 8:  # Nearest, ties away
             floor_val = np.floor(sig_scaled)
@@ -169,22 +166,8 @@ class LightChop:
                 sub_floor = np.floor(sig_sub_scaled)
                 sub_is_half = np.abs(sig_sub_scaled - sub_floor - 0.5) < 1e-6
                 sig_q = np.where(subnormal_mask, 
-                            np.where(sub_is_half, np.where(sign >= 0, sub_floor + 1, sub_floor), 
-                                        np.round(sig_sub_scaled)) / sig_steps, sig_q)
-        
-        elif rmode == 9:  # Round-to-Odd
-            rounded = np.round(sig_scaled)
-            sig_q = np.where(rounded % 2 == 0, 
-                            rounded + np.where(sig_scaled >= rounded, 1, -1), 
-                            rounded) / sig_steps
-            if self.subnormal:
-                sub_rounded = np.round(sig_sub_scaled)
-                sig_q = np.where(subnormal_mask,
-                                np.where(sub_rounded % 2 == 0,
-                                        sub_rounded + np.where(sig_sub_scaled >= sub_rounded, 1, -1),
-                                        sub_rounded) / sig_steps,
-                                sig_q)
-        
+                               np.where(sub_is_half, np.where(sign >= 0, sub_floor + 1, sub_floor), 
+                                      np.round(sig_sub_scaled)) / sig_steps, sig_q)
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
         
@@ -196,7 +179,6 @@ class LightChop:
         result = np.where(nan_mask, np.nan, result)
         
         return result
-
 
     def quantize(self, x: np.ndarray) -> np.ndarray:
         # Convert to Dask array if input is large
@@ -214,7 +196,6 @@ class LightChop:
         else:
             sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
             return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode)
-
 
     def __call__(self, x: np.ndarray):
         return self.quantize(x)
