@@ -36,6 +36,7 @@ class LightChop:
         - 6 : Stochastic rounding with 50% probability.
         - 7 : Round to nearest value, ties to zero.
         - 8 : Round to nearest value, ties to away.
+        - 9 : Round to odd.
 
     random_state : int, default=42
         random seed for stochastic rounding.
@@ -78,6 +79,7 @@ class LightChop:
             exponent = jnp.where(subnormal_mask, 0, exponent)
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
+
 
     def _quantize_components(self, x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, rmode, key):
         exp_max = 2 ** self.exp_bits - 1
@@ -159,6 +161,19 @@ class LightChop:
                 return jnp.where(subnormal_mask, sig_q_sub, sig_q)
             return sig_q
 
+        def round_to_odd(sig_scaled, sig_sub_scaled, subnormal_mask):
+            rounded = jnp.round(sig_scaled)
+            sig_q = jnp.where(rounded % 2 == 0, 
+                            rounded + jnp.where(sig_scaled >= rounded, 1, -1), 
+                            rounded) / sig_steps
+            if self.subnormal:
+                sub_rounded = jnp.round(sig_sub_scaled)
+                sig_q_sub = jnp.where(sub_rounded % 2 == 0,
+                                    sub_rounded + jnp.where(sig_sub_scaled >= sub_rounded, 1, -1),
+                                    sub_rounded) / sig_steps
+                return jnp.where(subnormal_mask, sig_q_sub, sig_q)
+            return sig_q
+
         rounding_fns = {
             1: nearest,
             2: lambda s, ss, sm: plus_inf(s, ss, sm, sign),
@@ -168,6 +183,7 @@ class LightChop:
             6: lambda s, ss, sm: stoc_equal(s, ss, sm, key),
             7: lambda s, ss, sm: nearest_ties_zero(s, ss, sm, sign),
             8: lambda s, ss, sm: nearest_ties_away(s, ss, sm, sign),
+            9: round_to_odd,
         }
         
         if rmode not in rounding_fns:

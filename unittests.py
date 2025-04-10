@@ -10,6 +10,7 @@ import pychop
 from pychop.chop import Chop
 from scipy.io import loadmat
 from pychop import LightChop
+from pychop.tch.lightchop import LightChopSTE
 
 import torch
 import jax
@@ -763,6 +764,34 @@ class TestClassix(unittest.TestCase):
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
 
+    def test_lightchop22(self):
+        pychop.backend('torch')
+        scaling = 1000
+        X_th_scaling = X_th / scaling
+        
+        ch = LightChopSTE(exp_bits=5, sig_bits=10, rmode=1)
+        emulated= ch.quantize(X_th_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+        
+        ch = LightChopSTE(exp_bits=5, sig_bits=10, rmode=2)
+        emulated= ch.quantize(X_th_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+        
+        ch = LightChopSTE(exp_bits=5, sig_bits=10, rmode=3)
+        emulated= ch.quantize(X_th_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = LightChopSTE(exp_bits=5, sig_bits=10, rmode=4)
+        emulated= ch.quantize(X_th_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
     def test_lightchop3(self):
         pychop.backend('jax')
