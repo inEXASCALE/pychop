@@ -499,6 +499,51 @@ class QuantizedLeakyReLU(nn.Module):
         return self.leaky_relu(q_input)
 
 
+class QuantizedSoftmax(nn.Module):
+    """Quantized Softmax activation: applies quantization followed by Softmax."""
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, dim: int = -1):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.softmax = nn.Softmax(dim=dim)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.softmax(q_input)
+
+class QuantizedGELU(nn.Module):
+    """Quantized GELU activation: applies quantization followed by GELU."""
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.gelu = nn.GELU()
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.gelu(q_input)
+
+class QuantizedELU(nn.Module):
+    """Quantized ELU activation: applies quantization followed by ELU."""
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, alpha: float = 1.0):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.elu = nn.ELU(alpha=alpha)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.elu(q_input)
+
+class QuantizedPReLU(nn.Module):
+    """Quantized PReLU activation: applies quantization followed by PReLU."""
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, num_parameters: int = 1, init: float = 0.25):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.prelu = nn.PReLU(num_parameters=num_parameters, init=init)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.prelu(q_input)
+        
+
 class QuantizedBatchNorm1d(nn.Module):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
         super().__init__()
