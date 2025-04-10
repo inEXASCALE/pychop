@@ -437,6 +437,7 @@ class QuantizedLSTM(nn.Module):
         output = torch.cat(outputs, dim=1)
         return output, (h, c)
 
+
 # Quantized Dropout
 class QuantizedDropout(nn.Module):
     def __init__(self, p: float, exp_bits: int, sig_bits: int, 
@@ -449,6 +450,54 @@ class QuantizedDropout(nn.Module):
         q_input = self.quantizer.quantize(x)
         return self.dropout(q_input)
     
+
+class QuantizedReLU(nn.Module):
+    """Quantized ReLU activation: applies quantization followed by ReLU."""
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.relu = nn.ReLU()
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.relu(q_input)
+
+
+class QuantizedSigmoid(nn.Module):
+    """Quantized Sigmoid activation: applies quantization followed by Sigmoid."""
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.sigmoid = nn.Sigmoid()
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.sigmoid(q_input)
+
+
+class QuantizedTanh(nn.Module):
+    """Quantized Tanh activation: applies quantization followed by Tanh."""
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.tanh = nn.Tanh()
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.tanh(q_input)
+
+
+class QuantizedLeakyReLU(nn.Module):
+    """Quantized LeakyReLU activation: applies quantization followed by LeakyReLU."""
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, negative_slope: float = 0.01):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=negative_slope)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer.quantize(x)
+        return self.leaky_relu(q_input)
+
 
 class QuantizedBatchNorm1d(nn.Module):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
