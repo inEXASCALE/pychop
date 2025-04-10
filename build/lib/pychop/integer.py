@@ -1,12 +1,12 @@
 import os
 
-def Chopi(num_bits=8, symmetric=False, per_channel=False, channel_dim=0):
+def Chopi(bits=8, symmetric=False, per_channel=False, axis=0):
     """
     Integer Quantizer: Convert floating point numbers to integers.
     
     Parameters
     ----------
-    num_bits : int, default=8
+    bits : int, default=8
         The bitwidth of integer format, the larger it is, the wider range the quantized value can be.
 
     symmetric : bool, default=False
@@ -15,7 +15,7 @@ def Chopi(num_bits=8, symmetric=False, per_channel=False, channel_dim=0):
     per_channel : bool, default=False
         Quantize per channel along specified dimension.
 
-    channel_dim : int, default=0
+    axis : int, default=0
         Dimension to treat as channel axis.
 
     """
@@ -30,7 +30,7 @@ def Chopi(num_bits=8, symmetric=False, per_channel=False, channel_dim=0):
         from .np.integer import Chopi
 
 
-    return Chopi(num_bits=num_bits, symmetric=symmetric, per_channel=per_channel, channel_dim=channel_dim)
+    return Chopi(bits=bits, symmetric=symmetric, per_channel=per_channel, axis=axis)
 
 
 

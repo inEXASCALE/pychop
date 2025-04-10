@@ -2,27 +2,27 @@ import numpy as np
 import warnings
 
 class Chopi:
-    def __init__(self, num_bits=8, symmetric=False, per_channel=False, channel_dim=0):
-        self.num_bits = num_bits
+    def __init__(self, bits=8, symmetric=False, per_channel=False, axis=0):
+        self.bits = bits
         self.symmetric = symmetric
         self.per_channel = per_channel
-        self.channel_dim = channel_dim
-        self.qmin = -(2 ** (num_bits - 1)) if symmetric else 0
-        self.qmax = (2 ** (num_bits - 1)) - 1
+        self.axis = axis
+        self.qmin = -(2 ** (bits - 1)) if symmetric else 0
+        self.qmax = (2 ** (bits - 1)) - 1
         self.scale = None
         self.zero_point = None
 
-        if num_bits in {8, 16, 32, 64}:
-            if num_bits == 8:
+        if bits in {8, 16, 32, 64}:
+            if bits == 8:
                 self.intType = np.int8
                 
-            elif num_bits == 16:
+            elif bits == 16:
                 self.intType = np.int16
                 
-            elif num_bits == 32:
+            elif bits == 32:
                 self.intType = np.int32
                 
-            elif num_bits == 64:
+            elif bits == 64:
                 self.intType = np.int64
         else:
             warnings.warn("Current int type not support this bitwidth, use int64 to simulate.")
@@ -32,7 +32,7 @@ class Chopi:
         if not isinstance(x, np.ndarray):
             raise TypeError("Input must be a NumPy array")
         if self.per_channel and x.ndim > 1:
-            dims = [d for d in range(x.ndim) if d != self.channel_dim]
+            dims = [d for d in range(x.ndim) if d != self.axis]
             if not dims:
                 min_val = np.min(x)
                 max_val = np.max(x)
@@ -65,7 +65,7 @@ class Chopi:
             self.calibrate(x)
         if self.per_channel and x.ndim > 1:
             shape = [1] * x.ndim
-            shape[self.channel_dim] = -1
+            shape[self.axis] = -1
             scale = self.scale.reshape(*shape)
             zero_point = self.zero_point.reshape(*shape) if not self.symmetric else 0
         else:
@@ -82,7 +82,7 @@ class Chopi:
             raise ValueError("Quantizer must be calibrated before dequantization")
         if self.per_channel and q.ndim > 1:
             shape = [1] * q.ndim
-            shape[self.channel_dim] = -1
+            shape[self.axis] = -1
             scale = self.scale.reshape(*shape)
             zero_point = self.zero_point.reshape(*shape) if not self.symmetric else 0
         else:

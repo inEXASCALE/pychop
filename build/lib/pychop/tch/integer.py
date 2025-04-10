@@ -8,7 +8,7 @@ class Chopi(nn.Module):
     
     Parameters
     ----------
-    num_bits : int, default=8
+    bits : int, default=8
         The bitwidth of integer format, the larger it is, the wider range the quantized value can be.
 
     symmetric : bool, default=False
@@ -17,31 +17,31 @@ class Chopi(nn.Module):
     per_channel : bool, default=False
         Quantize per channel along specified dimension.
 
-    channel_dim : int, default=0
+    axis : int, default=0
         Dimension to treat as channel axis.
     """
     
-    def __init__(self, num_bits=8, symmetric=False, per_channel=False, channel_dim=0, verbose=False):
+    def __init__(self, bits=8, symmetric=False, per_channel=False, axis=0, verbose=False):
         super(Chopi, self).__init__()
-        self.num_bits = num_bits
+        self.bits = bits
         self.symmetric = symmetric
         self.per_channel = per_channel
-        self.channel_dim = channel_dim
+        self.axis = axis
 
-        self.qmin = -(2 ** (num_bits - 1)) if symmetric else 0
-        self.qmax = (2 ** (num_bits - 1)) - 1
+        self.qmin = -(2 ** (bits - 1)) if symmetric else 0
+        self.qmax = (2 ** (bits - 1)) - 1
 
         self.scale = nn.Parameter(torch.ones(1), requires_grad=False)
         self.zero_point = nn.Parameter(torch.zeros(1), requires_grad=False) if not symmetric else 0
 
-        if num_bits in {8, 16, 32, 64}:
-            if num_bits == 8:
+        if bits in {8, 16, 32, 64}:
+            if bits == 8:
                 self.intType = torch.int8
-            elif num_bits == 16:
+            elif bits == 16:
                 self.intType = torch.int16
-            elif num_bits == 32:
+            elif bits == 32:
                 self.intType = torch.int32
-            elif num_bits == 64:
+            elif bits == 64:
                 self.intType = torch.int64
         else:
             warnings.warn("Current int type does not support this bitwidth, use int64 to simulate.")
@@ -59,7 +59,7 @@ class Chopi(nn.Module):
             Input tensor to calibrate from.
         """
         if self.per_channel and x.dim() > 1:
-            dims = [d for d in range(x.dim()) if d != self.channel_dim]
+            dims = [d for d in range(x.dim()) if d != self.axis]
             min_val = x
             max_val = x
             for d in dims:
@@ -95,7 +95,7 @@ class Chopi(nn.Module):
         self.calibrate(x)
         if self.per_channel and x.dim() > 1:
             shape = [1] * x.dim()
-            shape[self.channel_dim] = -1
+            shape[self.axis] = -1
             scale = self.scale.view(*shape)
             zero_point = self.zero_point.view(*shape) if not self.symmetric else 0
 
@@ -127,12 +127,13 @@ class Chopi(nn.Module):
         """
         if self.per_channel and q.dim() > 1:
             shape = [1] * q.dim()
-            shape[self.channel_dim] = -1
+            shape[self.axis] = -1
             scale = self.scale.view(*shape)
             zero_point = self.zero_point.view(*shape) if not self.symmetric else 0
         else:
             scale = self.scale
             zero_point = self.zero_point if not self.symmetric else 0
+        
         x = (q - zero_point) * scale
         return x
 
@@ -160,5 +161,6 @@ class Chopi(nn.Module):
             if x.requires_grad:
                 return x + (x_dequant - x).detach()
             return x_dequant
+        
         # Inference: Return quantized values as float32
         return self.quantize(x).to(dtype=torch.float32)
