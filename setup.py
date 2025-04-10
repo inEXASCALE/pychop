@@ -14,7 +14,7 @@ PRJECT_NAME = "pychop"
 PACKAGE_NAME = "pychop"
 VERSION = get_version('pychop/__init__.py')
 SETREQUIRES=["numpy"]
-MAINTAINER="Xinye Chen"
+MAINTAINER="Erin Carson, Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
 INREUIRES=["numpy>=1.7.2", "pandas", "dask[array]"]
 
