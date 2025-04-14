@@ -43,7 +43,7 @@ The ``pychop`` class offers several key advantages that make it a powerful tool 
 * GPU Acceleration
 * Reproducible Stochastic Rounding
 * Ease of Integration
-*  Error Detection
+* Error Detection
 
 ### The supported floating point formats
 
@@ -62,7 +62,7 @@ The supported floating point arithmetic formats include:
 
 
 ### Examples
-We will go through the main functionality of ``pychop``, the detail can be referred to the documentation. 
+We will go through the main functionality of ``pychop``; for details refer to the documentation. 
 
 #### (I). Floating point quantization
 Users can specify the number of exponent (exp_bits) and significand (sig_bits) bits, enabling precise control over the trade-off between range and precision. 
@@ -70,7 +70,7 @@ For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (
 
 Rounding the values with specified precision format:
 
-``pychop`` supports faster low-precision floating point quantization and also enable GPU emulation (simply move the input to GPU device), with different rounding ways:
+``pychop`` supports faster low-precision floating point quantization and also enables GPU emulation (simply move the input to GPU device), with different rounding functions:
 
 ```Python
 import pychop
@@ -88,7 +88,7 @@ print(X_q[:10, 0])
 
 If one is not seeking optimized performance and more emulation supports, one can use the following example. 
 
-``pychop`` also provides same functionalities just like Higham's chop [1], but with faster rounding compared to it:
+``pychop`` also provides same functionalities just like Higham's chop [1], but with relatively faster rounding:
 
 ```Python
 from pychop import Chop
@@ -125,7 +125,7 @@ input_tensor = torch.randn(3, 4)
 output = layer(input_tensor)
 ```
 
-A sequential neural network can be build with:
+A sequential neural network can be built with:
 ```Python
 import torch.nn as nn
 from pychop.layers import *
@@ -177,7 +177,7 @@ class MLP(nn.Module):
 
 #### (II). Fixed point quantization
 
-Similar to floating point quantization, one can set corresponding backend. The dominant parameters are ibits and fbits, which are referred to as the bitwidth of integer part and fractional part, respectively. 
+Similar to floating point quantization, one can set the corresponding backend. The dominant parameters are ibits and fbits, which are the bitwidths of the integer part and the fractional part, respectively. 
 
 ```Python
 pychop.backend('numpy')
@@ -192,9 +192,9 @@ The code example can be found on the [guidance1](https://github.com/chenxinye/py
 
 #### (III). Integer quantization
 
-Integer quantization is another important feature of pychop. It intention is to convert the floating point number into low bit-width integer, which speedup the computations in certain computing hardware. It performs quantization with user-defined bitwidths. The following example illustrates the usage of the method.
+Integer quantization is another important feature of pychop. It intention is to convert the floating point number into a low bit-width integer, which speeds up the computations in certain computing hardware. It performs quantization with user-defined bitwidths. The following example illustrates the usage of the method.
 
-The integer arithmetic emulation of ``pychop`` is implemented by the interface Chopi. It can be used in many circumstances, and offer flexible choices for users to choose, such as symmetric quantization or not, number of bitwidth to use, the usage is illustrated as below:
+The integer arithmetic emulation of ``pychop`` is implemented by the interface Chopi. It can be used in many circumstances, and offers flexible options for users, such as symmetric or unsymmetric quantization and the number of bits to use. The usage is illustrated as below:
 
 
 ```Python
