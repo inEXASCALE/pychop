@@ -191,6 +191,8 @@ class LightChop:
         if self.subnormal:
             result = np.where(subnormal_mask, sign * sig_q * (2.0 ** self.min_exp), result)
         result = np.where(zero_mask, 0.0, result)
+
+        sign = np.where(np.isclose(sign, 0), 1.0, sign)  # Replace 0 with 1 to avoid 0 * inf
         result = np.where(inf_mask, sign * np.inf, result)
         result = np.where(nan_mask, np.nan, result)
         

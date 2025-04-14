@@ -35,7 +35,8 @@ class LightChop:
         - 6 : Stochastic rounding with 50% probability.
         - 7 : Round to nearest value, ties to zero.
         - 8 : Round to nearest value, ties to away.
-
+        - 9 : Round to odd.
+        
     random_state : int, default=42
         random seed for stochastic rounding.
     """
@@ -80,15 +81,16 @@ class LightChop:
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
     
+    
     def _quantize_components(self, 
-                           x: torch.Tensor,
-                           sign: torch.Tensor, 
-                           exponent: torch.Tensor, 
-                           significand: torch.Tensor,
-                           zero_mask: torch.Tensor,
-                           inf_mask: torch.Tensor,
-                           nan_mask: torch.Tensor) -> torch.Tensor:
-        """Quantize components according to IEEE 754 FP16 rules with specified rounding mode."""
+                            x: torch.Tensor,
+                            sign: torch.Tensor, 
+                            exponent: torch.Tensor, 
+                            significand: torch.Tensor,
+                            zero_mask: torch.Tensor,
+                            inf_mask: torch.Tensor,
+                            nan_mask: torch.Tensor) -> torch.Tensor:
+        """Quantize components according to IEEE 754 rules with specified rounding mode."""
         exponent = torch.clamp(exponent, self.exp_min, self.exp_max)
         
         sig_steps = self.sig_steps
@@ -109,13 +111,13 @@ class LightChop:
             sig_q = torch.where(sign > 0, torch.ceil(sig_scaled), torch.floor(sig_scaled)) * inv_sig_steps
             if self.subnormal:
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(sign > 0, torch.ceil(sub_scaled), torch.floor(sub_scaled)) * inv_sig_steps, sig_q)
+                                torch.where(sign > 0, torch.ceil(sub_scaled), torch.floor(sub_scaled)) * inv_sig_steps, sig_q)
             
         elif self.rmode == 3:  # Minus infinity
             sig_q = torch.where(sign > 0, torch.floor(sig_scaled), torch.ceil(sig_scaled)) * inv_sig_steps
             if self.subnormal:
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(sign > 0, torch.floor(sub_scaled), torch.ceil(sub_scaled)) * inv_sig_steps, sig_q)
+                                torch.where(sign > 0, torch.floor(sub_scaled), torch.ceil(sub_scaled)) * inv_sig_steps, sig_q)
             
         elif self.rmode == 4:  # Towards zero
             sig_q = torch.floor(sig_scaled) * inv_sig_steps
@@ -131,7 +133,7 @@ class LightChop:
                 sub_floor = torch.floor(sub_scaled)
                 sub_fraction = sub_scaled - sub_floor
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(prob < sub_fraction, sub_floor + 1, sub_floor) * inv_sig_steps, sig_q)
+                                torch.where(prob < sub_fraction, sub_floor + 1, sub_floor) * inv_sig_steps, sig_q)
             
         elif self.rmode == 6:  # Stochastic equal
             floor_val = torch.floor(sig_scaled)
@@ -140,43 +142,56 @@ class LightChop:
             if self.subnormal:
                 sub_floor = torch.floor(sub_scaled)
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(prob < 0.5, sub_floor, sub_floor + 1) * inv_sig_steps, sig_q)
+                                torch.where(prob < 0.5, sub_floor, sub_floor + 1) * inv_sig_steps, sig_q)
             
         elif self.rmode == 7:  # Nearest, ties to zero
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val, floor_val + 1), 
-                               torch.round(sig_scaled)) * inv_sig_steps
+                            torch.round(sig_scaled)) * inv_sig_steps
             if self.subnormal:
                 sub_floor = torch.floor(sub_scaled)
                 sub_is_half = torch.abs(sub_scaled - sub_floor - 0.5) < 1e-6
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
-                                             torch.round(sub_scaled)) * inv_sig_steps, sig_q)
+                                torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
+                                            torch.round(sub_scaled)) * inv_sig_steps, sig_q)
             
         elif self.rmode == 8:  # Nearest, ties away
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val + 1, floor_val), 
-                               torch.round(sig_scaled)) * inv_sig_steps
+                            torch.round(sig_scaled)) * inv_sig_steps
             if self.subnormal:
                 sub_floor = torch.floor(sub_scaled)
                 sub_is_half = torch.abs(sub_scaled - sub_floor - 0.5) < 1e-6
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
-                                             torch.round(sub_scaled)) * inv_sig_steps, sig_q)
+                                torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
+                                            torch.round(sub_scaled)) * inv_sig_steps, sig_q)
+        
+        elif self.rmode == 9:  # Round-to-Odd
+            rounded = torch.round(sig_scaled)
+            sig_q = torch.where(rounded % 2 == 0, 
+                                rounded + torch.where(sig_scaled >= rounded, 1, -1), 
+                                rounded) * inv_sig_steps
+            if self.subnormal:
+                sub_rounded = torch.round(sub_scaled)
+                sig_q = torch.where(subnormal_mask,
+                                    torch.where(sub_rounded % 2 == 0,
+                                                sub_rounded + torch.where(sub_scaled >= sub_rounded, 1, -1),
+                                                sub_rounded) * inv_sig_steps,
+                                    sig_q)
+        
         else:
             raise ValueError(f"Unsupported rounding mode: {self.rmode}")
         
-        # Fix the condition by handling self.subnormal as a scalar condition
         subnormal_result = sign * sig_q * self.min_exp_power if self.subnormal else torch.zeros_like(x)
         result = torch.where(normal_mask, sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias)), 
                             torch.where(subnormal_mask, subnormal_result, 
-                                       torch.where(inf_mask, torch.sign(x) * float('inf'), 
-                                                  torch.where(nan_mask, float('nan'), 0.0))))
+                                    torch.where(inf_mask, torch.sign(x) * float('inf'), 
+                                                torch.where(nan_mask, float('nan'), 0.0))))
         
-
         return result
+
 
     def quantize(self, x: torch.Tensor) -> torch.Tensor:
         """Quantize tensor to specified precision using the initialized rounding mode."""
@@ -229,16 +244,16 @@ class LightChopSTE:
             exponent = torch.where(subnormal_mask, 0, exponent)
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
-    
+        
     def _quantize_components(self, 
-                           x: torch.Tensor,
-                           sign: torch.Tensor, 
-                           exponent: torch.Tensor, 
-                           significand: torch.Tensor,
-                           zero_mask: torch.Tensor,
-                           inf_mask: torch.Tensor,
-                           nan_mask: torch.Tensor) -> torch.Tensor:
-        """Quantize components according to IEEE 754 FP16 rules with specified rounding mode."""
+                            x: torch.Tensor,
+                            sign: torch.Tensor, 
+                            exponent: torch.Tensor, 
+                            significand: torch.Tensor,
+                            zero_mask: torch.Tensor,
+                            inf_mask: torch.Tensor,
+                            nan_mask: torch.Tensor) -> torch.Tensor:
+        """Quantize components according to IEEE 754 rules with specified rounding mode."""
         exponent = torch.clamp(exponent, self.exp_min, self.exp_max)
         
         sig_steps = self.sig_steps
@@ -254,24 +269,24 @@ class LightChopSTE:
             sig_q = torch.round(sig_scaled) * inv_sig_steps
             if self.subnormal:
                 sig_q = torch.where(subnormal_mask, torch.round(sub_scaled) * inv_sig_steps, sig_q)
-            
+        
         elif self.rmode == 2:  # Plus infinity
             sig_q = torch.where(sign > 0, torch.ceil(sig_scaled), torch.floor(sig_scaled)) * inv_sig_steps
             if self.subnormal:
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(sign > 0, torch.ceil(sub_scaled), torch.floor(sub_scaled)) * inv_sig_steps, sig_q)
-            
+                                torch.where(sign > 0, torch.ceil(sub_scaled), torch.floor(sub_scaled)) * inv_sig_steps, sig_q)
+        
         elif self.rmode == 3:  # Minus infinity
             sig_q = torch.where(sign > 0, torch.floor(sig_scaled), torch.ceil(sig_scaled)) * inv_sig_steps
             if self.subnormal:
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(sign > 0, torch.floor(sub_scaled), torch.ceil(sub_scaled)) * inv_sig_steps, sig_q)
-            
+                                torch.where(sign > 0, torch.floor(sub_scaled), torch.ceil(sub_scaled)) * inv_sig_steps, sig_q)
+        
         elif self.rmode == 4:  # Towards zero
             sig_q = torch.floor(sig_scaled) * inv_sig_steps
             if self.subnormal:
                 sig_q = torch.where(subnormal_mask, torch.floor(sub_scaled) * inv_sig_steps, sig_q)
-            
+        
         elif self.rmode == 5:  # Stochastic proportional
             floor_val = torch.floor(sig_scaled)
             fraction = sig_scaled - floor_val
@@ -281,8 +296,8 @@ class LightChopSTE:
                 sub_floor = torch.floor(sub_scaled)
                 sub_fraction = sub_scaled - sub_floor
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(prob < sub_fraction, sub_floor + 1, sub_floor) * inv_sig_steps, sig_q)
-            
+                                torch.where(prob < sub_fraction, sub_floor + 1, sub_floor) * inv_sig_steps, sig_q)
+        
         elif self.rmode == 6:  # Stochastic equal
             floor_val = torch.floor(sig_scaled)
             prob = torch.rand_like(floor_val)
@@ -290,31 +305,45 @@ class LightChopSTE:
             if self.subnormal:
                 sub_floor = torch.floor(sub_scaled)
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(prob < 0.5, sub_floor, sub_floor + 1) * inv_sig_steps, sig_q)
-            
+                                torch.where(prob < 0.5, sub_floor, sub_floor + 1) * inv_sig_steps, sig_q)
+        
         elif self.rmode == 7:  # Nearest, ties to zero
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val, floor_val + 1), 
-                               torch.round(sig_scaled)) * inv_sig_steps
+                            torch.round(sig_scaled)) * inv_sig_steps
             if self.subnormal:
                 sub_floor = torch.floor(sub_scaled)
                 sub_is_half = torch.abs(sub_scaled - sub_floor - 0.5) < 1e-6
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
-                                             torch.round(sub_scaled)) * inv_sig_steps, sig_q)
-            
+                                torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
+                                            torch.round(sub_scaled)) * inv_sig_steps, sig_q)
+        
         elif self.rmode == 8:  # Nearest, ties away
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val + 1, floor_val), 
-                               torch.round(sig_scaled)) * inv_sig_steps
+                            torch.round(sig_scaled)) * inv_sig_steps
             if self.subnormal:
                 sub_floor = torch.floor(sub_scaled)
                 sub_is_half = torch.abs(sub_scaled - sub_floor - 0.5) < 1e-6
                 sig_q = torch.where(subnormal_mask, 
-                                   torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
-                                             torch.round(sub_scaled)) * inv_sig_steps, sig_q)
+                                torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
+                                            torch.round(sub_scaled)) * inv_sig_steps, sig_q)
+        
+        elif self.rmode == 9:  # Round-to-Odd
+            rounded = torch.round(sig_scaled)
+            sig_q = torch.where(rounded % 2 == 0, 
+                                rounded + torch.where(sig_scaled >= rounded, 1, -1), 
+                                rounded) * inv_sig_steps
+            if self.subnormal:
+                sub_rounded = torch.round(sub_scaled)
+                sig_q = torch.where(subnormal_mask,
+                                    torch.where(sub_rounded % 2 == 0,
+                                                sub_rounded + torch.where(sub_scaled >= sub_rounded, 1, -1),
+                                                sub_rounded) * inv_sig_steps,
+                                    sig_q)
+        
         else:
             raise ValueError(f"Unsupported rounding mode: {self.rmode}")
         
@@ -322,8 +351,8 @@ class LightChopSTE:
         subnormal_result = sign * sig_q * self.min_exp_power if self.subnormal else torch.zeros_like(x)
         result = torch.where(normal_mask, sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias)), 
                             torch.where(subnormal_mask, subnormal_result, 
-                                       torch.where(inf_mask, torch.sign(x) * float('inf'), 
-                                                  torch.where(nan_mask, float('nan'), 0.0))))
+                                    torch.where(inf_mask, torch.sign(x) * float('inf'), 
+                                                torch.where(nan_mask, float('nan'), 0.0))))
         
         if x.requires_grad:
             result = x + (result - x).detach()
