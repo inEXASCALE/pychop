@@ -534,8 +534,8 @@ def _chop_round_to_nearest(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, ran
     emins = emin + 1 - t
     xmins = 2 ** emins
 
-    abs_x = torch.abs(x)
-    e = torch.floor(torch.log2(abs_x)).int()  # Exponent
+    _, e = torch.frexp(torch.abs(x))
+    e = e - 1
     ktemp = (e < emin) & (e >= emins)
 
     if explim:
@@ -579,7 +579,8 @@ def _chop_round_towards_plus_inf(x, t, emax, subnormal=1, flip=0, explim=1, p=0.
     xmins = 2 ** emins
     xmax = 2 ** emax * (2 - 2 ** (1 - t))
 
-    e = torch.floor(torch.log2(torch.abs(x))).int()
+    _, e = torch.frexp(torch.abs(x))
+    e = e - 1
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
@@ -621,7 +622,8 @@ def _chop_round_towards_minus_inf(x, t, emax, subnormal=1, flip=0, explim=1, p=0
     xmins = 2 ** emins
     xmax = 2 ** emax * (2 - 2 ** (1 - t))
     
-    e = torch.floor(torch.log2(torch.abs(x))).int()
+    _, e = torch.frexp(torch.abs(x))
+    e = e - 1
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
@@ -663,7 +665,8 @@ def _chop_round_towards_zero(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, r
     xmins = 2 ** emins
     xmax = 2 ** emax * (2 - 2 ** (1 - t))
     
-    e = torch.floor(torch.log2(torch.abs(x))).int()
+    _, e = torch.frexp(torch.abs(x))
+    e = e - 1
     ktemp = (e < emin) & (e >= emins)
               
     if explim:
@@ -706,7 +709,8 @@ def _chop_stochastic_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, 
 
     # Efficient exponent calculation
     abs_x = torch.abs(x)
-    e = torch.log2(abs_x).floor().int()
+    _, e = torch.frexp(abs_x)
+    e = e - 1
     ktemp = (e < emin) & (e >= emins)
 
     # Minimize tensor creation
@@ -754,7 +758,8 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p
 
     # Efficient exponent calculation
     abs_x = torch.abs(x)
-    e = torch.log2(abs_x).floor().int()
+    _, e = torch.frexp(abs_x)
+    e = e - 1
     ktemp = (e < emin) & (e >= emins)
 
     # Minimize tensor creation

@@ -38,7 +38,7 @@ def backend(lib='numpy', verbose=0):
             global QuantizedLayer
             
             import torch
-            if verbose: print('Load Troch backend.')
+            if verbose: print('Load Torch backend.')
                 
         except ImportError as e:
             print(e, 'Try load NumPy backend.')
