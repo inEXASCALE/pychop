@@ -3,6 +3,7 @@ README.md
 setup.py
 pychop/__init__.py
 pychop/bitchop.py
+pychop/blas.py
 pychop/chop.py
 pychop/demo_harmonic.py
 pychop/fixed_point.py
@@ -33,6 +34,7 @@ pychop/np/lightchop.py
 pychop/np/roundit.py
 pychop/tch/__init__.py
 pychop/tch/bitchop.py
+pychop/tch/blas_th.py
 pychop/tch/fixed_point.py
 pychop/tch/float_point.py
 pychop/tch/integer.py

@@ -61,7 +61,7 @@ class LightChop:
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
         """Convert to custom float representation with proper IEEE 754 handling."""
-        sign = torch.sign(x)
+        sign = torch.sgn(x) if x.is_complex() else torch.sign(x)
         abs_x = torch.abs(x)
         
         zero_mask = (abs_x == 0)
@@ -187,7 +187,7 @@ class LightChop:
         subnormal_result = sign * sig_q * self.min_exp_power if self.subnormal else torch.zeros_like(x)
         result = torch.where(normal_mask, sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias)), 
                             torch.where(subnormal_mask, subnormal_result, 
-                                    torch.where(inf_mask, torch.sign(x) * float('inf'), 
+                                    torch.where(inf_mask, sign * float('inf'), 
                                                 torch.where(nan_mask, float('nan'), 0.0))))
         
         return result
@@ -225,7 +225,7 @@ class LightChopSTE:
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
         """Convert to custom float representation with proper IEEE 754 handling."""
-        sign = torch.sign(x)
+        sign = torch.sgn(x) if x.is_complex() else torch.sign(x)
         abs_x = torch.abs(x)
         
         zero_mask = (abs_x == 0)
@@ -351,7 +351,7 @@ class LightChopSTE:
         subnormal_result = sign * sig_q * self.min_exp_power if self.subnormal else torch.zeros_like(x)
         result = torch.where(normal_mask, sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias)), 
                             torch.where(subnormal_mask, subnormal_result, 
-                                    torch.where(inf_mask, torch.sign(x) * float('inf'), 
+                                    torch.where(inf_mask, sign * float('inf'), 
                                                 torch.where(nan_mask, float('nan'), 0.0))))
         
         if x.requires_grad:
