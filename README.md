@@ -261,6 +261,22 @@ This project is supported by the European Union (ERC, [InEXASCALE](https://www.k
  Union or the European Research Council. Neither the European Union nor the granting
  authority can be held responsible for them.
 
+## Citations
+
+If you use pychop in your research or simulations, cite:
+
+```bibtex
+@misc{carson2025,
+      title={Pychop: Emulating Low-Precision Arithmetic in Numerical Methods and Neural Networks}, 
+      author={Erin Carson and Xinye Chen},
+      year={2025},
+      eprint={2504.07835},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2504.07835}, 
+}
+```
+
 
 ### References
 
