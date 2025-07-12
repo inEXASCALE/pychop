@@ -1,6 +1,8 @@
 LICENSE
+MANIFEST.in
 README.md
 setup.py
+unittests.py
 pychop/__init__.py
 pychop/bitchop.py
 pychop/blas.py
@@ -41,3 +43,5 @@ pychop/tch/fixed_point.py
 pychop/tch/float_point.py
 pychop/tch/integer.py
 pychop/tch/lightchop.py
+recipes/meta.yaml
+recipes/unittests.py
