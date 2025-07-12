@@ -16,9 +16,7 @@ VERSION = get_version('pychop/__init__.py')
 SETREQUIRES=["numpy"]
 MAINTAINER="Erin Carson, Xinye Chen"
 EMAIL="xinyechenai@gmail.com"
-INREUIRES=["numpy>=1.7.2", "pandas", "dask[array]"]
-
-
+INREUIRES=["numpy>=1.17.2", "pandas", "dask[array]", "torch>=1.12", "jax>=0.4.8", "jaxlib>=0.4.7"]
 
 AUTHORS="Erin Carson, Xinye Chen"
 
@@ -46,7 +44,7 @@ class CustomBuildExtCommand(build_ext):
         build_ext.run(self)
 
 metadata = {"name":PRJECT_NAME,
-            'packages':{"pychop", "pychop.np", "pychop.tch", "pychop.jx"},
+            'packages':["pychop", "pychop.np", "pychop.tch", "pychop.jx"],
             "version":VERSION,
             "setup_requires":SETREQUIRES,
             "install_requires":INREUIRES,
