@@ -33,18 +33,23 @@ requirements:
 test:
   requires:
     - python {{ python_min }}
+    - scipy
+    - pytorch >=1.12
+    - jax >=0.4.8
+    - jaxlib >=0.4.7
+    - pytest
   imports:
     - pychop
     - pychop.np
     - pychop.tch
     - pychop.jx
   commands:
-    - python -m unittest unittests.py
+    - pytest unittests.py
   source_files:
     - unittests.py
 
 about:
-  home: https://github.com/nla-group/pychop
+  home: https://github.com/inexascale/pychop
   license: MIT
   license_file: LICENSE
   summary: Python library for simulating low precision floating-point arithmetic
@@ -54,7 +59,7 @@ about:
     integrating seamlessly with NumPy, PyTorch, and JAX for efficient low-precision emulation 
     in deep learning and scientific computations.
   doc_url: https://pychop.readthedocs.io/en/latest/?badge=latest
-  dev_url: https://github.com/nla-group/pychop
+  dev_url: https://github.com/inexascale/pychop
   license_family: MIT
 
 extra:
