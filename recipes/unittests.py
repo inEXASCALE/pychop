@@ -2,6 +2,7 @@
 import unittest
 import numpy as np
 import sys
+sys.append('../')
 
 import pychop
 
