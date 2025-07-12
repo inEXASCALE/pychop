@@ -21,12 +21,14 @@ pychop.egg-info/requires.txt
 pychop.egg-info/top_level.txt
 pychop/jx/__init__.py
 pychop/jx/bitchop.py
+pychop/jx/blas_jx.py
 pychop/jx/fixed_point.py
 pychop/jx/float_point.py
 pychop/jx/integer.py
 pychop/jx/lightchop.py
 pychop/np/__init__.py
 pychop/np/bitchop.py
+pychop/np/blas_np.py
 pychop/np/fixed_point.py
 pychop/np/float_point.py
 pychop/np/integer.py

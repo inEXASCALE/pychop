@@ -13,15 +13,15 @@ def Chopf(ibits: int=4, fbits: int=4, rmode: int =1):
         The bitwidth of fractional part. 
         
     rmode : int or str, default=1
-            Rounding mode to use when quantizing the significand. Options are: 
-                - 0 or "nearest_odd": Round to nearest value, ties to odd.
-                - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
-                - 2 or "plus_inf": Round towards plus infinity (round up).
-                - 3 or "minus_inf": Round towards minus infinity (round down).
-                - 4 or "toward_zero": Truncate toward zero (no rounding up).
-                - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
-                - 6 or "stoc_equal": Stochastic rounding with 50% probability.
-    
+        Rounding mode to use when quantizing the significand. Options are: 
+            - 0 or "nearest_odd": Round to nearest value, ties to odd.
+            - 1 or "nearest": Round to nearest value, ties to even (IEEE 754 default).
+            - 2 or "plus_inf": Round towards plus infinity (round up).
+            - 3 or "minus_inf": Round towards minus infinity (round down).
+            - 4 or "toward_zero": Truncate toward zero (no rounding up).
+            - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
+            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+
     """
     
     if os.environ['chop_backend'] == 'torch':

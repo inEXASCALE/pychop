@@ -6,27 +6,20 @@ from functools import partial
 class LightChop:
     """
     A class to simulate different floating-point precisions and rounding modes
-    for PyTorch tensors. This code implements a custom floating-point precision simulator
+    for JAX arrays. This code implements a custom floating-point precision simulator
     that mimics IEEE 754 floating-point representation with configurable exponent bits (exp_bits),
     significand bits (sig_bits), and various rounding modes (rmode). 
-    It uses PyTorch tensors for efficient computation and handles special cases like zeros,
+    It uses JAX arrays for efficient computation and handles special cases like zeros,
     infinities, NaNs, and subnormal numbers. The code follows IEEE 754 conventions for sign, 
     exponent bias, implicit leading 1 (for normal numbers), and subnormal number handling.
 
-    Initialize with specific format parameters.
-    Convert to custom float representation with proper IEEE 754 handling
-    
     Parameters
     ----------
     exp_bits: int 
         Number of bits for exponent.
-
     sig_bits : int
         Number of bits for significand (significant digits)
-
     rmode : int
-        rounding modes.
-
         Rounding mode to use when quantizing the significand. Options are:
         - 1 : Round to nearest value, ties to even (IEEE 754 default).
         - 2 : Round towards plus infinity (round up).
@@ -37,9 +30,12 @@ class LightChop:
         - 7 : Round to nearest value, ties to zero.
         - 8 : Round to nearest value, ties to away.
         - 9 : Round to odd.
-
     random_state : int, default=42
-        random seed for stochastic rounding.
+        Random seed for stochastic rounding.
+    subnormal : bool, default=True
+        Whether to support subnormal numbers.
+    chunk_size : int, default=1000
+        Chunk size for processing large arrays (not used in this implementation).
     """
     
     def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True, 
@@ -80,7 +76,6 @@ class LightChop:
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
 
-
     def _quantize_components(self, x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, rmode, key):
         exp_max = 2 ** self.exp_bits - 1
         exponent = jnp.clip(exponent, 0, exp_max)
@@ -91,7 +86,7 @@ class LightChop:
         
         sig_steps = self.sig_steps
         sig_scaled = sig_normal * sig_steps
-        sig_sub_scaled = significand * sig_steps if self.subnormal else None
+        sig_sub_scaled = significand * sig_steps if self.subnormal else sig_scaled
         
         def nearest(sig_scaled, sig_sub_scaled, subnormal_mask):
             sig_q = jnp.round(sig_scaled) / sig_steps
@@ -202,10 +197,16 @@ class LightChop:
 
     def quantize(self, x):
         x = jnp.asarray(x)
-        keys = jax.random.split(self.rng_key, x.size + 1)  # Generate x.size + 1 keys
-        self.rng_key = keys[0]  # Update the key for the next call
-        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float_vmap(x)
-        return self._quantize_vmap(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode, keys[1:])
+        if x.ndim == 0:  # Handle scalar input
+            sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
+            key = jax.random.split(self.rng_key, 2)[1]
+            self.rng_key = jax.random.split(self.rng_key, 2)[0]  # Update rng_key
+            return self._quantize_jit(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode, key)
+        else:  # Handle array input
+            keys = jax.random.split(self.rng_key, x.size + 1)
+            self.rng_key = keys[0]  # Update the key for the next call
+            sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float_vmap(x)
+            return self._quantize_vmap(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode, keys[1:])
 
     def __call__(self, x):
         return self.quantize(x)

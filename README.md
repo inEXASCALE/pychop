@@ -7,13 +7,10 @@
 [![Documentation Status](https://readthedocs.org/projects/pychop/badge/?version=latest)](https://pychop.readthedocs.io/en/latest/?badge=latest)
 
 
-With the increasing availability of lower-precision floating-point arithmetic beyond IEEE 64-bit double and 32-bit single precision, both in hardware and software simulation, reduced-precision formats such as 16-bit half precision have gained significant attention in scientific computing and machine learning. These formats offer higher computational throughput, reduced data transfer overhead, and lower energy consumption.
+With the increasing availability of lower-precision floating-point arithmetic beyond IEEE 64-bit/32-bit precision, both in hardware and software simulation, reduced-precision formats such as 16-bit half precision have gained significant attention in scientific computing and machine learning domains. These formats offer higher computational throughput, reduced data transfer overhead, and lower energy consumption.
 
-``pychop`` is a Python library designed for efficient quantization, enabling the conversion of single- or double-precision numbers into low-bitwidth representations. It allows users to define custom floating-point formats with a specified number of exponent and significand bits, offering fine-grained control over precision and range. 
-``pychop`` stands out for its versatility, efficiency, and ease of integration with NumPy, PyTorch, and JAX. Its key strengths—customizability, hardware independence, GPU support, and comprehensive rounding options—make it a valuable tool for both practical applications and theoretical exploration in numerical computing. The library supports multiple rounding modes, optional denormal number handling, and runs efficiently on both CPU and GPU devices. This makes it particularly useful for research, experimentation, and optimization in areas like machine learning, numerical analysis, and hardware design, where reduced precision can provide computational advantages.
-
-Inspired by MATLAB’s chop function by Nick Higham, ``pychop`` simulates low-precision floating-point formats as well as fixed-point and integer quantization based on single and double precision. It includes PyTorch and JAX backends, enabling low-precision neural network training simulations. By emulating low-precision formats within a high-precision environment (float32 or float64), ``pychop`` allows users to analyze quantization effects without requiring specialized hardware. The library supports both deterministic and stochastic rounding strategies and is optimized for vectorized operations with NumPy arrays, PyTorch tensors, and JAX arrays.
-
+Inspired by MATLAB’s chop function by Nick Higham,  ``pychop`` is a Python library designed for efficient quantization, enabling the conversion of single- or double-precision numbers into low-bitwidth representations. It allows users to define custom floating-point formats with a specified number of exponent and significand bits as well as fixed-point and integer quantization, offering fine-grained control over precision and range. 
+``pychop`` stands out for its versatility, efficiency, and ease of integration with NumPy, PyTorch, and JAX. Its key strengths—customizability, hardware independence, GPU support, and comprehensive rounding options—make it a valuable tool for both practical applications and theoretical exploration in numerical computing. The library supports multiple rounding modes, optional denormal number handling, and runs efficiently on both CPU and GPU devices. This makes it particularly useful for research, experimentation, and optimization in areas like machine learning, numerical analysis, and hardware design, where reduced precision can provide computational advantages. It also includes PyTorch and JAX backends, enabling low-precision neural network training simulations. By emulating low-precision formats within a high-precision environment (single or double), ``pychop`` allows users to analyze quantization effects without requiring specialized hardware. The library supports both deterministic and stochastic rounding strategies and is optimized for vectorized operations with NumPy arrays, PyTorch tensors, and JAX arrays.
 
 
 ## Install
@@ -78,11 +75,11 @@ from pychop import LightChop
 import numpy as np
 np.random.seed(0)
 
-X = np.random.randn(5000, 5000) 
+arr = np.random.randn(5000, 5000) 
 pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
  
 ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
-X_q = ch(X)
+arr_q = ch(arr)
 print(X_q[:10, 0])
 ```
 
@@ -94,7 +91,7 @@ If one is not seeking optimized performance and more emulation supports, one can
 from pychop import Chop
 
 ch = Chop('h') # Standard IEEE 754 half precision
-X_q = ch(X) # Rounding values
+arr_q = ch(arr) # Rounding values
 ```
 
 One can also customize the precision via:
@@ -104,13 +101,13 @@ pychop.backend('numpy', 1)
 ct1 = Customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
 
 ch = Chop(customs=ct1, rmode=3) # Round towards minus infinity 
-X_q = ch(X)
-print(X_q[:10, 0])
+arr_q = ch(arr)
+print(arr_q[:10, 0])
 
 ct2 = Customs(emax=15, t=11)
 ch = Chop(customs=ct2, rmode=3)
-X_q = ch(X)
-print(X_q[:10, 0])
+arr_q = ch(arr)
+print(arr_q[:10, 0])
 ```
 
 
@@ -184,7 +181,7 @@ pychop.backend('numpy')
 from pychop import Chopf
 
 ch = Chopf(ibits=4, fbits=4)
-X_q = ch(X)
+arr_q = ch(arr)
 ```
 
 
@@ -202,10 +199,10 @@ import numpy as np
 from pychop import Chopi 
 pychop.backend('numpy')
 
-x = np.array([[0.1, -0.2], [0.3, 0.4]])
+arr = np.array([[0.1, -0.2], [0.3, 0.4]])
 ch = Chopi(num_bits=8, symmetric=False)
-q = ch.quantize(x) # Convert to integers
-dq = ch.dequantize(q) # Convert back to floating points
+arr_q = ch.quantize(arr) # Convert to integers
+arr_dq = ch.dequantize(arr_q) # Convert back to floating points
 ```
 
 
@@ -222,8 +219,8 @@ To use ``Pychop`` in your MATLAB environment, similarly, simply load the Pychop 
 ```MATLAB
 pc = py.importlib.import_module('pychop');
 ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
-X = rand(100, 100);
-X_q = ch(X);
+arr = rand(100, 100);
+arr_q = ch(arr);
 ```
 
 Or more specifically, use
@@ -231,8 +228,8 @@ Or more specifically, use
 np = py.importlib.import_module('numpy');
 pc = py.importlib.import_module('pychop');
 ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
-X = np.random.randn(int32(100), int32(100));
-X_q = ch(X);
+arr = np.random.randn(int32(100), int32(100));
+arr_q = ch(arr);
 ```
 
 
