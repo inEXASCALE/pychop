@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: pychop
-Version: 0.3.3
+Version: 0.3.4
 Summary: Python code for simulating low precision floating-point arithmetic
 Home-page: https://github.com/nla-group/pychop.git
 Author: Erin Carson, Xinye Chen
@@ -18,9 +18,12 @@ Classifier: Operating System :: Unix
 Classifier: Programming Language :: Python :: 3
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: numpy>=1.7.2
+Requires-Dist: numpy>=1.17.2
 Requires-Dist: pandas
 Requires-Dist: dask[array]
+Requires-Dist: torch>=1.12
+Requires-Dist: jax>=0.4.8
+Requires-Dist: jaxlib>=0.4.7
 Dynamic: author
 Dynamic: author-email
 Dynamic: classifier
