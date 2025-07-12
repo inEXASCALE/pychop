@@ -1,2 +1,2 @@
 include unittests.py
-include recipe/*
+include recipes/*
