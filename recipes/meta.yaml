@@ -1,5 +1,5 @@
 {% set name = "pychop" %}
-{% set version = "0.2.3" %}
+{% set version = "0.3.2" %}
 
 package:
   name: {{ name|lower }}
@@ -47,4 +47,3 @@ extra:
   recipe-maintainers:
     - eccarson
     - chenxinye
-    - ChengKang520

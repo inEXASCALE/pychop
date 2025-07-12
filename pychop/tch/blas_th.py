@@ -37,15 +37,24 @@ def chop(x, precision='q52', use_gpu=False):
         dtype = x.type
         x = torch.tensor(x, dtype=dtype, device=device)
     if precision == 'fp64':
+        type_default = torch.float64
         return x.to(device)
+    
+    elif precision == 'fp32':
+        type_default = torch.float32
+
+    else:
+        type_default = torch.float64
+
     if isinstance(precision, dict):
         config = precision
 
     else:
         config = precision_configs[precision]
+    
     ch = pychop.LightChop(**config)
     result = ch(x)
-    dtype = torch.float64 if not torch.is_complex(x) else torch.complex128
+    dtype = type_default if not torch.is_complex(x) else torch.complex128
     return result.to(dtype).to(device)
 
 def rounding(x, precision, use_gpu=False):
@@ -56,7 +65,12 @@ def rounding(x, precision, use_gpu=False):
 def axpy(alpha, x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * x + y"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(alpha) or np.iscomplexobj(x) or np.iscomplexobj(y)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -86,7 +100,12 @@ def axpy(alpha, x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None
 def scal(alpha, x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """x = alpha * x"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(alpha) or np.iscomplexobj(x)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -112,7 +131,12 @@ def scal(alpha, x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, u
 def copy(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = x"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(x) or np.iscomplexobj(y)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -136,7 +160,12 @@ def copy(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_g
 def swap(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """x <-> y"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(x) or np.iscomplexobj(y)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -163,7 +192,12 @@ def swap(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_g
 def dot(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """x . y"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(x) or np.iscomplexobj(y)
     dtype = x.dtype
@@ -193,7 +227,12 @@ def dot(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gp
 def dotc(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """x . conj(y) (complex)"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     x = torch.as_tensor(x, dtype=torch.complex128, device=device)
     y = torch.as_tensor(y, dtype=torch.complex128, device=device)
@@ -221,7 +260,12 @@ def dotc(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_g
 def dotu(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """x . y (complex, no conjugate)"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     x = torch.as_tensor(x, dtype=torch.complex128, device=device)
     y = torch.as_tensor(y, dtype=torch.complex128, device=device)
@@ -249,7 +293,12 @@ def dotu(x, y, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_g
 def nrm2(x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Euclidean norm of x"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(x)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -277,7 +326,12 @@ def nrm2(x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=
 def asum(x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Sum of absolute values of x"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(x)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -304,7 +358,12 @@ def asum(x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=
 def rot(x, y, c, s, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Apply Givens rotation: x' = c*x + s*y, y' = -s*x + c*y"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(x) or np.iscomplexobj(y) or np.iscomplexobj(s)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -344,7 +403,12 @@ def rot(x, y, c, s, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, 
 def rotg(a, b, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Generate Givens rotation: compute c, s, r, z for rotation"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     a = torch.tensor(a, dtype=torch.float64, device=device)
     b = torch.tensor(b, dtype=torch.float64, device=device)
@@ -380,7 +444,12 @@ def rotg(a, b, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_g
 def rotm(x, y, param, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Apply modified rotation (Hessenberg)"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     x = torch.as_tensor(x, dtype=torch.float64, device=device)
     y = torch.as_tensor(y, dtype=torch.float64, device=device)
@@ -442,7 +511,12 @@ def rotm(x, y, param, precision='fp64', exp_bits=None, sig_bits=None, rmode=None
 def rotmg(d1, d2, x1, y1, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Generate modified rotation parameters"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     d1 = torch.tensor(d1, dtype=torch.float64, device=device)
     d2 = torch.tensor(d2, dtype=torch.float64, device=device)
@@ -485,7 +559,12 @@ def rotmg(d1, d2, x1, y1, precision='fp64', exp_bits=None, sig_bits=None, rmode=
 def iamax(x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Index of maximum absolute value"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(x)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -507,7 +586,12 @@ def iamax(x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu
 def iamin(x, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Index of minimum absolute value"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(x)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -544,7 +628,12 @@ def low_prec_mv(A, x, precision, use_gpu, conj=False):
 def gemv(alpha, A, x, beta, y, trans='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * op(A) * x + beta * y, op(A) = A or A^T or A^H"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(A) or np.iscomplexobj(x) or np.iscomplexobj(y) or np.iscomplexobj(alpha) or np.iscomplexobj(beta)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -593,37 +682,67 @@ def gemv(alpha, A, x, beta, y, trans='N', precision='fp64', exp_bits=None, sig_b
 def gbmv(alpha, A, x, beta, y, kl, ku, trans='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * op(A) * x + beta * y for band matrix A"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     return gemv(alpha, A, x, beta, y, trans, precision=precision, use_gpu=use_gpu)
 
 def symv(alpha, A, x, beta, y, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * A * x + beta * y, A symmetric"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     return gemv(alpha, A, x, beta, y, 'N', precision=precision, use_gpu=use_gpu)
 
 def sbmv(alpha, A, x, beta, y, k, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * A * x + beta * y, A symmetric band"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     return gemv(alpha, A, x, beta, y, 'N', precision=precision, use_gpu=use_gpu)
 
 def hemv(alpha, A, x, beta, y, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * A * x + beta * y, A Hermitian"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     return gemv(alpha, A, x, beta, y, 'N', precision=precision, use_gpu=use_gpu)
 
 def hbmv(alpha, A, x, beta, y, k, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * A * x + beta * y, A Hermitian band"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     return gemv(alpha, A, x, beta, y, 'N', precision=precision, use_gpu=use_gpu)
 
 def spmv(alpha, A, x, beta, y, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * A * x + beta * y, A symmetric packed"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.float64, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -644,7 +763,12 @@ def spmv(alpha, A, x, beta, y, uplo='U', precision='fp64', exp_bits=None, sig_bi
 def hpmv(alpha, A, x, beta, y, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """y = alpha * A * x + beta * y, A Hermitian packed"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.complex128, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -665,7 +789,12 @@ def hpmv(alpha, A, x, beta, y, uplo='U', precision='fp64', exp_bits=None, sig_bi
 def trmv(A, x, uplo='U', trans='N', diag='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """x = op(A) * x, A triangular"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     return gemv(1.0, A, x, 0.0, torch.zeros_like(x), trans, precision=precision, use_gpu=use_gpu)
 
 def low_prec_trsv(A, b, uplo='U', trans='N', diag='N', precision='fp64', use_gpu=False):
@@ -724,7 +853,12 @@ def low_prec_trsv(A, b, uplo='U', trans='N', diag='N', precision='fp64', use_gpu
 def trsv(A, b, uplo='U', trans='N', diag='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Solve op(A) * x = b, A triangular"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(A) or np.iscomplexobj(b)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -751,19 +885,34 @@ def trsv(A, b, uplo='U', trans='N', diag='N', precision='fp64', exp_bits=None, s
 def tbmv(A, x, k, uplo='U', trans='N', diag='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """x = op(A) * x, A triangular band"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     return trmv(A, x, uplo, trans, diag, precision=precision, use_gpu=use_gpu)
 
 def tbsv(A, b, k, uplo='U', trans='N', diag='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Solve op(A) * x = b, A triangular band"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     return trsv(A, b, uplo, trans, diag, precision=precision, use_gpu=use_gpu)
 
 def tpmv(A, x, uplo='U', trans='N', diag='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """x = op(A) * x, A triangular packed"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(A) or np.iscomplexobj(x)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -783,7 +932,12 @@ def tpmv(A, x, uplo='U', trans='N', diag='N', precision='fp64', exp_bits=None, s
 def tpsv(A, b, uplo='U', trans='N', diag='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Solve op(A) * x = b, A triangular packed"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(A) or np.iscomplexobj(b)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -815,7 +969,12 @@ def low_prec_outer(x, y, precision, use_gpu, conj_y=False):
 def ger(alpha, x, y, A, precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * y^T"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(A) or np.iscomplexobj(x) or np.iscomplexobj(y) or np.iscomplexobj(alpha)
     dtype = torch.complex128 if is_complex else torch.float64
@@ -849,7 +1008,12 @@ def ger(alpha, x, y, A, precision='fp64', exp_bits=None, sig_bits=None, rmode=No
 def syr(alpha, x, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * x^T, A symmetric"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.float64, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -876,7 +1040,12 @@ def syr(alpha, x, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, r
 def spr(alpha, x, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * x^T, A symmetric packed"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.float64, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -905,7 +1074,12 @@ def spr(alpha, x, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, r
 def syr2(alpha, x, y, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * y^T + alpha * y * x^T, A symmetric"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.float64, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -937,7 +1111,12 @@ def syr2(alpha, x, y, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=Non
 def spr2(alpha, x, y, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * y^T + alpha * y * x^T, A symmetric packed"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.float64, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -967,7 +1146,12 @@ def spr2(alpha, x, y, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=Non
 def her(alpha, x, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * x^H, A Hermitian"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.complex128, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -996,7 +1180,12 @@ def her(alpha, x, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, r
 def hpr(alpha, x, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * x^H, A Hermitian packed"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.complex128, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -1025,7 +1214,12 @@ def hpr(alpha, x, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, r
 def her2(alpha, x, y, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * y^H + alpha * y * x^H, A Hermitian"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.complex128, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -1059,7 +1253,12 @@ def her2(alpha, x, y, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=Non
 def hpr2(alpha, x, y, A, uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """A = A + alpha * x * y^H + alpha * y * x^H, A Hermitian packed"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     A = torch.as_tensor(A, dtype=torch.complex128, device=device)
     x = torch.as_tensor(x, dtype=A.dtype, device=device)
@@ -1108,10 +1307,16 @@ def low_prec_mm(A, B, precision, use_gpu, conjA=False, conjB=False):
 def gemm(alpha, A, B, beta, C, transA='N', transB='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """C = alpha * op(A) * op(B) + beta * C"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+    
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(A) or np.iscomplexobj(B) or np.iscomplexobj(C) or np.iscomplexobj(alpha) or np.iscomplexobj(beta)
-    dtype = torch.complex128 if is_complex else torch.float64
+    dtype = torch.complex128 if is_complex else x.dtype
     A = torch.as_tensor(A, dtype=dtype, device=device)
     B = torch.as_tensor(B, dtype=dtype, device=device)
     C = torch.as_tensor(C, dtype=dtype, device=device)
@@ -1125,6 +1330,7 @@ def gemm(alpha, A, B, beta, C, transA='N', transB='N', precision='fp64', exp_bit
         raise ValueError("Incompatible dimensions")
     native_real, native_complex = get_dtype(precision)
     native_dtype = native_complex if is_complex else native_real
+    
     if is_complex and precision in ['half', 'bf16']:
         native_dtype = None
     if native_dtype is not None:
@@ -1146,7 +1352,7 @@ def gemm(alpha, A, B, beta, C, transA='N', transB='N', precision='fp64', exp_bit
         conjB = (transB == 'C')
         opA = A if transA == 'N' else A.T
         opB = B if transB == 'N' else B.T
-        mm = low_prec_mm(opA, opB, precision, use_gpu, conjA=conjA, conjB=conjB)
+        mm = rounding(torch.matmul(opA, opB), precision, use_gpu)  # low_prec_mm(opA, opB, precision, use_gpu, conjA=conjA, conjB=conjB)
         alpha_mm = rounding(alpha * mm, precision, use_gpu)
         beta_C = rounding(beta * C, precision, use_gpu)
         result = rounding(alpha_mm + beta_C, precision, use_gpu)
@@ -1155,7 +1361,12 @@ def gemm(alpha, A, B, beta, C, transA='N', transB='N', precision='fp64', exp_bit
 def symm(alpha, A, B, beta, C, side='L', uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """C = alpha * A * B + beta * C or alpha * B * A + beta * C, A symmetric"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     transA = 'N' if side == 'L' else 'T'
     transB = 'N'
     if side == 'R':
@@ -1167,7 +1378,12 @@ def symm(alpha, A, B, beta, C, side='L', uplo='U', precision='fp64', exp_bits=No
 def hemm(alpha, A, B, beta, C, side='L', uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """C = alpha * A * B + beta * C or alpha * B * A + beta * C, A Hermitian"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     transA = 'N' if side == 'L' else 'C'
     transB = 'N'
     if side == 'R':
@@ -1179,7 +1395,12 @@ def hemm(alpha, A, B, beta, C, side='L', uplo='U', precision='fp64', exp_bits=No
 def syrk(alpha, A, beta, C, trans='N', uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """C = alpha * A * A^T + beta * C or alpha * A^T * A + beta * C, C symmetric"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     transA = trans
     transB = 'T' if trans == 'N' else 'N'
     return gemm(alpha, A, A, beta, C, transA=transA, transB=transB, precision=precision, use_gpu=use_gpu)
@@ -1187,7 +1408,12 @@ def syrk(alpha, A, beta, C, trans='N', uplo='U', precision='fp64', exp_bits=None
 def herk(alpha, A, beta, C, trans='N', uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """C = alpha * A * A^H + beta * C or alpha * A^H * A + beta * C, C Hermitian"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     transA = trans
     transB = 'C' if trans == 'N' else 'N'
     return gemm(alpha, A, A, beta, C, transA=transA, transB=transB, precision=precision, use_gpu=use_gpu)
@@ -1195,7 +1421,12 @@ def herk(alpha, A, beta, C, trans='N', uplo='U', precision='fp64', exp_bits=None
 def syr2k(alpha, A, B, beta, C, trans='N', uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """C = alpha * A * B^T + alpha * B * A^T + beta * C, C symmetric"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     if trans == 'N':
         mm1 = gemm(alpha, A, B, 0.0, torch.zeros_like(C), transA='N', transB='T', precision=precision, use_gpu=use_gpu)
         mm2 = gemm(alpha, B, A, 0.0, torch.zeros_like(C), transA='N', transB='T', precision=precision, use_gpu=use_gpu)
@@ -1210,7 +1441,12 @@ def syr2k(alpha, A, B, beta, C, trans='N', uplo='U', precision='fp64', exp_bits=
 def her2k(alpha, A, B, beta, C, trans='N', uplo='U', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """C = alpha * A * B^H + alpha * B * A^H + beta * C, C Hermitian"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     if trans == 'N':
         mm1 = gemm(alpha, A, B, 0.0, torch.zeros_like(C), transA='N', transB='C', precision=precision, use_gpu=use_gpu)
         mm2 = gemm(alpha, B, A, 0.0, torch.zeros_like(C), transA='N', transB='C', precision=precision, use_gpu=use_gpu)
@@ -1225,7 +1461,12 @@ def her2k(alpha, A, B, beta, C, trans='N', uplo='U', precision='fp64', exp_bits=
 def trmm(alpha, A, B, side='L', uplo='U', transA='N', diag='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """B = alpha * op(A) * B or alpha * B * op(A), A triangular"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     if side == 'L':
         transB = 'N'
         return gemm(alpha, A, B, 0.0, torch.zeros_like(B), transA=transA, transB=transB, precision=precision, use_gpu=use_gpu)
@@ -1248,7 +1489,12 @@ def low_prec_trsm(alpha, A, B, side='L', uplo='U', transA='N', diag='N', precisi
 def trsm(alpha, A, B, side='L', uplo='U', transA='N', diag='N', precision='fp64', exp_bits=None, sig_bits=None, rmode=None, use_gpu=False):
     """Solve op(A) * X = alpha * B or X * op(A) = alpha * B, A triangular"""
     if exp_bits is not None and sig_bits is not None:
-        precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
+        if exp_bits == 23 and sig_bits == 52:
+            precision = 'fp64'
+        elif exp_bits == 8 and sig_bits == 23:
+            precision = 'fp32'
+        else:
+            precision = {'exp_bits': exp_bits, 'sig_bits': sig_bits, 'rmode': rmode or 1}
     device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
     is_complex = np.iscomplexobj(A) or np.iscomplexobj(B) or np.iscomplexobj(alpha)
     dtype = torch.complex128 if is_complex else torch.float64
