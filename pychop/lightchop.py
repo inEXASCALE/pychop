@@ -50,6 +50,13 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
     else:
         from .np.lightchop import LightChop
 
-    return LightChop(exp_bits, sig_bits, rmode, subnormal, chunk_size, random_state)
+    obj = LightChop(exp_bits, sig_bits, rmode, subnormal, chunk_size, random_state)
+    t = sig_bits - 1
+    obj.u = 2**(1 - t) / 2
+    
+    if verbose:
+        print("The floating point format is with unit-roundoff of {:e}".format(
+            obj.u)+" (≈2^"+str(int(np.log2(obj.u)))+").")
+    return obj
 
 
