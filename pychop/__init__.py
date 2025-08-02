@@ -7,7 +7,7 @@ from .chop import Chop
 from .bitchop import Bitchop
 from .lightchop import LightChop
 
-__version__ = '0.3.6'  
+__version__ = '0.3.7'  
 
 import os
 os.environ['chop_backend'] = 'numpy'
@@ -35,3 +35,4 @@ class Options:
     flip: bool
     explim: bool
     p: float
+
