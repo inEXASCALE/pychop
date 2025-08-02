@@ -1,7 +1,7 @@
 import os
 
 def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True, 
-              chunk_size: int=800, random_state: int=42):
+              chunk_size: int=800, random_state: int=42, verbose=True):
     """
 
     Parameters
