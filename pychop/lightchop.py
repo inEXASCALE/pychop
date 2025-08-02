@@ -39,6 +39,8 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
     random_state : int, default=0
         Random seed set for stochastic rounding settings.
 
+    verbose : int | bool, defaul=0
+        Whether or not to print out the unit-roundoff.
     """
     
     if os.environ['chop_backend'] == 'torch':
