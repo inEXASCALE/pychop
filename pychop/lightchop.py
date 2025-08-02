@@ -51,7 +51,7 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
         from .np.lightchop import LightChop
 
     obj = LightChop(exp_bits, sig_bits, rmode, subnormal, chunk_size, random_state)
-    t = sig_bits - 1
+    t = sig_bits + 1
     obj.u = 2**(1 - t) / 2
     
     if verbose:
