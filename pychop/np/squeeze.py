@@ -161,3 +161,19 @@ if __name__ == "__main__":
     A_rounded, params = squeeze_sym_fp16(A)
     A_recon = desqueeze(A_rounded, params)
     print(A_recon)
+
+
+
+    from scipy.sparse.linalg import gmres
+    A = np.random.randn(3, 3)
+    b = np.random.randn(3)
+    x1, exitCode = gmres(A, b, rtol=1e-5)
+    
+    print(x1)
+    A_rounded, params = squeeze_fp16(A)
+    
+    
+    x2, exitCode = gmres(A_rounded,  params["mu"]* np.diag(params["R"]) @ b, rtol=1e-5)
+    x2 = params["S"] * x2
+    
+    print(x2)
