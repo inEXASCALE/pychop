@@ -1,0 +1,151 @@
+import numpy as np
+
+
+def calc_float_max_fp16(exp_bits, sig_bits):
+    """
+    Calculate the maximum representable value for a floating-point format.
+    
+    Parameters
+    ----------
+    exp_bits (int): 
+        Number of exponent bits
+    sig_bits (int): Number of fraction (mantissa) bits
+
+    
+    Returns
+    ----------
+    float: Maximum representable value
+    """
+    # Calculate bias
+    bias = 2**(exp_bits - 1) - 1
+    # Maximum true exponent
+    max_exponent = (2**exp_bits - 2) - bias
+    # Maximum mantissa
+    max_mantissa = 2 - 2**(-sig_bits)
+    # Maximum value
+    max_value = max_mantissa * (2**max_exponent)
+    
+    return max_value
+
+
+def two_sided_diagonal_scaling_fp16(A, tol=1e-10):
+    """
+    Two-sided diagonal scaling for a matrix A.
+    
+    
+    Parameters
+    ----------
+        A (np.ndarray)
+            Input matrix
+            
+        tol (float)
+            Tolerance for zero division (default: 1e-10)
+    
+    Returns
+    ----------
+        tuple: (R, S) diagonal scaling vectors
+    """
+    m, n = A.shape
+    
+    # Compute row sums and scale
+    R = np.sum(np.abs(A), axis=1)
+    R = np.where(R < tol, 1, 1 / R)
+    
+    # Apply row scaling using broadcasting
+    A_scaled = A * R[:, np.newaxis]
+    
+    # Compute column sums and scale
+    S = np.sum(np.abs(A_scaled), axis=0)
+    S = np.where(S < tol, 1, 1 / S)
+    
+    return R, S
+
+
+
+
+def two_sided_diagonal_scaling_sym_fp16(A, tol=1e-6, max_iter=100):
+    """
+    Symmetry-preserving two-sided diagonal scaling for a symmetric matrix A.
+    
+    Parameters
+    ----------
+        A (np.ndarray)
+            Input symmetric matrix
+        
+        tol (float)
+            Convergence tolerance (default: 1e-6)
+            
+        max_iter (int)
+            Maximum number of iterations (default: 100)
+    
+    
+    Returns
+    ----------
+        tuple: (R, S) diagonal scaling vectors
+    """
+    m, n = A.shape
+
+    # Initialize scaling vectors
+    R = np.ones(m)
+    S = np.ones(n)
+    
+    # Pre-allocate diagonal matrices to avoid repeated creation
+    for _ in range(max_iter):
+        # Compute row and column sums efficiently
+        row_sums = np.sqrt(np.sum(np.abs(A), axis=1))
+        col_sums = np.sqrt(np.sum(np.abs(A), axis=0))
+        
+        # Avoid division by zero
+        row_sums = np.where(row_sums == 0, 1, row_sums)
+        col_sums = np.where(col_sums == 0, 1, col_sums)
+        
+        # Compute scaling factors
+        R_new = 1 / row_sums
+        S_new = 1 / col_sums
+        
+        # Update matrix using vectorized operations
+        A = (A * R_new[:, np.newaxis]) * S_new[np.newaxis, :]
+        
+        # Update cumulative scaling vectors
+        R *= R_new
+        S *= S_new
+        
+        # Check convergence
+        if np.all(np.abs(R_new - 1) <= tol) and np.all(np.abs(S_new - 1) <= tol):
+            break
+    
+    return R, S
+
+
+
+def squeeze_fp16(A, exp_bits=5, sig_bits=10):
+    params = {}
+
+    params["R"], params["S"] = two_sided_diagonal_scaling(A)
+    xmax = calc_float_max(exp_bits, sig_bits)
+    
+    A_tilde = np.diag(params["R"]) @ A @ np.diag(params["S"])
+    alpha = np.max(A_tilde)
+    params["mu"] = theta * xmax / alpha
+    rounded_A = (params["mu"] * A_tilde).astype(np.float16)
+    return rounded_A, params
+
+
+
+def squeeze_sym_fp16(A, exp_bits=5, sig_bits=10, tol=0.1):
+    params = {}
+
+    params["R"], params["S"] = two_sided_diagonal_scaling_sym(A,tol=tol)
+    xmax = calc_float_max(exp_bits, sig_bits)
+    
+    A_tilde = np.diag(params["R"]) @ A @ np.diag(params["S"])
+    alpha = np.max(A_tilde)
+    params["mu"] = theta * xmax / alpha
+    rounded_A = (params["mu"] * A_tilde).astype(np.float16)
+    return rounded_A, params
+
+
+
+def dequeeze(rounded_A, params):
+    return np.diag(1/params["R"]) @(rounded_A / params["mu"]) @ np.diag(1/params["S"])
+
