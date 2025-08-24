@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def calc_float_max_fp16(exp_bits, sig_bits):
+def calc_float_max(exp_bits, sig_bits):
     """
     Calculate the maximum representable value for a floating-point format.
     
@@ -16,13 +16,9 @@ def calc_float_max_fp16(exp_bits, sig_bits):
     ----------
     float: Maximum representable value
     """
-    # Calculate bias
     bias = 2**(exp_bits - 1) - 1
-    # Maximum true exponent
     max_exponent = (2**exp_bits - 2) - bias
-    # Maximum mantissa
     max_mantissa = 2 - 2**(-sig_bits)
-    # Maximum value
     max_value = max_mantissa * (2**max_exponent)
     
     return max_value
@@ -118,9 +114,12 @@ def two_sided_diagonal_scaling_sym_fp16(A, tol=1e-6, max_iter=100):
 
 
 
-def squeeze_fp16(A, exp_bits=5, sig_bits=10):
+def squeeze_fp16(A):
     params = {}
-
+    
+    exp_bits=5
+    sig_bits=10
+    
     params["R"], params["S"] = two_sided_diagonal_scaling(A)
     xmax = calc_float_max(exp_bits, sig_bits)
     
@@ -132,9 +131,11 @@ def squeeze_fp16(A, exp_bits=5, sig_bits=10):
 
 
 
-def squeeze_sym_fp16(A, exp_bits=5, sig_bits=10, tol=0.1):
+def squeeze_sym_fp16(A, tol=0.1):
     params = {}
 
+    exp_bits=5
+    sig_bits=10
     params["R"], params["S"] = two_sided_diagonal_scaling_sym(A,tol=tol)
     xmax = calc_float_max(exp_bits, sig_bits)
     
