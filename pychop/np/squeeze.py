@@ -23,7 +23,7 @@ def calc_float_max(exp_bits, sig_bits):
     return max_value
 
 
-def two_sided_diagonal_scaling_fp16(A, tol=1e-10):
+def two_sided_diagonal_scaling(A, tol=1e-10):
     """
     Two-sided diagonal scaling for a matrix A.
     
@@ -58,7 +58,7 @@ def two_sided_diagonal_scaling_fp16(A, tol=1e-10):
 
 
 
-def two_sided_diagonal_scaling_sym_fp16(A, tol=1e-6, max_iter=100):
+def two_sided_diagonal_scaling_sym(A, tol=1e-6, max_iter=100):
     """
     Symmetry-preserving two-sided diagonal scaling for a symmetric matrix A.
     
