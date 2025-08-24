@@ -146,18 +146,18 @@ def squeeze_sym_fp16(A, tol=0.1):
 
 
 
-def dequeeze(rounded_A, params):
+def desqueeze(rounded_A, params):
     return np.diag(1/params["R"]) @(rounded_A / params["mu"]) @ np.diag(1/params["S"])
 
 if __name__ == "__main__":
 
     print(A)
     A_rounded, params = squeeze_fp16(A)
-    A_recon = dequeeze(A_rounded, params)
+    A_recon = desqueeze(A_rounded, params)
     print(A_recon)
 
 
     print(A)
     A_rounded, params = squeeze_sym_fp16(A)
-    A_recon = dequeeze(A_rounded, params)
+    A_recon = desqueeze(A_rounded, params)
     print(A_recon)
