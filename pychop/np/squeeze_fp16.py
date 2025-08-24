@@ -1,8 +1,5 @@
 import numpy as np
 
-import numpy as np
-
-
 def calc_float_max(exp_bits, sig_bits):
     """
     Calculate the maximum representable value for a floating-point format.
