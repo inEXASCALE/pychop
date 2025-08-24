@@ -1,5 +1,7 @@
 import numpy as np
 
+import numpy as np
+
 
 def calc_float_max(exp_bits, sig_bits):
     """
@@ -124,7 +126,7 @@ def squeeze_fp16(A):
     xmax = calc_float_max(exp_bits, sig_bits)
     
     A_tilde = np.diag(params["R"]) @ A @ np.diag(params["S"])
-    alpha = np.max(A_tilde)
+    alpha = np.max(np.abs(A_tilde))
     params["mu"] = theta * xmax / alpha
     rounded_A = (params["mu"] * A_tilde).astype(np.float16)
     return rounded_A, params
@@ -140,7 +142,7 @@ def squeeze_sym_fp16(A, tol=0.1):
     xmax = calc_float_max(exp_bits, sig_bits)
     
     A_tilde = np.diag(params["R"]) @ A @ np.diag(params["S"])
-    alpha = np.max(A_tilde)
+    alpha = np.max(np.abs(A_tilde))
     params["mu"] = theta * xmax / alpha
     rounded_A = (params["mu"] * A_tilde).astype(np.float16)
     return rounded_A, params
@@ -150,3 +152,15 @@ def squeeze_sym_fp16(A, tol=0.1):
 def dequeeze(rounded_A, params):
     return np.diag(1/params["R"]) @(rounded_A / params["mu"]) @ np.diag(1/params["S"])
 
+if __name__ == "__main__":
+
+    print(A)
+    A_rounded, params = squeeze_fp16(A)
+    A_recon = dequeeze(A_rounded, params)
+    print(A_recon)
+
+
+    print(A)
+    A_rounded, params = squeeze_sym_fp16(A)
+    A_recon = dequeeze(A_rounded, params)
+    print(A_recon)
