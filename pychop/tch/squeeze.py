@@ -19,7 +19,7 @@ def calc_float_max(exp_bits, sig_bits):
     max_value = max_mantissa * (2**max_exponent)
     return max_value
 
-def two_sided_diagonal_scaling_fp16(A, tol=1e-10):
+def two_sided_diagonal_scaling(A, tol=1e-10):
     """
     Two-sided diagonal scaling for a matrix A.
     
@@ -47,7 +47,7 @@ def two_sided_diagonal_scaling_fp16(A, tol=1e-10):
     
     return R, S
 
-def two_sided_diagonal_scaling_sym_fp16(A, tol=1e-6, max_iter=100):
+def two_sided_diagonal_scaling_sym(A, tol=1e-6, max_iter=100):
     """
     Symmetry-preserving two-sided diagonal scaling for a symmetric matrix A.
     
@@ -108,7 +108,7 @@ def squeeze_fp16(A, theta=1.0):
     exp_bits = 5
     sig_bits = 10
     
-    params["R"], params["S"] = two_sided_diagonal_scaling_fp16(A)
+    params["R"], params["S"] = two_sided_diagonal_scaling(A)
     xmax = calc_float_max(exp_bits, sig_bits)
     
     # Create diagonal matrices and perform scaling
@@ -139,7 +139,7 @@ def squeeze_sym_fp16(A, tol=0.1, theta=1.0):
     exp_bits = 5
     sig_bits = 10
     
-    params["R"], params["S"] = two_sided_diagonal_scaling_sym_fp16(A, tol=tol)
+    params["R"], params["S"] = two_sided_diagonal_scaling_sym(A, tol=tol)
     xmax = calc_float_max(exp_bits, sig_bits)
     
     # Create diagonal matrices and perform scaling
