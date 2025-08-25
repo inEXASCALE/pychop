@@ -113,7 +113,7 @@ def two_sided_diagonal_scaling_sym(A, tol=1e-6, max_iter=100):
 
 
 
-def squeeze_fp16(A):
+def squeeze_fp16(A, theta=0.8):
     params = {}
     
     exp_bits=5
@@ -130,7 +130,7 @@ def squeeze_fp16(A):
 
 
 
-def squeeze_sym_fp16(A, tol=0.1):
+def squeeze_sym_fp16(A, tol=0.1, theta=0.8):
     params = {}
 
     exp_bits=5
@@ -145,35 +145,36 @@ def squeeze_sym_fp16(A, tol=0.1):
     return rounded_A, params
 
 
-
 def desqueeze(rounded_A, params):
     return np.diag(1/params["R"]) @(rounded_A / params["mu"]) @ np.diag(1/params["S"])
 
+
 if __name__ == "__main__":
 
-    print(A)
+    A = np.random.randn(3, 3)
+    print("A:", A)
     A_rounded, params = squeeze_fp16(A)
     A_recon = desqueeze(A_rounded, params)
-    print(A_recon)
+    print("A_recon:", A_recon)
 
-
-    print(A)
     A_rounded, params = squeeze_sym_fp16(A)
     A_recon = desqueeze(A_rounded, params)
-    print(A_recon)
-
-
+    print("A_recon (sym):", A_recon)
 
     from scipy.sparse.linalg import gmres
     A = np.random.randn(3, 3)
     b = np.random.randn(3)
     x1, exitCode = gmres(A, b, rtol=1e-5)
+    print("x1:", x1)
     
-    print(x1)
     A_rounded, params = squeeze_fp16(A)
-    
     
     x2, exitCode = gmres(A_rounded,  params["mu"]* np.diag(params["R"]) @ b, rtol=1e-5)
     x2 = params["S"] * x2
+    print("x2 (1):", x2)
+
+    A_rounded, params = squeeze_fp16(A)
     
-    print(x2)
+    x2, exitCode = gmres(A_rounded,  np.diag(params["R"]) @ b, rtol=1e-5)
+    x2 = params["mu"]* params["S"] * x2
+    print("x2 (2):", x2)
