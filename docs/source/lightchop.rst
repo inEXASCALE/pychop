@@ -1,6 +1,6 @@
 .. _float_precision_simulator:
 
-Float Precision Simulator Classes
+Float precision simulator classes
 =================================
 
 The `LightChop` class enables quantization of floating-point numbers into a custom floating-point format similar to IEEE 754, defined by a specified number of exponent and mantissa bits. This document outlines the usage and examples of this class across three frameworks: PyTorch, NumPy, and JAX. Each implementation supports six rounding modes: 
@@ -30,14 +30,14 @@ The quantization process decomposes the input into sign, exponent, and mantissa 
 Usage
 -----
 
-Common Parameters
+Common parameters
 ~~~~~~~~~~~~~~~~~
 
 - **exp_bits**: Number of bits for the exponent, defining the dynamic range.
 - **sig_bits**: Number of bits for the mantissa, defining the precision.
 - **rmode**: String specifying the rounding method, defaulting to "nearest".
 
-PyTorch Version
+PyTorch version
 ~~~~~~~~~~~~~~~
 
 The PyTorch implementation operates on PyTorch tensors, aligning with IEEE 754 conventions and integrating seamlessly into PyTorch workflows.
@@ -50,7 +50,7 @@ Create an instance by specifying the number of exponent and mantissa bits, such 
 
 Quantize a tensor by calling the quantization method with the input tensor and an optional rounding mode. The result is a tensor quantized to the custom floating-point format.
 
-**Code Example**:
+**Code example**:
 
 .. code-block:: python
 
@@ -87,7 +87,7 @@ Apply the quantization method to a NumPy array, optionally specifying a rounding
     result = ch(values)
     print(result)
 
-JAX Version
+JAX version
 ~~~~~~~~~~~
 
 The JAX version utilizes JAX arrays and includes JIT compilation for performance, requiring a PRNG key for stochastic rounding modes.
