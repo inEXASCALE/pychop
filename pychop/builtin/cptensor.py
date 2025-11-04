@@ -9,7 +9,6 @@ class CPTensor(torch.Tensor):
     - Inherits from torch.Tensor for full compatibility.
     - Uses LightChop for rounding tensors.
     - Operations return CPTensor instances (chopped post-op).
-    Fixed 100%: Temporary class stripping prevents recursion in dispatch/printing.
     """
     def __new__(cls, input_tensor, chopper=None):
         if chopper is None:
