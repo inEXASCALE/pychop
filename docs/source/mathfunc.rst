@@ -10,7 +10,7 @@ The `chop` class provides a suite of mathematical functions that operate on floa
    - **JAX**: Uses `jax.numpy` (`jnp`) operations, operates on `jax.Array`, requires a random key for chopping, and is JIT-compatible.
    - Examples assume a `chop` instance with half-precision (`prec='h'`) unless stated otherwise.
 
-Trigonometric Functions
+Trigonometric functions
 -----------------------
 
 .. function:: sin(x)
@@ -99,7 +99,7 @@ Trigonometric Functions
    :return: Chopped arctangent of `x`.
    :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
 
-Hyperbolic Functions
+Hyperbolic functions
 --------------------
 
 .. function:: sinh(x)
@@ -158,7 +158,7 @@ Hyperbolic Functions
    :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
    :raises ValueError: If any element of `x` is not in (-1, 1).
 
-Exponential and Logarithmic Functions
+Exponential and logarithmic functions
 -------------------------------------
 
 .. function:: exp(x)
@@ -219,7 +219,7 @@ Exponential and Logarithmic Functions
    :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
    :raises ValueError: If any element of `x` is <= -1.
 
-Power and Root Functions
+Power and root functions
 ------------------------
 
 .. function:: sqrt(x)
@@ -241,7 +241,7 @@ Power and Root Functions
    :return: Chopped cube root of `x`.
    :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
 
-Miscellaneous Functions
+Miscellaneous functions
 -----------------------
 
 .. function:: abs(x)
@@ -272,7 +272,7 @@ Miscellaneous Functions
    :return: Chopped square of `x`.
    :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
 
-Additional Mathematical Functions
+Additional mathematical functions
 ---------------------------------
 
 .. function:: frexp(x)
