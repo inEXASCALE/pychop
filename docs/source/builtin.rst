@@ -199,6 +199,6 @@ Performance tip
   chopping.
 * Use the **NumPy** backend (default) for pure-CPU workloads.
 
-That’s it – drop the three imports into your code and you instantly get
+That’s it, simply drop the three imports into your code and you instantly get
 **type-preserving low-precision arithmetic** for scalars, NumPy arrays and
 PyTorch tensors!
