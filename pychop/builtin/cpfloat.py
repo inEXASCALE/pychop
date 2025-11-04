@@ -2,7 +2,7 @@ import numpy as np
 from pychop import LightChop  # Use LightChop for faster emulation
 # Optional: from pychop import Chop  # If you need full features
 
-class ChoppedFloat:
+class CPFloat:
     """
     A wrapper for scalars that maintains chopped precision after arithmetic ops.
     Uses LightChop (or Chop) for rounding—results stay in the target precision.
@@ -20,41 +20,41 @@ class ChoppedFloat:
     # Binary arithmetic: Compute in full prec, then chop result
     def __add__(self, other):
         res = self.value + float(other)
-        return ChoppedFloat(res, self.chopper)
+        return CPFloat(res, self.chopper)
 
     def __radd__(self, other):  # other + self
         return self.__add__(other)
 
     def __sub__(self, other):
         res = self.value - float(other)
-        return ChoppedFloat(res, self.chopper)
+        return CPFloat(res, self.chopper)
 
     def __rsub__(self, other):
-        return ChoppedFloat(float(other) - self.value, self.chopper)
+        return CPFloat(float(other) - self.value, self.chopper)
 
     def __mul__(self, other):
         res = self.value * float(other)
-        return ChoppedFloat(res, self.chopper)
+        return CPFloat(res, self.chopper)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __truediv__(self, other):
         res = self.value / float(other)
-        return ChoppedFloat(res, self.chopper)
+        return CPFloat(res, self.chopper)
 
     def __rtruediv__(self, other):
-        return ChoppedFloat(float(other) / self.value, self.chopper)
+        return CPFloat(float(other) / self.value, self.chopper)
 
     # Unary operations
     def __neg__(self):
-        return ChoppedFloat(-self.value, self.chopper)
+        return CPFloat(-self.value, self.chopper)
 
     def __pos__(self):
         return self
 
     def __abs__(self):
-        return ChoppedFloat(abs(self.value), self.chopper)
+        return CPFloat(abs(self.value), self.chopper)
 
     # Comparisons (return bool; no type change)
     def __eq__(self, other):
@@ -81,7 +81,7 @@ class ChoppedFloat:
 
     def __str__(self):
         prec_info = f"exp_bits={self.chopper.exp_bits}, sig_bits={self.chopper.sig_bits}" if hasattr(self.chopper, 'exp_bits') else "custom"
-        return f"ChoppedFloat({self.value}, {prec_info})"
+        return f"CPFloat({self.value}, {prec_info})"
 
     def __repr__(self):
         return str(self)

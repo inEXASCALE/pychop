@@ -1,14 +1,14 @@
 import torch
 import pychop
-pychop.backend('torch')  # Switch to PyTorch backend (once)
+# pychop.backend('torch')  # Switch to PyTorch backend (once)
 from pychop import LightChop  # Or: from pychop import Chop
 
-class ChoppedTensor(torch.Tensor):
+class CPTensor(torch.Tensor):
     """
     A PyTorch tensor subclass that maintains chopped precision after arithmetic ops.
     - Inherits from torch.Tensor for full compatibility.
     - Uses LightChop for rounding tensors.
-    - Operations return ChoppedTensor instances (chopped post-op).
+    - Operations return CPTensor instances (chopped post-op).
     Fixed 100%: Temporary class stripping prevents recursion in dispatch/printing.
     """
     def __new__(cls, input_tensor, chopper=None):
@@ -18,14 +18,14 @@ class ChoppedTensor(torch.Tensor):
         base_input = torch.as_tensor(input_tensor)  # Strip any subclass
         # Chop the base tensor FIRST (pure tensor) to avoid recursion
         chopped_base = chopper(base_input)  # LightChop on pure → pure chopped tensor
-        # Now view the pre-chopped base as ChoppedTensor (no re-chop)
+        # Now view the pre-chopped base as CPTensor (no re-chop)
         obj = chopped_base.as_subclass(cls)
         obj.chopper = chopper  # Per-instance storage
         return obj
 
     def __reduce_ex__(self, proto):
         # For pickling/serialization
-        return (ChoppedTensor, (self.to_regular(), self.chopper))
+        return (CPTensor, (self.to_regular(), self.chopper))
 
     @classmethod
     def __torch_function__(cls, func, types, args=(), kwargs=None):
@@ -35,31 +35,31 @@ class ChoppedTensor(torch.Tensor):
         if kwargs is None:
             kwargs = {}
 
-        # Get chopper from first ChoppedTensor arg (per-instance)
+        # Get chopper from first CPTensor arg (per-instance)
         chopper = None
         first_chopped = None
         for a in args:
             # isinstance triggers __torch_function__ → recursion
             # → compare the class pointer directly (fast & safe)
-            if type(a) is ChoppedTensor:          # <-- exact type match
+            if type(a) is CPTensor:          # <-- exact type match
                 first_chopped = a
                 break
         
         if first_chopped is None:
-            # No ChoppedTensor → we cannot decide which chopper to use
-            raise ValueError("At least one ChoppedTensor arg required for chopper")
+            # No CPTensor → we cannot decide which chopper to use
+            raise ValueError("At least one CPTensor arg required for chopper")
         
         chopper = first_chopped.chopper
-        # Validate same chopper for other ChoppedTensor args
+        # Validate same chopper for other CPTensor args
         for arg in args:
-            if isinstance(arg, ChoppedTensor) and arg.chopper != chopper:
-                raise ValueError("All ChoppedTensor inputs must use the same chopper")
+            if isinstance(arg, CPTensor) and arg.chopper != chopper:
+                raise ValueError("All CPTensor inputs must use the same chopper")
 
         # Strip subclass from args (hack to prevent recursion: make plain temporarily)
         restored = []
         pure_args = list(args)
         for a in pure_args:
-            if isinstance(a, ChoppedTensor):
+            if isinstance(a, CPTensor):
                 original_class = type(a)
                 a.__class__ = torch.Tensor
                 restored.append((a, original_class))
@@ -78,8 +78,8 @@ class ChoppedTensor(torch.Tensor):
         # Chop the pure result
         chopped_result = chopper(result)  # LightChop on pure → pure chopped
 
-        # Return as ChoppedTensor (set chopper on new instance)
-        new_instance = chopped_result.as_subclass(ChoppedTensor)
+        # Return as CPTensor (set chopper on new instance)
+        new_instance = chopped_result.as_subclass(CPTensor)
         new_instance.chopper = chopper
         return new_instance
 
@@ -87,12 +87,12 @@ class ChoppedTensor(torch.Tensor):
     def __str__(self):
         base_str = super().__str__()
         prec_info = f"exp_bits={self.chopper.exp_bits}, sig_bits={self.chopper.sig_bits}" if hasattr(self.chopper, 'exp_bits') else "custom"
-        return f"ChoppedTensor({base_str}, device={self.device}, {prec_info})"
+        return f"CPTensor({base_str}, device={self.device}, {prec_info})"
 
     def __repr__(self):
         base_repr = super().__repr__()
         prec_info = f"exp_bits={self.chopper.exp_bits}, sig_bits={self.chopper.sig_bits}" if hasattr(self.chopper, 'exp_bits') else "custom"
-        return f"ChoppedTensor({base_repr}, device={self.device}, {prec_info})"
+        return f"CPTensor({base_repr}, device={self.device}, {prec_info})"
 
     def __format__(self, format_spec):
         # Delegate to base (safe now)

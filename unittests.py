@@ -854,5 +854,127 @@ class TestClassix(unittest.TestCase):
         assert np.array_equal(emulated, groud_truth), print("error rmode 3")
 
 
+    def test_cpfloat(self):
+        from pychop.builtin import CPFloat
+        # For standard half (with subnormals)
+        chopper = LightChop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)  # rmode=1: nearest-even
+        
+        # For Underflow-Free (UF) half (no subnormals)
+        chopper_uf = LightChop(exp_bits=10, sig_bits=10, subnormal=False, rmode=1)
+        
+        # Create instances
+        a = CPFloat(1.234567, chopper)
+        b = CPFloat(0.987654, chopper)
+        
+        print(f"a: {a}")  # Already chopped
+        print(f"b: {b}")
+        
+        # Ops: Stays chopped!
+        c = a + b
+        print(f"c = a + b: {c}")  # Rounded to half-prec
+        
+        d = a * b / 2.0 - 0.1
+        print(f"d: {d}")
+        
+        # Tiny value test (UF prevents underflow flush to zero)
+        tiny = CPFloat(1e-10, chopper_uf)
+        print(f"Tiny UF: {tiny}")  # Non-zero if within extended range
+
+    def test_cparray(self):
+        pychop.backend("numpy")
+        from pychop.builtin import CPArray
+        # Setup: Half-precision LightChop (UF variant optional)
+        chopper = LightChop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)  # Standard half
+        # For UF half: chopper = LightChop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
+        
+        # Create CPArrays
+        a = np.array([1.234567, 2.345678, 3.456789])
+        b = np.array([0.987654, 1.098765, 1.234567])
+        arr_a = CPArray(a, chopper)
+        arr_b = CPArray(b, chopper)
+        
+        print(f"arr_a: {arr_a}")
+        print(f"arr_b: {arr_b}")
+        
+        # Element-wise ops: Results stay CPArray (chopped!)
+        arr_c = arr_a + arr_b
+        print(f"arr_c = arr_a + arr_b: {arr_c}")
+        c = a + b
+        print(f"c = a + b: {c}")
+        
+        
+        arr_d = arr_a * arr_b / 2.0  # Broadcasting with scalar
+        print(f"arr_d: {arr_d}")
+        
+        # Mixed: CPArray + regular array/scalar
+        regular_arr = np.array([0.5, 0.6, 0.7])
+        arr_e = arr_a + regular_arr
+        print(f"arr_e = arr_a + regular: {arr_e}")  # Still CPArray
+        
+        # Matrix multiply example
+        mat_a = CPArray(np.random.rand(2, 3), chopper)
+        mat_b = CPArray(np.random.rand(3, 2), chopper)
+        mat_c = mat_a @ mat_b
+        print(f"mat_c shape: {mat_c.shape}, values: {mat_c}")
+        
+        # Verify chopping: Compare to full-precision
+        full_c = np.array([1.234567, 2.345678, 3.456789]) + np.array([0.987654, 1.098765, 1.234567])
+        print(f"Full prec c[0]: {full_c[0]:.6f}")
+        print(f"Chopped c[0]: {arr_c[0]:.6f}")
+        print(f"Half eps: {2**(-10):.2e}")  # ~9.77e-4
+
+
+    def test_cptensor(self):
+        from pychop.builtin import CPTensor
+        pychop.backend("torch")
+        
+        # Setup: Half-precision LightChop (UF: set subnormal=False)
+        chopper = LightChop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)  # Standard half
+        # chopper = LightChop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)  # UF half
+        
+        # Create CPTensors
+        arr_a = CPTensor(torch.tensor([1.234567, 2.345678, 3.456789]), chopper)
+        arr_b = CPTensor(torch.tensor([0.987654, 1.098765, 1.234567]), chopper)
+        
+        # Printing/formatting: Fully safe, custom output!
+        print(f"arr_a: {arr_a}")  # Custom prefix + chopped values
+        print(f"arr_b: {arr_b}")
+        print(repr(arr_a))  # Full repr with precision info
+        
+        # Element-wise ops: Chopped & typed!
+        arr_c = arr_a + arr_b
+        print(f"arr_c = arr_a + arr_b: {arr_c}")
+        
+        arr_d = arr_a * arr_b / 2.0
+        print(f"arr_d: {arr_d}")
+        
+        # Mixed ops
+        regular_tensor = torch.tensor([0.5, 0.6, 0.7])
+        arr_e = arr_a + regular_tensor
+        print(f"arr_e = arr_a + regular: {arr_e}")
+        
+        # Matmul
+        torch.manual_seed(42)
+        mat_a = CPTensor(torch.rand(2, 3), chopper)
+        mat_b = CPTensor(torch.rand(3, 2), chopper)
+        mat_c = mat_a @ mat_b
+        print(f"mat_c shape: {mat_c.shape}")
+        print(f"mat_c values: {mat_c}")
+        
+        # GPU (if available)
+        if torch.cuda.is_available():
+            mat_a_gpu = mat_a.to('cuda')
+            mat_b_gpu = mat_b.to('cuda')
+            mat_c_gpu = mat_a_gpu @ mat_b_gpu
+            print(f"GPU mat_c device: {mat_c_gpu.device} | Sample: {mat_c_gpu[0, 0]:.4f}")
+        
+        # Verify (chopping effect)
+        full_c = torch.tensor([1.234567, 2.345678, 3.456789]) + torch.tensor([0.987654, 1.098765, 1.234567])
+        print(f"Full prec c[0]: {full_c[0]:.6f}")
+        print(f"Chopped c[0]: {float(arr_c[0]):.6f}")
+        print(f"Half eps: {2**(-10):.2e}")
+
+
+        
 if __name__ == '__main__':
     unittest.main()

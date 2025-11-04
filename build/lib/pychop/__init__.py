@@ -7,7 +7,7 @@ from .chop import Chop
 from .bitchop import Bitchop
 from .lightchop import LightChop
 
-__version__ = '0.3.8'  
+__version__ = '0.3.7'  
 
 import os
 os.environ['chop_backend'] = 'numpy'

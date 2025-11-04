@@ -44,7 +44,7 @@ class CustomBuildExtCommand(build_ext):
         build_ext.run(self)
 
 metadata = {"name":PRJECT_NAME,
-            'packages':["pychop", "pychop.np", "pychop.tch", "pychop.jx"],
+            'packages':["pychop", "pychop.np", "pychop.tch", "pychop.jx", "pychop.builtin"],
             "version":VERSION,
             "setup_requires":SETREQUIRES,
             "install_requires":INREUIRES,
