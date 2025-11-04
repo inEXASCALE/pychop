@@ -1,6 +1,6 @@
 .. _layers:
 
-Quantized Layers Module
+Quantized layers module
 =======================
 
 This module provides custom PyTorch neural network layers with quantized computations, designed for low-precision simulations. These layers extend `torch.nn.Module` and utilize the `FloatPrecisionSimulator` for quantization.
