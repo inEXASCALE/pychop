@@ -7,7 +7,6 @@ class CPArray(np.ndarray):
     - Inherits from np.ndarray for full compatibility.
     - Uses LightChop for rounding arrays.
     - Operations return CPArray instances (chopped post-op).
-    Fixed: Avoids recursion by chopping pure ndarrays only.
     """
     def __new__(cls, input_array, chopper=None):
         if chopper is None:
