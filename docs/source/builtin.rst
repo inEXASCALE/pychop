@@ -1,7 +1,7 @@
 .. _builtin-types:
 
 =================================
-pychop – Built-in Low-Precision Types
+Built-in low-precision types
 =================================
 
 ``pychop`` ships three ready-made classes that automatically **chop to the
