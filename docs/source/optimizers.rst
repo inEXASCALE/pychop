@@ -1,6 +1,6 @@
 .. _optimizers:
 
-Quantized Optimizers Module
+Quantized optimizers module
 ===========================
 
 This module provides custom PyTorch optimizers with quantized momentum and accumulator states, designed for low-precision training simulations. These optimizers extend `torch.optim.Optimizer` and utilize the `FloatPrecisionSimulator` for quantization.
