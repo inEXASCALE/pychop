@@ -1,4 +1,4 @@
-# BLAS Routines Reference
+# BLAS routines reference
 
 This docs provides a concise reference for ``pychop`` usage for the Basic Linear Algebra Subprograms (BLAS), categorized into three levels: Level 1 (vector-vector operations), Level 2 (matrix-vector operations), and Level 3 (matrix-matrix operations). These routines are essential for numerical linear algebra and are implemented in libraries like Intel MKL, OpenBLAS, and ATLAS. The following guide will lead users to call BLAS from  ``pychop``. 
 
