@@ -27,7 +27,7 @@ The fixed point representation for $x$ is given by
 
 .. _fixed_point_simulator:
 
-Fixed-Point Simulator Classes
+Fixed-point simulator classes
 =============================
 
 The `FixedPointSimulator` class enables the quantization of floating-point numbers into a fixed-point Qm.n format, where `m` is the number of integer bits (including the sign bit) and `n` is the number of fractional bits. This document describes the usage and provides examples for implementations in PyTorch, NumPy, and JAX, each supporting six rounding modes: `nearest`, `up`, `down`, `towards_zero`, `stochastic_equal`, and `stochastic_proportional`.
@@ -188,6 +188,7 @@ The following examples show the quantization of the input values `[1.7641, 0.309
       [1.8125, 0.3125, -0.1875, 2.4375, 0.3125]
 
   Randomly selects between floor and ceiling, with probability proportional to the fractional part (example with JAX PRNG key 42; varies otherwise).
+
 
 
 This guide provides a clear introduction to using the `FPRound` classes, with practical examples formatted as code blocks for clarity.
