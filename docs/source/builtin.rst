@@ -27,6 +27,7 @@ Quick import
    from pychop import LightChop
    from pychop.builtin import CPFloat, CPTensor, CPArray
 
+   pychop.backend('torch') # if using NumPy or JAX, switch to them correspondingly before the deployment
 
 Common set-up
 =============
