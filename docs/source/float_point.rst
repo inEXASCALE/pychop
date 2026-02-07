@@ -118,9 +118,6 @@ This guide offers a practical introduction to the `LightChop` classes, with code
 
 
 
-Overview
-
---------LightChop
 
 The `LightChop` converts floating-point values into a custom floating-point representation with:
 - **Exponent Bits**: Determines the range of representable values.
@@ -129,8 +126,6 @@ The `LightChop` converts floating-point values into a custom floating-point repr
 
 The quantization process decomposes the input into sign, exponent, and mantissa components, applies the selected rounding mode to the mantissa, and reconstructs the value, handling special cases like zeros, infinities, and NaNs.
 
-Usage
------
 
 Common parameters
 ~~~~~~~~~~~~~~~~~
