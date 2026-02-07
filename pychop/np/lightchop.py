@@ -1,7 +1,7 @@
 import numpy as np
 import dask.array as da
 
-class LightChop:
+class LightChop_:
     """
     A class to simulate different floating-point precisions and rounding modes
     for PyTorch tensors. This code implements a custom floating-point precision simulator

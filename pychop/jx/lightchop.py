@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax import jit, vmap
 from functools import partial
 
-class LightChop:
+class LightChop_:
     """
     A class to simulate different floating-point precisions and rounding modes
     for JAX arrays. This code implements a custom floating-point precision simulator

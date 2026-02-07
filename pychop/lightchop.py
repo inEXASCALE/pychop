@@ -41,22 +41,34 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
 
     verbose : int | bool, defaul=0
         Whether or not to print out the unit-roundoff.
+
+
+    Returns
+    -------
+    LightChop_ object that simulates the specified floating-point format and rounding mode.
+        The object has an attribute `u` representing the unit roundoff of the simulated floating-point
+        format, which is calculated as `2**(1 - t) / 2`, where `t` is the total number of
+        bits in the significand (including the hidden bit).        
     """
     
+    
+
     if os.environ['chop_backend'] == 'torch':
-        from .tch.lightchop import LightChop
+        from .tch.lightchop import LightChop_
     
     elif os.environ['chop_backend'] == 'jax':
-        from .jx.lightchop import LightChop
+        from .jx.lightchop import LightChop_
         
     else:
-        from .np.lightchop import LightChop
+        from .np.lightchop import LightChop_
 
-    obj = LightChop(exp_bits, sig_bits, rmode, subnormal, chunk_size, random_state)
+    obj = LightChop_(exp_bits, sig_bits, rmode, subnormal, chunk_size, random_state)
     t = sig_bits + 1
     obj.u = 2**(1 - t) / 2
     
     if verbose:
+        import numpy as np
+
         print("The floating point format is with unit-roundoff of {:e}".format(
             obj.u)+" (≈2^"+str(int(np.log2(obj.u)))+").")
     return obj
