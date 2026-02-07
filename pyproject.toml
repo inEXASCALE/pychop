@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=64.0", "wheel", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pychop"
+description = "Python code for simulating low precision floating-point arithmetic"
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.8"
+license = {text = "MIT License"}
+keywords = ["floating-point", "low-precision", "simulation", "numerical"]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "License :: OSI Approved :: MIT License",
+]
+
+authors = [
+    {name = "Erin Carson", email = "erinccarson@gmail.com"},
+    {name = "Xinye Chen", email = "xinyechenai@gmail.com"},
+]
+maintainers = [
+    {name = "Erin Carson", email = "erinccarson@gmail.com"},
+    {name = "Xinye Chen", email = "xinyechenai@gmail.com"},
+]
+
+urls = {Homepage = "https://github.com/nla-group/pychop"}
+
+dynamic = ["version", "dependencies"]

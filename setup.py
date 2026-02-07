@@ -1,85 +1,46 @@
-import setuptools
 import platform
-import logging
+import setuptools
+from setuptools.command.build_ext import build_ext
 
 
-def get_version(fname):
+def get_version(fname: str) -> str:
+    """Read the __version__ string from __init__.py."""
     with open(fname) as f:
         for line in f:
-            if line.startswith("__version__ = '"):
-                return line.split("'")[1]
-    raise RuntimeError('Error in parsing version string.')
-    
-PRJECT_NAME = "pychop"
-PACKAGE_NAME = "pychop"
-VERSION = get_version('pychop/__init__.py')
-SETREQUIRES=["numpy"]
-MAINTAINER="Erin Carson, Xinye Chen"
-EMAIL="xinyechenai@gmail.com"
-INREUIRES=["numpy>=1.17.2", "pandas", "dask[array]", "torch>=1.12", "jax>=0.4.8", "jaxlib>=0.4.7"]
+            if line.startswith("__version__ ="):
+                return line.split("'")[1].strip()
+    raise RuntimeError("Unable to find __version__ string.")
 
-AUTHORS="Erin Carson, Xinye Chen"
 
-with open("README.md", 'r') as f:
-    long_description = f.read()
+VERSION = get_version("pychop/__init__.py")
 
-ext_errors = (ModuleNotFoundError, IOError, SystemExit)
-logging.basicConfig()
-log = logging.getLogger(__file__)
-
+# Dynamically set numpy version requirement based on interpreter (CPython vs PyPy)
 if platform.python_implementation() == "PyPy":
-    NUMPY_MIN_VERSION = "1.19.2"
+    numpy_req = "numpy>=1.19.2"
 else:
-    NUMPY_MIN_VERSION = "1.17.2"
-   
+    numpy_req = "numpy>=1.17.2"
 
-from setuptools.command.build_ext import build_ext
-    
+install_requires = [
+    numpy_req,
+    "pandas",
+    "dask[array]",
+    "torch>=1.12",
+    "jax>=0.4.8",
+    "jaxlib>=0.4.7",
+]
+
 class CustomBuildExtCommand(build_ext):
-    """build_ext command for use when numpy headers are needed."""
-
+    """Custom build_ext command to add numpy headers when needed."""
     def run(self):
         import numpy
         self.include_dirs.append(numpy.get_include())
-        build_ext.run(self)
+        super().run()
 
-metadata = {"name":PRJECT_NAME,
-            'packages':["pychop", "pychop.np", "pychop.tch", "pychop.jx", "pychop.builtin"],
-            "version":VERSION,
-            "setup_requires":SETREQUIRES,
-            "install_requires":INREUIRES,
-            'cmdclass': {'build_ext': CustomBuildExtCommand},
-            "long_description":long_description,
-            "author":AUTHORS,
-            "maintainer":MAINTAINER,
-            "author_email":EMAIL,
-            "classifiers":[
-            "Intended Audience :: Science/Research",
-            "Intended Audience :: Developers",
-            "Programming Language :: Python",
-            "Topic :: Software Development",
-            "Topic :: Scientific/Engineering",
-            "Operating System :: Microsoft :: Windows",
-            "Operating System :: Unix",
-            "Programming Language :: Python :: 3"
-            ],
-            "maintainer_email":EMAIL,
-            "description":"Python code for simulating low precision floating-point arithmetic",
-            "long_description_content_type":'text/markdown',
-            "url":"https://github.com/nla-group/pychop.git",
-            "license":'MIT License'
-}
-            
 
-class InvalidVersion(ValueError):
-    """raise invalid version error"""
-
-    
 if __name__ == "__main__":
-    try:
-        setuptools.setup(
-            **metadata
-        )
-    except ext_errors as ext:
-        log.warning(ext)
-        log.warning("failure Installation.")
+    setuptools.setup(
+        version=VERSION,
+        install_requires=install_requires,  # Corresponds to dynamic dependencies in pyproject.toml
+        packages=setuptools.find_packages(),  # Automatically discover all packages and subpackages
+        cmdclass={"build_ext": CustomBuildExtCommand},  
+    )
