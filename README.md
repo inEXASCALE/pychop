@@ -123,11 +123,11 @@ from pychop import LightChop
 import numpy as np
 np.random.seed(0)
 
-arr = np.random.randn(5000, 5000) 
+X = np.random.randn(5000, 5000) 
 pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
  
 ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
-arr_q = ch(arr)
+X_q = ch(X)
 print(X_q[:10, 0])
 ```
 
@@ -139,7 +139,7 @@ If one is not seeking optimized performance and more emulation supports, one can
 from pychop import Chop
 
 ch = Chop('h') # Standard IEEE 754 half precision
-arr_q = ch(arr) # Rounding values
+X_q = ch(X) # Rounding values
 ```
 
 One can also customize the precision via:
@@ -149,13 +149,13 @@ pychop.backend('numpy', 1)
 ct1 = Customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
 
 ch = Chop(customs=ct1, rmode=3) # Round towards minus infinity 
-arr_q = ch(arr)
-print(arr_q[:10, 0])
+X_q = ch(X)
+print(X_q[:10, 0])
 
 ct2 = Customs(emax=15, t=11)
 ch = Chop(customs=ct2, rmode=3)
-arr_q = ch(arr)
-print(arr_q[:10, 0])
+X_q = ch(X)
+print(X_q[:10, 0])
 ```
 
 
@@ -229,7 +229,7 @@ pychop.backend('numpy')
 from pychop import Chopf
 
 ch = Chopf(ibits=4, fbits=4)
-arr_q = ch(arr)
+X_q = ch(X)
 ```
 
 
@@ -247,10 +247,10 @@ import numpy as np
 from pychop import Chopi 
 pychop.backend('numpy')
 
-arr = np.array([[0.1, -0.2], [0.3, 0.4]])
+X = np.array([[0.1, -0.2], [0.3, 0.4]])
 ch = Chopi(num_bits=8, symmetric=False)
-arr_q = ch.quantize(arr) # Convert to integers
-arr_dq = ch.dequantize(arr_q) # Convert back to floating points
+X_q = ch.quantize(X) # Convert to integers
+X_dq = ch.dequantize(X_q) # Convert back to floating points
 ```
 
 
@@ -267,8 +267,8 @@ To use ``Pychop`` in your MATLAB environment, similarly, simply load the Pychop 
 ```MATLAB
 pc = py.importlib.import_module('pychop');
 ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
-arr = rand(100, 100);
-arr_q = ch(arr);
+X = rand(100, 100);
+X_q = ch(X);
 ```
 
 Or more specifically, use
@@ -276,8 +276,8 @@ Or more specifically, use
 np = py.importlib.import_module('numpy');
 pc = py.importlib.import_module('pychop');
 ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
-arr = np.random.randn(int32(100), int32(100));
-arr_q = ch(arr);
+X = np.random.randn(int32(100), int32(100));
+X_q = ch(X);
 ```
 
 
