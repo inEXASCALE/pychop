@@ -80,7 +80,8 @@ class LightChop:
 
         # select backend
         backend = os.environ.get("chop_backend", "auto")
-        
+        self.verbose = verbose
+
         if backend != "auto":
             if backend == "torch":
                 from .tch.lightchop import LightChop_ as _LightChopImpl
@@ -101,9 +102,7 @@ class LightChop:
             # also attach to impl (optional but usually convenient)
             self._impl.u = self.u
 
-
-        if verbose:
-
+        if self.verbose:
             import numpy as np
             print(
                 "The floating point format is with unit-roundoff of {:e}".format(self.u)
@@ -114,7 +113,7 @@ class LightChop:
     def __call__(self, X):
         if os.environ['chop_backend'] == 'auto':
             # sanity check for supported array types
-            backend =  detect_array_type(X)  
+            backend =  detect_array_type(X, verbose=self.verbose)  
             self._impl = None 
 
             if backend == "torch":

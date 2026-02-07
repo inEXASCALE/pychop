@@ -37,7 +37,7 @@ if importlib.util.find_spec("jax") is not None:
         pass
 
 
-def detect_array_type(arr) -> str:
+def detect_array_type(arr, verbose=False) -> str:
     """
     Detect the backend type of an array-like object from the provided arguments.
 
@@ -51,6 +51,9 @@ def detect_array_type(arr) -> str:
     ----------
     X : object
         Array-like object.
+
+    verbose : bool, optional
+        If True, prints the type of each argument during detection (default: False).
 
     Returns
     -------
@@ -77,18 +80,28 @@ def detect_array_type(arr) -> str:
     """
     
     if isinstance(arr, (list, tuple)):
+        if verbose:
+            print("Detected type: list/tuple")
         return 'list'
     
     if has_pandas and isinstance(arr, (pd.DataFrame, pd.Series)):
+        if verbose:
+            print("Detected type: pandas DataFrame/Series")
         return 'numpy'
     
     if isinstance(arr, np.ndarray):
+        if verbose:
+            print("Detected type: numpy ndarray")
         return 'numpy'
     
     if has_torch and isinstance(arr, TorchTensor):
+        if verbose:
+            print("Detected type: torch Tensor")
         return 'torch'
     
     if has_jax and isinstance(arr, JaxArray):
+        if verbose:
+            print("Detected type: jax Array")
         return 'jax'
     
     return 'unknown'
