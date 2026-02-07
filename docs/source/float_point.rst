@@ -16,7 +16,7 @@ A floating point number systems can be represented by
 
 
 Chop: soft error simulator for floating point arithmetic
-=================================================================
+----------------------------------------------------------
 
 ``pychop`` built-in method ``chop`` supports the following precision:
 
@@ -100,7 +100,8 @@ Note that if emin is not set, then IEEE 754 assumption is used which means emin 
 
 
 LightChop: fast transparent precision emulation for floating point arithmetic
-=========================================================================================
+-------------------------------------------------------------------------------
+
 The `LightChop` class enables quantization of floating-point numbers into a custom floating-point format similar to IEEE 754, defined by a specified number of exponent and mantissa bits. This document outlines the usage and examples of this class across three frameworks: PyTorch, NumPy, and JAX. Each implementation supports six rounding modes: 
 
 .. code-block:: 
@@ -215,8 +216,6 @@ Quantize a JAX array using the quantization method, providing the array, an opti
     result = ch(values)
     print(result)
 
-Examples
---------
 
 The examples below demonstrate the quantization of the input values `[1.7641, 0.3097, -0.2021, 2.47, 0.33]` using a custom FP16-like format (5 exponent bits, 10 mantissa bits) across all rounding modes. Outputs are based on the PyTorch implementation and should be consistent across frameworks, with stochastic modes varying unless seeded (JAX uses PRNG key 42).
 
@@ -276,13 +275,11 @@ The examples below demonstrate the quantization of the input values `[1.7641, 0.
 
   Randomly chooses between floor and ceiling, with probability proportional to the fractional part (varies across runs).
 
-Notes
------
 
-- **Comparison to Native FP16**: The "nearest" mode closely matches PyTorch’s native FP16 quantization (e.g., `[1.7637, 0.3098, -0.2020, 2.4707, 0.3301]`), validating the implementation.
-- **Stochastic Modes**: Outputs for `stochastic_equal` and `stochastic_proportional` depend on random number generation, with JAX requiring a PRNG key for reproducibility, unlike PyTorch and NumPy’s internal randomness.
-- **Special Cases**: All versions handle zeros, infinities, and NaNs appropriately, preserving IEEE 754-like behavior.
-
-.
+.. note::
+    
+    - **Comparison to Native FP16**: The "nearest" mode closely matches PyTorch’s native FP16 quantization (e.g., `[1.7637, 0.3098, -0.2020, 2.4707, 0.3301]`), validating the implementation.
+    - **Stochastic Modes**: Outputs for `stochastic_equal` and `stochastic_proportional` depend on random number generation, with JAX requiring a PRNG key for reproducibility, unlike PyTorch and NumPy’s internal randomness.
+    - **Special Cases**: All versions handle zeros, infinities, and NaNs appropriately, preserving IEEE 754-like behavior.
 
 

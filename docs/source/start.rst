@@ -1,4 +1,4 @@
-Start
+Quick start
 =====================================================
 
 The main function of the ``pychop`` is the method ``chop``, which is loaded by 
