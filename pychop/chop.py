@@ -142,6 +142,11 @@ class Chop:
                 + " (≈2^" + str(int(np.log2(self.u))) + ")."
             )
 
+
+    def __call__(self, *args, **kwargs):
+        return self._impl(*args, **kwargs)
+
+
     def __getattr__(self, name):
         """
         Forward attribute access to backend implementation.
