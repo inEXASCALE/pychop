@@ -1,6 +1,6 @@
 .. _float_precision_simulator:
 
-Float precision simulator classes
+Float precision arithmetic
 =================================
 
 
@@ -277,7 +277,7 @@ The examples below demonstrate the quantization of the input values `[1.7641, 0.
 
 
 .. note::
-    
+
     - **Comparison to Native FP16**: The "nearest" mode closely matches PyTorch’s native FP16 quantization (e.g., `[1.7637, 0.3098, -0.2020, 2.4707, 0.3301]`), validating the implementation.
     - **Stochastic Modes**: Outputs for `stochastic_equal` and `stochastic_proportional` depend on random number generation, with JAX requiring a PRNG key for reproducibility, unlike PyTorch and NumPy’s internal randomness.
     - **Special Cases**: All versions handle zeros, infinities, and NaNs appropriately, preserving IEEE 754-like behavior.
