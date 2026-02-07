@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax import random
 
 
-class Chop(object):
+class Chop_(object):
     """
     Parameters
     ----------

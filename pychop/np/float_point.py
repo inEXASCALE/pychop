@@ -2,7 +2,7 @@ import numpy as np
 import gc
    
 
-class Chop(object):
+class Chop_(object):
     """
     Parameters
     ----------

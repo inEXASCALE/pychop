@@ -1,9 +1,10 @@
 import os
-import numpy as np
 
-def Chop(prec: str='h', subnormal: bool=None, rmode: int=1, flip: bool=False, explim: int=1, 
-         p: float=0.5, randfunc=None, customs=None, random_state: int=0, verbose: int=0):
+
+class Chop:
     """
+    Front-end wrapper class for backend-specific Chop_ implementations.
+
     Parameters
     ----------
     prec : str, default='h':
@@ -70,49 +71,83 @@ def Chop(prec: str='h', subnormal: bool=None, rmode: int=1, flip: bool=False, ex
         ``Chop`` instance.
 
     """
-    rmode_map = {
-        0: 0, "nearest_odd": 0,
-        1: 1, "nearest": 1,
-        2: 2, "plus_inf": 2,
-        3: 3, "minus_inf": 3,
-        4: 4, "toward_zero": 4,
-        5: 5, "stoc_prop": 5,
-        6: 6, "stoc_equal": 6,
-    }
 
-    try:
-        rmode = rmode_map[rmode]
-    except KeyError:
-        raise NotImplementedError("Invalid parameter for ``rmode``.")
-    
-    if customs is not None:
-        if customs.exp_bits is not None:
-            customs.emax = (1 << customs.exp_bits) - 1
+    def __init__(
+        self,
+        prec: str = "h",
+        subnormal: bool = None,
+        rmode: int | str = 1,
+        flip: bool = False,
+        explim: int = 1,
+        p: float = 0.5,
+        randfunc=None,
+        customs=None,
+        random_state: int = 0,
+        verbose: int = 0,
+    ):
+        # -------- rmode mapping --------
+        rmode_map = {
+            0: 0, "nearest_odd": 0,
+            1: 1, "nearest": 1,
+            2: 2, "plus_inf": 2,
+            3: 3, "minus_inf": 3,
+            4: 4, "toward_zero": 4,
+            5: 5, "stoc_prop": 5,
+            6: 6, "stoc_equal": 6,
+        }
 
-        if customs.sig_bits is not None:
-            customs.t = customs.sig_bits + 1
-    
-    if os.environ['chop_backend'] == 'torch':
-        from .tch.float_point import Chop
+        try:
+            rmode = rmode_map[rmode]
+        except KeyError:
+            raise NotImplementedError("Invalid parameter for ``rmode``.")
 
-        obj = Chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
-    
-    elif os.environ['chop_backend'] == 'jax':
-        from .jx.float_point import Chop
+        # -------- customs preprocessing --------
+        if customs is not None:
+            if getattr(customs, "exp_bits", None) is not None:
+                customs.emax = (1 << customs.exp_bits) - 1
 
-        obj = Chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
-    else:
-        from .np.float_point import Chop
+            if getattr(customs, "sig_bits", None) is not None:
+                customs.t = customs.sig_bits + 1
 
-        obj = Chop(prec, subnormal, rmode, flip, explim, p, randfunc, customs, random_state)
-    
-    obj.u = 2**(1 - obj.t) / 2
-    
-    if verbose:
-        print("The floating point format is with unit-roundoff of {:e}".format(
-            obj.u)+" (≈2^"+str(int(np.log2(obj.u)))+").")
-        
-    return obj
+        # -------- backend selection --------
+        backend = os.environ.get("chop_backend", "numpy")
+
+        if backend == "torch":
+            from .tch.float_point import Chop_ as _ChopImpl
+        elif backend == "jax":
+            from .jx.float_point import Chop_ as _ChopImpl
+        else:
+            from .np.float_point import Chop_ as _ChopImpl
+
+        # -------- real implementation --------
+        self._impl = _ChopImpl(
+            prec,
+            subnormal,
+            rmode,
+            flip,
+            explim,
+            p,
+            randfunc,
+            customs,
+            random_state,
+        )
+
+        # -------- unit roundoff --------
+        self.u = 2 ** (1 - self._impl.t) / 2
+        self._impl.u = self.u
+
+        if verbose:
+            import numpy as np
+            print(
+                "The floating point format is with unit-roundoff of {:e}".format(self.u)
+                + " (≈2^" + str(int(np.log2(self.u))) + ")."
+            )
+
+    def __getattr__(self, name):
+        """
+        Forward attribute access to backend implementation.
+        """
+        return getattr(self._impl, name)
 
 
 

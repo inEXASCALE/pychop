@@ -1,8 +1,8 @@
 import os
 
-def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True, 
-              chunk_size: int=800, random_state: int=42, verbose: int=0):
+class LightChop:
     """
+    Front-end wrapper class for backend-specific LightChop_ implementations.
 
     Parameters
     ----------
@@ -49,28 +49,57 @@ def LightChop(exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool=True
         The object has an attribute `u` representing the unit roundoff of the simulated floating-point
         format, which is calculated as `2**(1 - t) / 2`, where `t` is the total number of
         bits in the significand (including the hidden bit).        
+
+    
     """
-    
-    
 
-    if os.environ['chop_backend'] == 'torch':
-        from .tch.lightchop import LightChop_
-    
-    elif os.environ['chop_backend'] == 'jax':
-        from .jx.lightchop import LightChop_
-        
-    else:
-        from .np.lightchop import LightChop_
+    def __init__(
+        self,
+        exp_bits: int,
+        sig_bits: int,
+        rmode: int = 1,
+        subnormal: bool = True,
+        chunk_size: int = 800,
+        random_state: int = 42,
+        verbose: int = 0,
+    ):
+        # select backend
+        backend = os.environ.get("chop_backend", "numpy")
 
-    obj = LightChop_(exp_bits, sig_bits, rmode, subnormal, chunk_size, random_state)
-    t = sig_bits + 1
-    obj.u = 2**(1 - t) / 2
-    
-    if verbose:
-        import numpy as np
+        if backend == "torch":
+            from .tch.lightchop import LightChop_ as _LightChopImpl
+        elif backend == "jax":
+            from .jx.lightchop import LightChop_ as _LightChopImpl
+        else:
+            from .np.lightchop import LightChop_ as _LightChopImpl
 
-        print("The floating point format is with unit-roundoff of {:e}".format(
-            obj.u)+" (≈2^"+str(int(np.log2(obj.u)))+").")
-    return obj
+        # real implementation
+        self._impl = _LightChopImpl(
+            exp_bits,
+            sig_bits,
+            rmode,
+            subnormal,
+            chunk_size,
+            random_state,
+        )
 
+        # unit roundoff
+        t = sig_bits + 1
+        self.u = 2 ** (1 - t) / 2
 
+        # also attach to impl (optional but usually convenient)
+        self._impl.u = self.u
+
+        if verbose:
+
+            import numpy as np
+            print(
+                "The floating point format is with unit-roundoff of {:e}".format(self.u)
+                + " (≈2^" + str(int(np.log2(self.u))) + ")."
+            )
+
+    def __getattr__(self, name):
+        """
+        Forward attribute access to backend implementation.
+        """
+        return getattr(self._impl, name)

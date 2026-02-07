@@ -1,7 +1,7 @@
 import torch
 from .. import Options
 
-class Chop(object):
+class Chop_(object):
     """
     Parameters
     ----------
