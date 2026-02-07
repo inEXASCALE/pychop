@@ -1,6 +1,5 @@
 import os
 
-
 class Chop:
     """
     Front-end wrapper class for backend-specific Chop_ implementations.
@@ -76,7 +75,7 @@ class Chop:
         self,
         prec: str = "h",
         subnormal: bool = None,
-        rmode: int | str = 1,
+        rmode: int = 1,
         flip: bool = False,
         explim: int = 1,
         p: float = 0.5,
