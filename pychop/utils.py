@@ -39,22 +39,28 @@ if importlib.util.find_spec("jax") is not None:
 
 def detect_array_type(arr) -> str:
     """
-    Detect the backend type of an array-like object.
+    Detect the backend type of an array-like object from the provided arguments.
+
+    This function inspects all positional and keyword arguments in order,
+    and returns the backend type of the first detected array-like object.
+    It is designed for dispatch scenarios where the function is called as
+    detect_array_type(*args, **kwargs), but typically only one primary
+    array-like input is present.
 
     Parameters
     ----------
-    arr : object
-        Input array-like object to inspect.
+    X : object
+        Array-like object.
 
     Returns
     -------
     str
-        One of the following strings:
+        One of:
         - 'numpy'   : NumPy ndarray or Pandas DataFrame/Series
         - 'torch'   : PyTorch Tensor
         - 'jax'     : JAX Array
-        - 'list'    : Python list or tuple (potentially convertible to array)
-        - 'unknown' : Any other type
+        - 'list'    : Python list or tuple
+        - 'unknown' : No array-like object found or unrecognized type
 
     Examples
     --------
@@ -64,7 +70,12 @@ def detect_array_type(arr) -> str:
     'list'
     >>> detect_array_type(torch.tensor([1.0]))
     'torch'
+    >>> detect_array_type(np.zeros(3), x=1.5, flag=True)
+    'numpy'  # ignores non-array arguments
+    >>> detect_array_type(1, 2, 3)
+    'unknown'
     """
+    
     if isinstance(arr, (list, tuple)):
         return 'list'
     

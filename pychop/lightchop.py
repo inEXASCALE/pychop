@@ -1,4 +1,6 @@
 import os
+from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array
+
 
 class LightChop:
     """
@@ -63,32 +65,42 @@ class LightChop:
         random_state: int = 42,
         verbose: int = 0,
     ):
-        # select backend
-        backend = os.environ.get("chop_backend", "numpy")
-
-        if backend == "torch":
-            from .tch.lightchop import LightChop_ as _LightChopImpl
-        elif backend == "jax":
-            from .jx.lightchop import LightChop_ as _LightChopImpl
-        else:
-            from .np.lightchop import LightChop_ as _LightChopImpl
-
-        # real implementation
-        self._impl = _LightChopImpl(
-            exp_bits,
-            sig_bits,
-            rmode,
-            subnormal,
-            chunk_size,
-            random_state,
-        )
-
+    
         # unit roundoff
         t = sig_bits + 1
         self.u = 2 ** (1 - t) / 2
+        self._impl = None
 
-        # also attach to impl (optional but usually convenient)
-        self._impl.u = self.u
+        self.exp_bits = exp_bits
+        self.sig_bits = sig_bits
+        self.rmode = rmode
+        self.subnormal = subnormal
+        self.chunk_size = chunk_size
+        self.random_state = random_state
+
+        # select backend
+        backend = os.environ.get("chop_backend", "auto")
+        
+        if backend != "auto":
+            if backend == "torch":
+                from .tch.lightchop import LightChop_ as _LightChopImpl
+            elif backend == "jax":
+                from .jx.lightchop import LightChop_ as _LightChopImpl
+            elif backend == "numpy":
+                from .np.lightchop import LightChop_ as _LightChopImpl
+
+            self._impl = _LightChopImpl(
+                exp_bits,
+                sig_bits,
+                rmode,
+                subnormal,
+                chunk_size,
+                random_state,
+            )
+
+            # also attach to impl (optional but usually convenient)
+            self._impl.u = self.u
+
 
         if verbose:
 
@@ -99,12 +111,40 @@ class LightChop:
             )
 
 
-    def __call__(self, *args, **kwargs):
-        return self._impl(*args, **kwargs)
+    def __call__(self, X):
+        if os.environ['chop_backend'] == 'auto':
+            # sanity check for supported array types
+            backend =  detect_array_type(X)  
+            self._impl = None 
+
+            if backend == "torch":
+                X = to_torch_tensor(X)  
+                from .tch.lightchop import LightChop_ as _LightChopImpl
+            elif backend == "jax":
+                X = to_jax_array(X) 
+                from .jx.lightchop import LightChop_ as _LightChopImpl
+            else:
+                X = to_numpy_array(X)  
+                from .np.lightchop import LightChop_ as _LightChopImpl
+
+            self._impl = _LightChopImpl(
+                self.exp_bits,
+                self.sig_bits,
+                self.rmode,
+                self.subnormal,
+                self.chunk_size,
+                self.random_state,
+            )
+            
+        return self._impl(X)
 
 
     def __getattr__(self, name):
         """
         Forward attribute access to backend implementation.
         """
+        if self._impl is None:
+            print(f"""Warning: LightChop backend not yet determined."""
+                  f"""Call the LightChop instance with an array to determine the backend and initialize the implementation.""")
+
         return getattr(self._impl, name)

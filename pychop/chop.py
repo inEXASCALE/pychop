@@ -1,4 +1,5 @@
 import os
+from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array
 
 class Chop:
     """
@@ -108,32 +109,58 @@ class Chop:
             if getattr(customs, "sig_bits", None) is not None:
                 customs.t = customs.sig_bits + 1
 
-        # -------- backend selection --------
-        backend = os.environ.get("chop_backend", "numpy")
-
-        if backend == "torch":
-            from .tch.float_point import Chop_ as _ChopImpl
-        elif backend == "jax":
-            from .jx.float_point import Chop_ as _ChopImpl
-        else:
-            from .np.float_point import Chop_ as _ChopImpl
-
-        # -------- real implementation --------
-        self._impl = _ChopImpl(
-            prec,
-            subnormal,
-            rmode,
-            flip,
-            explim,
-            p,
-            randfunc,
-            customs,
-            random_state,
-        )
-
         # -------- unit roundoff --------
-        self.u = 2 ** (1 - self._impl.t) / 2
-        self._impl.u = self.u
+        if customs:
+            self.t, self.emax = customs.t, customs.emax
+        else:
+            prec_map = {
+                'q43': (4, 7), 'fp8-e4m3': (4, 7), 'q52': (3, 15), 'fp8-e5m2': (3, 15),
+                'h': (11, 15), 'half': (11, 15), 'fp16': (11, 15),
+                'b': (8, 127), 'bfloat16': (8, 127), 'bf16': (8, 127),
+                's': (24, 127), 'single': (24, 127), 'fp32': (24, 127),
+                'd': (53, 1023), 'double': (53, 1023), 'fp64': (53, 1023)
+            }
+            if prec not in prec_map:
+                raise ValueError('Invalid prec value')
+            self.t, self.emax = prec_map[prec]
+
+        self.u = 2 ** (1 - self.t) / 2
+        self._impl = None
+        self.prec = prec
+        self.rmode = rmode
+        self.subnormal = subnormal
+        self.flip = flip
+        self.explim = explim
+        self.p = p
+        self.randfunc = randfunc
+        self.customs = customs
+        self.random_state = random_state
+        
+
+        # -------- backend selection --------
+        backend = os.environ.get("chop_backend", "auto")
+
+        if backend != "auto":
+            if backend == "torch":
+                from .tch.float_point import Chop_ as _ChopImpl
+            elif backend == "jax":
+                from .jx.float_point import Chop_ as _ChopImpl
+            elif backend == "numpy":
+                from .np.float_point import Chop_ as _ChopImpl
+
+            self._impl = _ChopImpl(
+                prec,
+                subnormal,
+                rmode,
+                flip,
+                explim,
+                p,
+                randfunc,
+                customs,
+                random_state,
+            )
+
+            self._impl.u = self.u
 
         if verbose:
             import numpy as np
@@ -143,14 +170,45 @@ class Chop:
             )
 
 
-    def __call__(self, *args, **kwargs):
-        return self._impl(*args, **kwargs)
+    def __call__(self, X):
+        if os.environ['chop_backend'] == 'auto':
+             # sanity check for supported array types
+            backend =  detect_array_type(X) 
+            self._impl = None 
+
+            if backend == "torch":
+                X = to_torch_tensor(X)  
+                from .tch.float_point import Chop_ as _ChopImpl
+            elif backend == "jax":
+                X = to_jax_array(X)  
+                from .jx.float_point import Chop_ as _ChopImpl
+            else:
+                X = to_numpy_array(X)  
+                from .np.float_point import Chop_ as _ChopImpl
+
+            self._impl = _ChopImpl(
+                self.prec,
+                self.subnormal,
+                self.rmode,
+                self.flip,
+                self.explim,
+                self.p,
+                self.randfunc,
+                self.customs,
+                self.random_state,
+            )
+
+        return self._impl(X)
 
 
     def __getattr__(self, name):
         """
         Forward attribute access to backend implementation.
         """
+        if self._impl is None:
+            print(f"""Warning: LightChop backend not yet determined."""
+                  f"""Call the LightChop instance with an array to determine the backend and initialize the implementation.""")
+
         return getattr(self._impl, name)
 
 
