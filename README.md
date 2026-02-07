@@ -125,7 +125,8 @@ np.random.seed(0)
 
 X = np.random.randn(5000, 5000) 
 pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
-# One can also specify 'auto', the pychop will automatically detect the types, but speed will be degraded. 
+# One can also specify 'auto', the pychop will automatically detect the types,
+# but speed will be degraded. 
  
 ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
 X_q = ch(X)

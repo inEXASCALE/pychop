@@ -99,8 +99,7 @@ To give a shot, one may print information of various precision formats:
    :caption: Contents:
 
    start.rst
-   chop.rst
-   lightchop.rst
+   float_point.rst
    builtin.rst
    mathfunc.rst
    integer.rst
