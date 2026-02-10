@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# 设置风格
 sns.set(style="whitegrid", font_scale=1.2)
 os.makedirs("results", exist_ok=True)
 
@@ -15,7 +14,6 @@ metrics = ["time", "throughput"]
 metric_names = {"time": "Runtime (seconds)", "throughput": "Throughput (G elements/s)"}
 y_scales = {"time": "log", "throughput": "linear"}
 
-# 加载并画图
 for op in operations:
     for mode in rounding_modes:
         for metric in metrics:
