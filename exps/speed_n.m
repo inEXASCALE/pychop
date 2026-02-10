@@ -1,4 +1,9 @@
 % Script to test chop with half precision, multiple runs, and averaging
+% This script tests the runtime of the chop function with half precision (fp16) for 
+% different matrix sizes and rounding modes. It runs each configuration 11 times,
+% discards the first run, and averages the last 10 runs to get a more stable estimate of the runtime. 
+% The results are saved in .mat files and also exported to .csv files for easier analysis.
+
 clear all;
 clc;
 pc = py.importlib.import_module('pychop');
