@@ -29,10 +29,13 @@ class LightChop_:
         - 7 : Round to nearest value, ties to zero.
         - 8 : Round to nearest value, ties to away.
         - 9 : Round to odd.
+
     random_state : int, default=42
         Random seed for stochastic rounding.
+    
     subnormal : bool, default=True
         Whether to support subnormal numbers.
+    
     chunk_size : int, default=1000
         Chunk size for processing large arrays (not used in this implementation).
     """
@@ -100,9 +103,6 @@ class LightChop_:
         
         # Identify normal vs subnormal in the target format
         # Note: 'significand' coming in is in [1.0, 2.0) for normals (mostly)
-        
-        # We need to handle the specific target format logic
-        normal_mask = (exponent > 0) & (exponent < exp_max_val)
         
         # For our extracted components, subnormal handling in target:
         # If we allowed subnormals in decomposition, they are already scaled relative to min_exp.
