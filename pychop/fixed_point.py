@@ -36,7 +36,7 @@ class Chopf:
         self,
         ibits: int = 4,
         fbits: int = 4,
-        rmode: int | str = 1,
+        rmode: int = 1,
     ):
         self.ibits = ibits
         self.fbits = fbits
