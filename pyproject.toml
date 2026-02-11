@@ -27,12 +27,12 @@ classifiers = [
 ]
 
 authors = [
-    {name = "Erin Carson", email = "erinccarson@gmail.com"},
     {name = "Xinye Chen", email = "xinyechenai@gmail.com"},
+    {name = "Erin Carson", email = "erinccarson@gmail.com"}
 ]
 maintainers = [
     {name = "Erin Carson", email = "erinccarson@gmail.com"},
-    {name = "Xinye Chen", email = "xinyechenai@gmail.com"},
+    {name = "Xinye Chen", email = "xinyechenai@gmail.com"}
 ]
 
 urls = {Homepage = "https://github.com/nla-group/pychop"}

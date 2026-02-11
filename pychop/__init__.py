@@ -9,7 +9,7 @@ from .lightchop import LightChop
 
 
 
-__version__ = '0.4.0'  
+__version__ = '0.4.1'  
 
 import os
 os.environ['chop_backend'] = 'auto'
