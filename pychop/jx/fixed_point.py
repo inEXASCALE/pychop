@@ -3,7 +3,7 @@ import jax.random as random
 from typing import Tuple
 from jax import jit
 
-class FPRound:
+class FPRound_:
     def __init__(self, ibits: int, fbits: int, rmode: int=1):
         """
         Initialize fixed-point simulator.

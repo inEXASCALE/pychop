@@ -1,8 +1,7 @@
-import jax
 import jax.numpy as jnp
 import warnings
 
-class Chopi:
+class Chopi_:
     """
     Integer quantizer.
     
