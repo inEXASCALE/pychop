@@ -1,6 +1,6 @@
 import torch
 from typing import Tuple
-
+import torch.nn as nn
 
 class LightChop_:
     """
@@ -204,7 +204,7 @@ class LightChop_:
 
 
 
-class LightChopSTE:
+class LightChopSTE(nn.Module):
     """
     A PyTorch module for simulating low-precision floating-point quantization with Quantization-Aware Training (QAT) support.
     
@@ -413,8 +413,8 @@ class LightChopSTE:
         """
         Public interface: quantize the input tensor to the custom floating-point format.
         """
-        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-        return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask)
+        sign, biased_exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
+        return self._quantize_components(x, sign, biased_exponent, significand, zero_mask, inf_mask, nan_mask)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

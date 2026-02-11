@@ -3,7 +3,7 @@ import torch
 from .tch.fixed_point import FPRound
 from .tch.integer import Chopi
 import torch.nn as nn
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 import torch.nn.functional as F
 from .tch.lightchop import LightChopSTE
 
@@ -57,16 +57,15 @@ def post_quantization(model, chop, eval_mode=True, verbose=False):
 
 
 # ==================================================================
-
 class QuantizedLayer(torch.nn.Module):
     """Quantize each element of neural networks"""
     def __init__(self, 
                  exp_bits: int,
                  sig_bits: int,
-                 rmode: int = 1):
+                 rmode: int = 1, subnormal: bool = True):
         
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.quantizer.quantize(x)
@@ -165,171 +164,189 @@ class FQuantizedLayer(nn.Module):
 
 # Quantized Convolutional Layers
 class QuantizedConv1d(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, tuple], 
-                 exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0, 
-                 rmode: int = 1):
+    """
+    Quantized 1D convolution layer for QAT with custom low-precision floating-point format.
+    
+    Quantizes input activations, weights, and bias (if present).
+    """
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, Tuple[int]],
+                 exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0,
+                 rmode: int = 1, subnormal: bool = True, bias: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-
-        
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size,
+                              stride=stride, padding=padding, bias=bias)
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_weight = self.quantizer.quantize(self.conv.weight)
-        q_bias = self.quantizer.quantize(self.conv.bias)
-        q_input = self.quantizer.quantize(x)
+        q_input = self.quantizer(x)
+        q_weight = self.quantizer(self.conv.weight)
+        q_bias = self.quantizer(self.conv.bias) if self.conv.bias is not None else None
         return F.conv1d(q_input, q_weight, q_bias, self.conv.stride, self.conv.padding)
 
 
 class QuantizedConv2d(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int or tuple, 
-                 exp_bits: int, sig_bits: int, stride: int or tuple = 1, 
-                 padding: int or tuple = 0, rmode: int = 1):
+    """
+    Quantized 2D convolution layer for QAT with custom low-precision floating-point format.
+    
+    Quantizes input activations, weights, and bias.
+    """
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, Tuple[int, int]],
+                 exp_bits: int, sig_bits: int, stride: Union[int, Tuple[int, int]] = 1,
+                 padding: Union[int, Tuple[int, int]] = 0, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.weight = nn.Parameter(torch.randn(out_channels, in_channels, *([kernel_size] * 2 if isinstance(kernel_size, int) else kernel_size)))
-        self.bias = nn.Parameter(torch.randn(out_channels))
-        self.stride = stride if isinstance(stride, tuple) else (stride, stride)
-        self.padding = padding if isinstance(padding, tuple) else (padding, padding)
-        
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size,
+                              stride=stride, padding=padding, bias=True)
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_weight = self.quantizer.quantize(self.weight)
-        q_input = self.quantizer.quantize(x)
-        output = nn.functional.conv2d(q_input, q_weight, stride=self.stride, padding=self.padding)
-        q_bias = self.quantizer.quantize(self.bias)
-        return output + q_bias.view(1, -1, 1, 1)
+        q_input = self.quantizer(x)
+        q_weight = self.quantizer(self.conv.weight)
+        output = F.conv2d(q_input, q_weight, None, self.conv.stride, self.conv.padding)
+        if self.conv.bias is not None:
+            q_bias = self.quantizer(self.conv.bias)
+            output = output + q_bias.view(1, -1, 1, 1)
+        return output
 
 
 class QuantizedConv3d(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, tuple], 
-                 exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0, 
-                 rmode: int = 1):
+    """
+    Quantized 3D convolution layer for QAT with custom low-precision floating-point format.
+    
+    Quantizes input activations, weights, and bias (if present).
+    """
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, Tuple[int, int, int]],
+                 exp_bits: int, sig_bits: int, stride: int = 1, padding: int = 0,
+                 rmode: int = 1, subnormal: bool = True, bias: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size,
+                              stride=stride, padding=padding, bias=bias)
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_weight = self.quantizer.quantize(self.conv.weight)
-        q_bias = self.quantizer.quantize(self.conv.bias)
-        q_input = self.quantizer.quantize(x)
+        q_input = self.quantizer(x)
+        q_weight = self.quantizer(self.conv.weight)
+        q_bias = self.quantizer(self.conv.bias) if self.conv.bias is not None else None
         return F.conv3d(q_input, q_weight, q_bias, self.conv.stride, self.conv.padding)
 
-# Quantized Pooling Layers
+
+# Quantized Pooling Layers (only input activations are quantized)
 class QuantizedMaxPool1d(nn.Module):
-    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
-                 rmode: int = 1):
+    """Quantized MaxPool1d: quantizes input activations."""
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int,
+                 stride: Optional[int] = None, padding: int = 0, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.kernel_size = kernel_size
-        self.stride = stride if stride is not None else kernel_size
-        
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.pool = nn.MaxPool1d(kernel_size, stride=stride or kernel_size, padding=padding)
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_input = self.quantizer.quantize(x)
-        return F.max_pool1d(q_input, self.kernel_size, self.stride)
+        return self.pool(self.quantizer(x))
+
 
 class QuantizedMaxPool2d(nn.Module):
-    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
-                 rmode: int = 1):
+    """Quantized MaxPool2d: quantizes input activations."""
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int,
+                 stride: Optional[int] = None, padding: int = 0, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.kernel_size = kernel_size
-        self.stride = stride if stride is not None else kernel_size
-        
-        
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.pool = nn.MaxPool2d(kernel_size, stride=stride or kernel_size, padding=padding)
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_input = self.quantizer.quantize(x)
-        return F.max_pool2d(q_input, self.kernel_size, self.stride)
+        return self.pool(self.quantizer(x))
+
 
 class QuantizedMaxPool3d(nn.Module):
-    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
-                 rmode: int = 1):
+    """Quantized MaxPool3d: quantizes input activations."""
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int,
+                 stride: Optional[int] = None, padding: int = 0, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.kernel_size = kernel_size
-        self.stride = stride if stride is not None else kernel_size
-        
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.pool = nn.MaxPool3d(kernel_size, stride=stride or kernel_size, padding=padding)
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_input = self.quantizer.quantize(x)
-        return F.max_pool3d(q_input, self.kernel_size, self.stride)
+        return self.pool(self.quantizer(x))
 
-class QuantizedAvgPool(nn.Module):
-    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
-                 rmode: int = 1):
-        super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.kernel_size = kernel_size
-        self.stride = stride if stride is not None else kernel_size
-        
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_input = self.quantizer.quantize(x)
-        return F.avg_pool2d(q_input, self.kernel_size, self.stride)
 
 class QuantizedAvgPool1d(nn.Module):
-    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
-                 rmode: int = 1):
+    """Quantized AvgPool1d: quantizes input activations."""
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int,
+                 stride: Optional[int] = None, padding: int = 0, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.kernel_size = kernel_size
-        self.stride = stride if stride is not None else kernel_size
-        
-        
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.pool = nn.AvgPool1d(kernel_size, stride=stride or kernel_size, padding=padding)
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_input = self.quantizer.quantize(x)
-        return F.avg_pool1d(q_input, self.kernel_size, self.stride)
+        return self.pool(self.quantizer(x))
+
 
 class QuantizedAvgPool2d(nn.Module):
-    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int, stride: int = None, 
-                 rmode: int = 1):
+    """Quantized AvgPool2d: quantizes input activations."""
+    def __init__(self, kernel_size: int, exp_bits: int, sig_bits: int,
+                 stride: Optional[int] = None, padding: int = 0, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.kernel_size = kernel_size
-        self.stride = stride if stride is not None else kernel_size
-        
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.pool = nn.AvgPool2d(kernel_size, stride=stride or kernel_size, padding=padding)
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_input = self.quantizer.quantize(x)
-        return F.avg_pool2d(q_input, self.kernel_size, self.stride)
+        return self.pool(self.quantizer(x))
 
-# Quantized Attention
-class QuantizedAttention(nn.Module):
-    def __init__(self, hidden_size: int, exp_bits: int, sig_bits: int, 
-                 rmode: int = 1):
+
+class QuantizedLinear(nn.Module):
+    """
+    Quantized fully-connected layer for QAT.
+    
+    Quantizes input activations, weights, and bias.
+    """
+    def __init__(self, in_features: int, out_features: int, exp_bits: int, sig_bits: int,
+                 rmode: int = 1, subnormal: bool = True, bias: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.hidden_size = hidden_size
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.linear = nn.Linear(in_features, out_features, bias=bias)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer(x)
+        q_weight = self.quantizer(self.linear.weight)
+        output = F.linear(q_input, q_weight)
+        if self.linear.bias is not None:
+            q_bias = self.quantizer(self.linear.bias)
+            output = output + q_bias
+        return output
+
+
+class QuantizedAttention(nn.Module):
+    """
+    Quantized self-attention layer for QAT (single-head for simplicity).
+    
+    Quantizes Q/K/V projections, attention scores, and output.
+    """
+    def __init__(self, hidden_size: int, exp_bits: int, sig_bits: int,
+                 rmode: int = 1, subnormal: bool = True):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
         self.query = nn.Linear(hidden_size, hidden_size)
         self.key = nn.Linear(hidden_size, hidden_size)
         self.value = nn.Linear(hidden_size, hidden_size)
-        
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q = self.quantizer.quantize(self.query(x))
-        k = self.quantizer.quantize(self.key(x))
-        v = self.quantizer.quantize(self.value(x))
-        scores = self.quantizer.quantize(torch.matmul(q, k.transpose(-2, -1)) / (self.hidden_size ** 0.5))
-        attn = self.quantizer.quantize(F.softmax(scores, dim=-1))
-        return torch.matmul(attn, v)
-
     
-
-class QuantizedLinear(nn.Module):
-    def __init__(self, in_features: int, out_features: int, exp_bits: int, sig_bits: int, rmode: int = 1):
-        super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
-        self.weight = nn.Parameter(torch.randn(out_features, in_features))
-        self.bias = nn.Parameter(torch.randn(out_features))
-        
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_weight = self.weight # self.quantizer.quantize(self.weight)
-        q_input = self.quantizer.quantize(x)
-        output = torch.matmul(q_input, q_weight.t())
-        q_bias = self.bias # self.quantizer.quantize(self.bias)
-        return output + q_bias
-
+        q_input = self.quantizer(x)
+        k_input = self.quantizer(x)
+        v_input = self.quantizer(x)
+        
+        q = self.query(q_input)
+        k = self.key(k_input)
+        v = self.value(v_input)
+        
+        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.hidden_size ** 0.5)
+        scores = self.quantizer(scores)
+        attn = F.softmax(scores, dim=-1)
+        attn = self.quantizer(attn)
+        return torch.matmul(attn, v)
 
 
 class QuantizedRNN(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
-                 num_layers: int = 1, bias: bool = True, nonlinearity: str = 'tanh', rmode: int = 1):
+                 num_layers: int = 1, bias: bool = True, nonlinearity: str = 'tanh', rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -382,9 +399,9 @@ class QuantizedRNN(nn.Module):
 
 class QuantizedLSTM(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
-                 num_layers: int = 1, bias: bool = True, rmode: int = 1):
+                 num_layers: int = 1, bias: bool = True, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -444,9 +461,9 @@ class QuantizedLSTM(nn.Module):
 # Quantized Dropout
 class QuantizedDropout(nn.Module):
     def __init__(self, p: float, exp_bits: int, sig_bits: int, 
-                 rmode: int = 1):
+                 rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.dropout = nn.Dropout(p)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -456,9 +473,9 @@ class QuantizedDropout(nn.Module):
 
 class QuantizedReLU(nn.Module):
     """Quantized ReLU activation: applies quantization followed by ReLU."""
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.relu = nn.ReLU()
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -468,7 +485,7 @@ class QuantizedReLU(nn.Module):
 
 class QuantizedSigmoid(nn.Module):
     """Quantized Sigmoid activation: applies quantization followed by Sigmoid."""
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True):
         super().__init__()
         self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.sigmoid = nn.Sigmoid()
@@ -480,9 +497,9 @@ class QuantizedSigmoid(nn.Module):
 
 class QuantizedTanh(nn.Module):
     """Quantized Tanh activation: applies quantization followed by Tanh."""
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.tanh = nn.Tanh()
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -492,9 +509,9 @@ class QuantizedTanh(nn.Module):
 
 class QuantizedLeakyReLU(nn.Module):
     """Quantized LeakyReLU activation: applies quantization followed by LeakyReLU."""
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, negative_slope: float = 0.01):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, negative_slope: float = 0.01, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.leaky_relu = nn.LeakyReLU(negative_slope=negative_slope)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -504,7 +521,7 @@ class QuantizedLeakyReLU(nn.Module):
 
 class QuantizedSoftmax(nn.Module):
     """Quantized Softmax activation: applies quantization followed by Softmax."""
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, dim: int = -1):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, dim: int = -1, subnormal: bool = True):
         super().__init__()
         self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
         self.softmax = nn.Softmax(dim=dim)
@@ -515,9 +532,9 @@ class QuantizedSoftmax(nn.Module):
 
 class QuantizedGELU(nn.Module):
     """Quantized GELU activation: applies quantization followed by GELU."""
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.gelu = nn.GELU()
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -526,9 +543,9 @@ class QuantizedGELU(nn.Module):
 
 class QuantizedELU(nn.Module):
     """Quantized ELU activation: applies quantization followed by ELU."""
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, alpha: float = 1.0):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, alpha: float = 1.0, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.elu = nn.ELU(alpha=alpha)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -537,9 +554,9 @@ class QuantizedELU(nn.Module):
 
 class QuantizedPReLU(nn.Module):
     """Quantized PReLU activation: applies quantization followed by PReLU."""
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, num_parameters: int = 1, init: float = 0.25):
+    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, num_parameters: int = 1, init: float = 0.25, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.prelu = nn.PReLU(num_parameters=num_parameters, init=init)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -548,12 +565,12 @@ class QuantizedPReLU(nn.Module):
         
 
 class QuantizedBatchNorm1d(nn.Module):
-    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1, subnormal: bool = True):
         super().__init__()
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
 
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
@@ -606,9 +623,9 @@ class QuantizedBatchNorm1d(nn.Module):
 
 
 class QuantizedBatchNorm2d(nn.Module):
-    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
@@ -641,12 +658,12 @@ class QuantizedBatchNorm2d(nn.Module):
 
 
 class QuantizedBatchNorm3d(nn.Module):
-    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, exp_bits=5, sig_bits=10, rmode=1, subnormal: bool = True):
         super().__init__()
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
 
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
@@ -683,9 +700,9 @@ class QuantizedBatchNorm3d(nn.Module):
 
 class QuantizedLayerNorm(nn.Module):
     def __init__(self, normalized_shape: int or tuple, exp_bits: int, sig_bits: int, 
-                 eps: float = 1e-5, rmode: int = 1):
+                 eps: float = 1e-5, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.normalized_shape = normalized_shape if isinstance(normalized_shape, tuple) else (normalized_shape,)
         self.eps = eps
         self.weight = nn.Parameter(torch.ones(self.normalized_shape))
@@ -707,9 +724,9 @@ class QuantizedLayerNorm(nn.Module):
 
 class QuantizedGRU(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, exp_bits: int, sig_bits: int, 
-                 num_layers: int = 1, bias: bool = True, rmode: int = 1):
+                 num_layers: int = 1, bias: bool = True, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -762,9 +779,9 @@ class QuantizedGRU(nn.Module):
 
 class QuantizedMultiheadAttention(nn.Module):
     def __init__(self, embed_dim: int, num_heads: int, exp_bits: int, sig_bits: int, 
-                 dropout: float = 0.0, rmode: int = 1):
+                 dropout: float = 0.0, rmode: int = 1, subnormal: bool = True):
         super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode)
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal=subnormal)
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
