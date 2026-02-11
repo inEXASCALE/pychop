@@ -203,9 +203,33 @@ class LightChop_:
         return self.quantize(x)
 
 
+import torch
+from typing import Tuple
+
+
 class LightChopSTE:
+    """
+    A PyTorch module for simulating low-precision floating-point quantization with Quantization-Aware Training (QAT) support.
+    
+    This implements a FakeQuant-style operator that mimics custom floating-point formats (e.g., FP8 E4M3/E5M2)
+    by decomposing into sign/exponent/significand, applying configurable rounding, and supporting subnormals.
+    It uses the Straight-Through Estimator (STE) for gradients during training.
+    
+    Parameters
+    ----------
+    exp_bits (int): Number of exponent bits (e.g., 4 for E4M3, 5 for E5M2).
+    sig_bits (int): Number of significand (mantissa) bits, excluding the implicit leading 1.
+    rmode (int): Rounding mode:
+        1: Nearest (round ties to even is approximated)
+        2: Positive infinity (ceil for positive, floor for negative)
+        3: Negative infinity (floor for positive, ceil for negative)
+        4: Towards zero (truncation)
+        5: Stochastic proportional rounding
+        6: Stochastic equal-probability rounding
+        7-9: Additional specialized modes (ties handling, round-to-odd, etc.)
+    subnormal (bool): Whether to support subnormal (denormal) numbers.
+    """
     def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True):
-        """Initialize float precision simulator with custom format, rounding mode, and subnormal support."""
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
         self.rmode = rmode
@@ -219,11 +243,14 @@ class LightChopSTE:
         self.exp_min = 0
         self.exp_max = 2 ** exp_bits - 1
         self.inv_sig_steps = 1.0 / self.sig_steps
-        self.inv_min_exp_power = 1.0 / self.min_exp_power  # Precompute for subnormal case
+        self.inv_min_exp_power = 1.0 / self.min_exp_power
 
-    def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
+    def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor,
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Convert to custom float representation with proper IEEE 754 handling."""
+        """
+        Decompose input tensor into IEEE-754-like components: sign, biased exponent, significand.
+        Handles zero, inf, nan, and subnormal numbers.
+        """
         sign = torch.sign(x)
         abs_x = torch.abs(x)
         
@@ -231,34 +258,37 @@ class LightChopSTE:
         inf_mask = torch.isinf(x)
         nan_mask = torch.isnan(x)
         
-        # Avoid log2(0) or very small values
+        # Clamp to avoid log2(0) or extremely small values
         clamped_abs = abs_x.clamp(min=1e-38)
         exponent = torch.floor(torch.log2(clamped_abs))
         significand = clamped_abs * (2.0 ** -exponent)
         
         subnormal_mask = (exponent < self.min_exp)
         
-        # Unified handling with masks
-        significand = torch.where(subnormal_mask & self.subnormal, 
+        # Unified subnormal handling with masks (using logical not)
+        significand = torch.where(subnormal_mask & self.subnormal,
                                   abs_x * self.inv_min_exp_power, significand)
-        exponent = torch.where(subnormal_mask & self.subnormal, 
-                               torch.full_like(exponent, self.min_exp), exponent)
-        exponent = torch.where(subnormal_mask & (~self.subnormal), 
+        exponent = torch.where(subnormal_mask & self.subnormal,
+                               torch.full_like(exponent, float(self.min_exp)), exponent)
+        exponent = torch.where(subnormal_mask & (not self.subnormal),
                                torch.zeros_like(exponent), exponent)
-        significand = torch.where(subnormal_mask & (~self.subnormal), 
+        significand = torch.where(subnormal_mask & (not self.subnormal),
                                   torch.zeros_like(significand), significand)
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
-        
-    def _quantize_components(self, 
-                            x: torch.Tensor,
-                            sign: torch.Tensor, 
-                            exponent: torch.Tensor, 
-                            significand: torch.Tensor,
-                            zero_mask: torch.Tensor,
-                            inf_mask: torch.Tensor,
-                            nan_mask: torch.Tensor) -> torch.Tensor:
-        """Quantize components according to IEEE 754 rules with specified rounding mode."""
+
+    def _quantize_components(self,
+                             x: torch.Tensor,
+                             sign: torch.Tensor,
+                             exponent: torch.Tensor,
+                             significand: torch.Tensor,
+                             zero_mask: torch.Tensor,
+                             inf_mask: torch.Tensor,
+                             nan_mask: torch.Tensor) -> torch.Tensor:
+        """
+        Quantize the decomposed components according to the specified rounding mode.
+        Reconstructs the quantized floating-point value and applies STE.
+        """
         exponent = torch.clamp(exponent, self.exp_min, self.exp_max)
         
         sig_steps = self.sig_steps
@@ -269,21 +299,21 @@ class LightChopSTE:
         
         sig_normal = significand - 1.0
         sig_scaled = sig_normal * sig_steps
-        sub_scaled = significand * sig_steps  # Always compute, safe
+        sub_scaled = significand * sig_steps  # Always compute for safety
         
-        # Base rounding (default to nearest for normal)
-        if self.rmode == 1:  # Nearest (round)
+        # Rounding modes
+        if self.rmode == 1:  # Nearest
             sig_q = torch.round(sig_scaled)
             sig_q = torch.where(subnormal_mask, torch.round(sub_scaled), sig_q)
         
         elif self.rmode == 2:  # Plus infinity
             sig_q = torch.where(sign > 0, torch.ceil(sig_scaled), torch.floor(sig_scaled))
-            sig_q = torch.where(subnormal_mask, 
+            sig_q = torch.where(subnormal_mask,
                                 torch.where(sign > 0, torch.ceil(sub_scaled), torch.floor(sub_scaled)), sig_q)
         
         elif self.rmode == 3:  # Minus infinity
             sig_q = torch.where(sign > 0, torch.floor(sig_scaled), torch.ceil(sig_scaled))
-            sig_q = torch.where(subnormal_mask, 
+            sig_q = torch.where(subnormal_mask,
                                 torch.where(sign > 0, torch.floor(sub_scaled), torch.ceil(sub_scaled)), sig_q)
         
         elif self.rmode == 4:  # Towards zero
@@ -297,8 +327,8 @@ class LightChopSTE:
             sig_q = torch.where(prob < fraction, floor_val + 1, floor_val)
             sub_floor = torch.floor(sub_scaled)
             sub_fraction = sub_scaled - sub_floor
-            prob_sub = torch.rand_like(sub_fraction)  # New rand for subnormal
-            sig_q = torch.where(subnormal_mask, 
+            prob_sub = torch.rand_like(sub_fraction)
+            sig_q = torch.where(subnormal_mask,
                                 torch.where(prob_sub < sub_fraction, sub_floor + 1, sub_floor), sig_q)
         
         elif self.rmode == 6:  # Stochastic equal
@@ -307,32 +337,65 @@ class LightChopSTE:
             sig_q = torch.where(prob < 0.5, floor_val + 1, floor_val)
             sub_floor = torch.floor(sub_scaled)
             prob_sub = torch.rand_like(sub_floor)
-            sig_q = torch.where(subnormal_mask, 
+            sig_q = torch.where(subnormal_mask,
                                 torch.where(prob_sub < 0.5, sub_floor + 1, sub_floor), sig_q)
+        
+        elif self.rmode == 7:  # Nearest, ties to zero (custom approximation)
+            floor_val = torch.floor(sig_scaled)
+            is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
+            sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val, floor_val + 1),
+                                torch.round(sig_scaled))
+            sub_floor = torch.floor(sub_scaled)
+            sub_is_half = torch.abs(sub_scaled - sub_floor - 0.5) < 1e-6
+            sig_q = torch.where(subnormal_mask,
+                                torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
+                                            torch.round(sub_scaled)), sig_q)
+        
+        elif self.rmode == 8:  # Nearest, ties away
+            floor_val = torch.floor(sig_scaled)
+            is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
+            sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val + 1, floor_val),
+                                torch.round(sig_scaled))
+            sub_floor = torch.floor(sub_scaled)
+            sub_is_half = torch.abs(sub_scaled - sub_floor - 0.5) < 1e-6
+            sig_q = torch.where(subnormal_mask,
+                                torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
+                                            torch.round(sub_scaled)), sig_q)
+        
+        elif self.rmode == 9:  # Round-to-Odd
+            rounded = torch.round(sig_scaled)
+            sig_q = torch.where(rounded % 2 == 0,
+                                rounded + torch.where(sig_scaled >= rounded, 1, -1), rounded)
+            sub_rounded = torch.round(sub_scaled)
+            sig_q = torch.where(subnormal_mask,
+                                torch.where(sub_rounded % 2 == 0,
+                                            sub_rounded + torch.where(sub_scaled >= sub_rounded, 1, -1),
+                                            sub_rounded), sig_q)
         
         else:
             raise ValueError(f"Unsupported rounding mode: {self.rmode}")
         
         sig_q = sig_q * inv_sig_steps
         
-        # Reconstruct
+        # Reconstruct floating-point value
         normal_result = sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias))
         subnormal_result = sign * sig_q * self.min_exp_power
         
         result = torch.where(normal_mask, normal_result,
                             torch.where(subnormal_mask, subnormal_result,
-                                        torch.where(inf_mask, x,  # Preserve original inf sign
-                                                    torch.where(nan_mask, x,  # Preserve NaN
+                                        torch.where(inf_mask, x,      # Preserve original inf
+                                                    torch.where(nan_mask, x,  # Preserve original nan
                                                                 torch.zeros_like(x)))))
         
-        # STE: straight-through estimator
+        # Straight-Through Estimator (STE)
         if x.requires_grad:
             result = x + (result - x).detach()
             
         return result
 
     def quantize(self, x: torch.Tensor) -> torch.Tensor:
-        """Quantize tensor to specified precision using the initialized rounding mode."""
+        """
+        Public interface: quantize the input tensor to the custom floating-point format.
+        """
         sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
         return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask)
-
