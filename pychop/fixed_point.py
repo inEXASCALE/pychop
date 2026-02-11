@@ -14,15 +14,15 @@ class Chopf:
     fbits : int, default=4
         Bitwidth of the fractional part.
 
-    rmode : int | str, default=1
+    rmode : int, default=1
         Rounding mode. Supported options:
-            - 0 or "nearest_odd": Round to nearest, ties to odd.
-            - 1 or "nearest": Round to nearest, ties to even (IEEE 754 default).
-            - 2 or "plus_inf": Round towards +∞ (round up).
-            - 3 or "minus_inf": Round towards -∞ (round down).
-            - 4 or "toward_zero": Truncate toward zero.
-            - 5 or "stoc_prop": Stochastic rounding proportional to fractional part.
-            - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+            - 0: Round to nearest, ties to odd.
+            - 1: Round to nearest, ties to even (IEEE 754 default).
+            - 2: Round towards +∞ (round up).
+            - 3: Round towards -∞ (round down).
+            - 4: Truncate toward zero.
+            - 5: Stochastic rounding proportional to fractional part.
+            - 6: Stochastic rounding with 50% probability.
 
     Returns
     -------
