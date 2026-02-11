@@ -55,6 +55,9 @@ def post_quantization(model, chop, eval_mode=True, verbose=False):
 
 
 
+
+# ==================================================================
+
 class QuantizedLayer(torch.nn.Module):
     """Quantize each element of neural networks"""
     def __init__(self, 
