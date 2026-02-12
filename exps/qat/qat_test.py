@@ -4,6 +4,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
+import numpy as np
 class Cutout(object):
     def __init__(self, n_holes, length):
         self.n_holes = n_holes
@@ -93,10 +94,15 @@ def load_train_test(dataset_name):
     testloader = DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
     return trainloader, testloader, num_classes, input_channels
 
-def train_qat(model, trainloader, testloader, epochs=10, lr=1e-4):
+def train_qat(model, trainloader, testloader, epochs=20, lr=1e-3):
     model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+    
+    # 改用 AdamW，更適合微調 + 量化訓練
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    # 或保持 SGD 但 lr 加大
+    # optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
     best_acc = 0.0
@@ -118,9 +124,8 @@ def train_qat(model, trainloader, testloader, epochs=10, lr=1e-4):
             correct += pred.eq(labels).sum().item()
 
         acc = 100. * correct / total
-        print(f"Epoch {epoch+1}/{epochs} - Loss: {running_loss/len(trainloader):.4f} - Train Acc: {acc:.2f}%")
+        print(f"Epoch {epoch+1:2d}/{epochs} | Loss: {running_loss/len(trainloader):.4f} | Train Acc: {acc:.2f}%")
 
-        # 测试准确率
         model.eval()
         correct, total = 0, 0
         with torch.no_grad():
@@ -131,57 +136,60 @@ def train_qat(model, trainloader, testloader, epochs=10, lr=1e-4):
                 total += labels.size(0)
                 correct += pred.eq(labels).sum().item()
         test_acc = 100. * correct / total
-        print(f"Test Acc: {test_acc:.2f}%")
+        print(f"          | Test Acc: {test_acc:.2f}%")
+
         if test_acc > best_acc:
             best_acc = test_acc
             torch.save(model.state_dict(), "temp_best_qat.pth")
+            print(f"          └─ Saved best model (Test Acc: {best_acc:.2f}%)")
+
         scheduler.step()
 
     model.load_state_dict(torch.load("temp_best_qat.pth"))
-    print(f"Best Test Acc: {best_acc:.2f}%")
+    print(f"Final Best Test Acc: {best_acc:.2f}%")
+    return best_acc
 
 
+# ==================== 主訓練循環 ====================
 float_type = {
     "q43": (4, 3),
     "q52": (5, 2),
-    "custom(5, 5)": (5, 5),
-    "custom(5, 7)": (5, 7),
-    "custom(8, 4)": (8, 4),
     "half": (5, 10),
     "bfloat16": (8, 7),
-    "tf32": (8, 10),
     "fp32": (8, 23),
 }
-rounding_mode = [1, 2, 3, 4, 5, 6]
 
-datasets = ["MNIST", "FashionMNIST", "Caltech101", "OxfordIIITPet"]
+rounding_mode = [1]  # 先只跑 nearest rounding 測試 baseline
+
+datasets = ["MNIST", "FashionMNIST"]  # 先只跑這兩個
 
 for dataset in datasets:
-    print(f"\n=== Training QAT for {dataset} ===")
+    print(f"\n{'='*50}")
+    print(f"Training QAT for {dataset} with MobileNetV3-Small")
+    print(f"{'='*50}\n")
+    
     trainloader, testloader, num_classes, input_channels = load_train_test(dataset)
 
-    model = ResNet(input_channels, num_classes).to(device)
+    model = MobileNetV3Small(input_channels, num_classes).to(device)
 
-    model_file = f"{dataset}_best_model.pth" if dataset == "Caltech101" else f"{dataset}_final_model.pth"
-    try:
-        model.load_state_dict(torch.load(model_file, map_location=device))
-        print(f"Loaded full-precision pretrained {model_file}")
-    except FileNotFoundError:
-        print(f"No full-precision model found, starting from ImageNet weights")
+    # 先跑一次 fp32 baseline（不量化）
+    print(">>> Running FP32 Baseline (no quantization)")
+    baseline_model = MobileNetV3Small(input_channels, num_classes).to(device)
+    train_qat(baseline_model, trainloader, testloader, epochs=20, lr=1e-3)
+    print(">>> FP32 Baseline finished\n")
 
     for key in float_type:
         for rd in rounding_mode:
-            bits_alloc = float_type[key]
-            chop = LightChop(exp_bits=bits_alloc[0], sig_bits=bits_alloc[1], rmode=rd)
+            bits = float_type[key]
+            chop = LightChop(exp_bits=bits[0], sig_bits=bits[1], rmode=rd)
 
-            # 重要：替换为 QAT 模块
-            replace_for_qat(model, chop, quant_act=True)
+            # 重要：只量化權重
+            replace_for_qat(model, chop, quant_act=False)
 
-            print(f"Training {dataset} {key} rounding{rd}")
-            # 根据数据集调整 epoch 数（小数据集多训一些）
-            epochs = 15 if dataset in ["MNIST", "FashionMNIST"] else 8
-            train_qat(model, trainloader, testloader, epochs=epochs, lr=1e-4)
+            print(f"Training {dataset} | {key} | rounding {rd}")
+            epochs = 25 if dataset in ["MNIST", "FashionMNIST"] else 12
+            train_qat(model, trainloader, testloader, epochs=epochs, lr=1e-3)
 
-            save_path = f"qat_models/{dataset}_{key}_{rd}_qat.pth"
+            save_path = f"qat_models/{dataset}_{key}_{rd}_mobilenetv3_qat.pth"
             torch.save(model.state_dict(), save_path)
-            print(f"Saved QAT model to {save_path}\n")
+            print(f"Saved: {save_path}\n")
