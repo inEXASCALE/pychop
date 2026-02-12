@@ -1,7 +1,7 @@
 import torch
 from typing import Tuple
 
-class FPRound:
+class FPRound_:
     def __init__(self, ibits: int=4, fbits: int=4, rmode: int=1):
         """
         Initialize fixed-point simulator.

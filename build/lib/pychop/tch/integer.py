@@ -2,7 +2,7 @@ import torch
 import warnings
 import torch.nn as nn
 
-class Chopi(nn.Module):
+class Chopi_(nn.Module):
     """
     Integer quantizer with Straight-Through Estimator (STE) for training.
     
@@ -22,7 +22,7 @@ class Chopi(nn.Module):
     """
     
     def __init__(self, bits=8, symmetric=False, per_channel=False, axis=0, verbose=False):
-        super(Chopi, self).__init__()
+        super(Chopi_, self).__init__()
         self.bits = bits
         self.symmetric = symmetric
         self.per_channel = per_channel

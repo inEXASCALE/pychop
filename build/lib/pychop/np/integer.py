@@ -1,7 +1,7 @@
 import numpy as np
 import warnings
 
-class Chopi:
+class Chopi_:
     def __init__(self, bits=8, symmetric=False, per_channel=False, axis=0):
         self.bits = bits
         self.symmetric = symmetric

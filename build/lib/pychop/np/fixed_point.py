@@ -2,7 +2,7 @@ import numpy as np
 from typing import Tuple
 
 
-class FPRound:
+class FPRound_:
     def __init__(self, ibits: int, fbits: int, rmode: int=1):
         """
         Initialize fixed-point simulator.

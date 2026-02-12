@@ -1,7 +1,7 @@
 import torch
 # from .lightchop import LightChop
-from .tch.fixed_point import FPRound
-from .tch.integer import Chopi
+from .tch.fixed_point import FPRound_
+from .tch.integer import Chopi_
 import torch.nn as nn
 from typing import Tuple, Union, Optional
 import torch.nn.functional as F
@@ -81,10 +81,10 @@ class IntQuantizedLayer(torch.nn.Module):
 
     def __init__(self, num_bits=8, symmetric=True, per_channel=False, channel_dim=0):
         super(IntQuantizedLayer, self).__init__()
-        self.chopi = Chopi(num_bits=num_bits, symmetric=symmetric, per_channel=per_channel, channel_dim=channel_dim)
+        self.Chopi_ = Chopi_(num_bits=num_bits, symmetric=symmetric, per_channel=per_channel, channel_dim=channel_dim)
         
     def forward(self, x):
-        return self.chopi.quantize(x).to(dtype=torch.float32)
+        return self.Chopi_.quantize(x).to(dtype=torch.float32)
         
 
 class FQuantizedLayer(nn.Module):
@@ -130,7 +130,7 @@ class FQuantizedLayer(nn.Module):
         super(FQuantizedLayer, self).__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
-        self.quantizer = FPRound(ibits, fbits)
+        self.quantizer = FPRound_(ibits, fbits)
         self.rmode = rmode
 
         # Initialize weights and bias as floating-point parameters
@@ -190,13 +190,13 @@ class QuantizedConv2d(nn.Module):
     
     Quantizes input activations, weights, and bias.
     """
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, Tuple[int, int]],
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, Tuple[int, int]], bias: bool,
                  exp_bits: int, sig_bits: int, stride: Union[int, Tuple[int, int]] = 1,
                  padding: Union[int, Tuple[int, int]] = 0, rmode: int = 1, subnormal: bool = True):
         super().__init__()
         self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size,
-                              stride=stride, padding=padding, bias=True)
+                              stride=stride, padding=padding, bias=bias)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         q_input = self.quantizer(x)
@@ -310,36 +310,6 @@ class QuantizedLinear(nn.Module):
             q_bias = self.quantizer(self.linear.bias)
             output = output + q_bias
         return output
-
-
-class QuantizedAttention(nn.Module):
-    """
-    Quantized self-attention layer for QAT (single-head for simplicity).
-    
-    Quantizes Q/K/V projections, attention scores, and output.
-    """
-    def __init__(self, hidden_size: int, exp_bits: int, sig_bits: int,
-                 rmode: int = 1, subnormal: bool = True):
-        super().__init__()
-        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
-        self.query = nn.Linear(hidden_size, hidden_size)
-        self.key = nn.Linear(hidden_size, hidden_size)
-        self.value = nn.Linear(hidden_size, hidden_size)
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q_input = self.quantizer(x)
-        k_input = self.quantizer(x)
-        v_input = self.quantizer(x)
-        
-        q = self.query(q_input)
-        k = self.key(k_input)
-        v = self.value(v_input)
-        
-        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.hidden_size ** 0.5)
-        scores = self.quantizer(scores)
-        attn = F.softmax(scores, dim=-1)
-        attn = self.quantizer(attn)
-        return torch.matmul(attn, v)
 
 
 class QuantizedRNN(nn.Module):
@@ -777,6 +747,40 @@ class QuantizedGRU(nn.Module):
         output = torch.cat(outputs, dim=1)
         return output, h
 
+
+
+
+class QuantizedAttention(nn.Module):
+    """
+    Quantized self-attention layer for QAT (single-head for simplicity).
+    
+    Quantizes Q/K/V projections, attention scores, and output.
+    """
+    def __init__(self, hidden_size: int, exp_bits: int, sig_bits: int,
+                 rmode: int = 1, subnormal: bool = True):
+        super().__init__()
+        self.quantizer = LightChopSTE(exp_bits, sig_bits, rmode, subnormal)
+        self.query = nn.Linear(hidden_size, hidden_size)
+        self.key = nn.Linear(hidden_size, hidden_size)
+        self.value = nn.Linear(hidden_size, hidden_size)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        q_input = self.quantizer(x)
+        k_input = self.quantizer(x)
+        v_input = self.quantizer(x)
+        
+        q = self.query(q_input)
+        k = self.key(k_input)
+        v = self.value(v_input)
+        
+        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.hidden_size ** 0.5)
+        scores = self.quantizer(scores)
+        attn = F.softmax(scores, dim=-1)
+        attn = self.quantizer(attn)
+        return torch.matmul(attn, v)
+
+
+
 class QuantizedMultiheadAttention(nn.Module):
     def __init__(self, embed_dim: int, num_heads: int, exp_bits: int, sig_bits: int, 
                  dropout: float = 0.0, rmode: int = 1, subnormal: bool = True):
@@ -823,7 +827,15 @@ class QuantizedMultiheadAttention(nn.Module):
 
 
 
+class QuantizedAdaptiveAvgPool2d(nn.Module):
+    def __init__(self, output_size=(1, 1),
+                 act_exp_bits=5, act_sig_bits=2, act_rmode=5, subnormal=True):
+        super().__init__()
+        self.act_quant = LightChopSTE(act_exp_bits, act_sig_bits, act_rmode, subnormal)
+        self.pool = nn.AdaptiveAvgPool2d(output_size)
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.pool(self.act_quant(x))
 
 
 # ===================================================================
@@ -835,9 +847,9 @@ class IntQuantizedLinear(nn.Module):
     def __init__(self, in_features, out_features, num_bits=8):
         super(IntQuantizedLinear, self).__init__()
         self.linear = nn.Linear(in_features, out_features)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         w = self.quantizer_w(self.linear.weight, training=self.training)
@@ -851,9 +863,9 @@ class IntQuantizedConv1d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv1d, self).__init__()
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
@@ -867,9 +879,9 @@ class IntQuantizedConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv2d, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
@@ -883,9 +895,9 @@ class IntQuantizedConv3d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, num_bits=8):
         super(IntQuantizedConv3d, self).__init__()
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_w = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         w = self.quantizer_w(self.conv.weight, training=self.training)
@@ -899,12 +911,12 @@ class IntQuantizedLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, batch_first=False, num_bits=8):
         super(IntQuantizedLSTM, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=batch_first)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_h = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_c = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_w_hh = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_h = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_c = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_w_ih = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_w_hh = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
@@ -931,11 +943,11 @@ class IntQuantizedGRU(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, batch_first=False, num_bits=8):
         super(IntQuantizedGRU, self).__init__()
         self.gru = nn.GRU(input_size, hidden_size, num_layers=num_layers, batch_first=batch_first)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_h = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_w_ih = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_w_hh = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_h = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_w_ih = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_w_hh = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
@@ -958,11 +970,11 @@ class IntQuantizedAttention(nn.Module):
     def __init__(self, embed_dim, num_heads, num_bits=8):
         super(IntQuantizedAttention, self).__init__()
         self.attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
-        self.quantizer_q = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_k = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_v = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_w = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_q = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_k = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_v = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_w = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, query, key, value):
         q = self.quantizer_q(query, training=self.training)
@@ -984,7 +996,7 @@ class IntQuantizedBatchNorm1d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer = Chopi_(num_bits=num_bits, symmetric=True)
 
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
@@ -1045,8 +1057,8 @@ class IntQuantizedBatchNorm2d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        # Initialize the quantizer (assuming Chopi is your quantizer class)
-        self.quantizer = Chopi(num_bits=num_bits, symmetric=True)
+        # Initialize the quantizer (assuming Chopi_ is your quantizer class)
+        self.quantizer = Chopi_(num_bits=num_bits, symmetric=True)
 
         # Learnable parameters
         self.weight = nn.Parameter(torch.ones(num_features))
@@ -1098,7 +1110,7 @@ class IntQuantizedBatchNorm3d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer = Chopi_(num_bits=num_bits, symmetric=True)
 
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
@@ -1141,8 +1153,8 @@ class IntQuantizedReLU(nn.Module):
     def __init__(self, num_bits=8):
         super(IntQuantizedReLU, self).__init__()
         self.relu = nn.ReLU()
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -1154,8 +1166,8 @@ class IntQuantizedMaxPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, num_bits=8):
         super(IntQuantizedMaxPool2d, self).__init__()
         self.pool = nn.MaxPool2d(kernel_size, stride=stride, padding=padding)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -1167,8 +1179,8 @@ class IntQuantizedAvgPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, num_bits=8):
         super(IntQuantizedAvgPool2d, self).__init__()
         self.pool = nn.AvgPool2d(kernel_size, stride=stride, padding=padding)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -1180,8 +1192,8 @@ class IntQuantizedDropout(nn.Module):
     def __init__(self, p=0.5, num_bits=8):
         super(IntQuantizedDropout, self).__init__()
         self.dropout = nn.Dropout(p=p)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -1193,8 +1205,8 @@ class IntQuantizedFlatten(nn.Module):
     def __init__(self, start_dim=1, end_dim=-1, num_bits=8):
         super(IntQuantizedFlatten, self).__init__()
         self.flatten = nn.Flatten(start_dim=start_dim, end_dim=end_dim)
-        self.quantizer_x = Chopi(num_bits=num_bits, symmetric=True)
-        self.quantizer_out = Chopi(num_bits=num_bits, symmetric=True)
+        self.quantizer_x = Chopi_(num_bits=num_bits, symmetric=True)
+        self.quantizer_out = Chopi_(num_bits=num_bits, symmetric=True)
 
     def forward(self, x):
         x = self.quantizer_x(x, training=self.training)
@@ -1215,7 +1227,7 @@ class IntQuantizedFlatten(nn.Module):
 class FPQuantizedLinear(nn.Module):
     def __init__(self, in_features, out_features, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.linear = nn.Linear(in_features, out_features)
         self.initialize_weights()
 
@@ -1234,7 +1246,7 @@ class FPQuantizedLinear(nn.Module):
 class FPQuantizedLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=batch_first)
         self.initialize_weights()
 
@@ -1261,7 +1273,7 @@ class FPQuantizedLSTM(nn.Module):
 class FPQuantizedAttention(nn.Module):
     def __init__(self, embed_dim, num_heads, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.attn = nn.MultiheadAttention(embed_dim, num_heads)
         self.initialize_weights()
 
@@ -1284,7 +1296,7 @@ class FPQuantizedAttention(nn.Module):
 class FPQuantizedGRU(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=batch_first)
         self.initialize_weights()
 
@@ -1308,7 +1320,7 @@ class FPQuantizedGRU(nn.Module):
 class FPQuantizedMaxPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.pool = nn.MaxPool2d(kernel_size, stride, padding)
 
     def forward(self, x):
@@ -1319,7 +1331,7 @@ class FPQuantizedMaxPool2d(nn.Module):
 class FPQuantizedConv1d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
         self.initialize_weights()
 
@@ -1338,7 +1350,7 @@ class FPQuantizedConv1d(nn.Module):
 class FPQuantizedConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
         self.initialize_weights()
 
@@ -1357,7 +1369,7 @@ class FPQuantizedConv2d(nn.Module):
 class FPQuantizedConv3d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride, padding)
         self.initialize_weights()
 
@@ -1379,7 +1391,7 @@ class FPQuantizedBatchNorm1d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
 
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
@@ -1436,7 +1448,7 @@ class FPQuantizedBatchNorm2d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
 
         # Learnable parameters
         self.weight = nn.Parameter(torch.ones(num_features))
@@ -1486,7 +1498,7 @@ class FPQuantizedBatchNorm2d(nn.Module):
 #class FPQuantizedBatchNorm2d(nn.Module):
 #    def __init__(self, num_features, ibits=8, fbits=8, rmode=1):
 #        super().__init__()
-#        self.quantizer = FPRound(ibits, fbits, rmode)
+#        self.quantizer = FPRound_(ibits, fbits, rmode)
 #        self.bn = nn.BatchNorm2d(num_features)
 #        self.initialize_weights()
 #
@@ -1509,7 +1521,7 @@ class FPQuantizedBatchNorm3d(nn.Module):
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
 
         self.weight = nn.Parameter(torch.ones(num_features))
         self.bias = nn.Parameter(torch.zeros(num_features))
@@ -1552,7 +1564,7 @@ class FPQuantizedBatchNorm3d(nn.Module):
 class FPQuantizedAvgPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.pool = nn.AvgPool2d(kernel_size, stride, padding)
 
     def forward(self, x):
@@ -1563,7 +1575,7 @@ class FPQuantizedAvgPool2d(nn.Module):
 class FPQuantizedDropout(nn.Module):
     def __init__(self, p=0.5, ibits=8, fbits=8, rmode=1):
         super().__init__()
-        self.quantizer = FPRound(ibits, fbits, rmode)
+        self.quantizer = FPRound_(ibits, fbits, rmode)
         self.dropout = nn.Dropout(p)
 
     def forward(self, x):
