@@ -1,6 +1,6 @@
 exps/data/
 exps/qat1_mobilenetv3small/data/
-exps/qat2_restnet18/data/data/
+exps/qat2_restnet18/data/
 exps/qat1_mobilenetv3small/*.pth
 exps/qat2_restnet18/*.pth
 pychop.egg-info/
