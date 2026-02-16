@@ -7,50 +7,61 @@ from typing import Tuple, Union, Optional
 import torch.nn.functional as F
 from .tch.lightchop import LightChopSTE
 
-def post_quantization(model, chop, eval_mode=True, verbose=False):
+import torch
+import copy
+from typing import Optional
+
+def post_quantization(model: torch.nn.Module, chop, eval_mode: bool = True, verbose: bool = False) -> torch.nn.Module:
     """
-    Perform post-training quantization on a copy of a PyTorch model for simulation purposes.
-    
+    Perform post-training quantization (PTQ) on a copy of a PyTorch model.
+    Only weights and biases are quantized; BatchNorm running stats and other buffers are preserved.
+    For best results, fuse Conv+BN layers before calling this function (e.g., model.fuse_model()).
+
     Args:
-        model (torch.nn.Module): The PyTorch model to quantize (remains unchanged).
-        chop: Object with a quantize method (e.g., rounds to specific floating-point values).
+        model (torch.nn.Module): Original PyTorch model (remains unmodified).
+        chop: Object with a `quantize(tensor)` method (simulated quantization).
         eval_mode (bool): If True, set the copied model to evaluation mode. Default: True.
-        verbose (bool): If True, print parameter names and quantized data. Default: False.
-    
+        verbose (bool): If True, print parameter names and quantized values. Default: False.
+
     Returns:
         torch.nn.Module: A new quantized copy of the model.
     """
-    import copy
-    # Create a deep copy of the model to avoid modifying the original
+    # Deep copy the model to avoid modifying the original
     quantized_model = copy.deepcopy(model)
-    
-    # Set the copied model to evaluation mode if specified
+
+    # Set evaluation mode if requested
     if eval_mode:
         quantized_model.eval()
-    
-    # Get the state dict of the copied model
+
+    # Device of the original model
+    device = next(model.parameters()).device
+
+    # Get state dict (includes both parameters and buffers)
     state_dict = quantized_model.state_dict()
-    
-    # Quantize each tensor in the state dict
+
     for key in state_dict.keys():
-        original_tensor = state_dict[key]
-        quantized_tensor = chop.quantize(original_tensor)
-        
-        # Ensure the quantized tensor matches the original's shape
-        if quantized_tensor.shape != original_tensor.shape:
-            raise ValueError(f"Shape mismatch for {key}: {original_tensor.shape} vs {quantized_tensor.shape}")
-        
+        tensor = state_dict[key].to(device)
+
+        # Only quantize weights and biases
+        if 'weight' in key or 'bias' in key:
+            quantized_tensor = chop.quantize(tensor)
+        else:
+            quantized_tensor = tensor  # keep buffers unchanged
+
+        # Check shape consistency
+        if quantized_tensor.shape != tensor.shape:
+            raise ValueError(f"Shape mismatch for {key}: {tensor.shape} vs {quantized_tensor.shape}")
+
+        # Update state dict
         state_dict[key] = quantized_tensor
-    
-    # Load the quantized state dict back into the copied model
+
+        # Verbose output
+        if verbose and ('weight' in key or 'bias' in key):
+            print(f"[Quantized] {key}: {quantized_tensor}")
+
+    # Load the quantized state dict back into the model
     quantized_model.load_state_dict(state_dict)
-    
-    # Optional verbose output for debugging
-    if verbose:
-        print("Post-Quantization Results:")
-        for name, param in quantized_model.named_parameters():
-            print(f"{name}: {param.data}")
-    
+
     return quantized_model
 
 
