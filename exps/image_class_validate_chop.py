@@ -25,7 +25,6 @@ def fuse_resnet(model):
     model.eval() # Fusion must under eval mode
     
     # 1. fuse the first layer of backbone  (Stem)
-    # The self.relu only used once in Stem，without internal share in block
     try:
         torch.ao.quantization.fuse_modules(model.backbone, [['conv1', 'bn1', 'relu']], inplace=True)
     except Exception as e:
@@ -34,24 +33,31 @@ def fuse_resnet(model):
     # 2. Fuse Bottleneck module
     for m in model.modules():
         if isinstance(m, torchvision.models.resnet.Bottleneck):
-            # only ['conv', 'bn']
-            torch.ao.quantization.fuse_modules(m, [
-                ['conv1', 'bn1'],
-                ['conv2', 'bn2'],
-                ['conv3', 'bn3'] 
-            ], inplace=True)
+            try:
+                torch.ao.quantization.fuse_modules(m, [
+                    ['conv1', 'bn1'],
+                    ['conv2', 'bn2'],
+                    ['conv3', 'bn3'] 
+                ], inplace=True)
+            except: pass # Skip if already fused or structure differs
             
             if m.downsample is not None:
-                torch.ao.quantization.fuse_modules(m.downsample, [['0', '1']], inplace=True)
+                try:
+                    torch.ao.quantization.fuse_modules(m.downsample, [['0', '1']], inplace=True)
+                except: pass
                 
     for m in model.modules():
         if isinstance(m, torchvision.models.resnet.BasicBlock):
-            torch.ao.quantization.fuse_modules(m, [
-                ['conv1', 'bn1'], 
-                ['conv2', 'bn2']
-            ], inplace=True)
+            try:
+                torch.ao.quantization.fuse_modules(m, [
+                    ['conv1', 'bn1'], 
+                    ['conv2', 'bn2']
+                ], inplace=True)
+            except: pass
             if m.downsample is not None:
-                torch.ao.quantization.fuse_modules(m.downsample, [['0', '1']], inplace=True)
+                try:
+                    torch.ao.quantization.fuse_modules(m.downsample, [['0', '1']], inplace=True)
+                except: pass
 
     return model
 
@@ -60,7 +66,7 @@ np.random.seed(42)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RESULTS_FILE = "quantization_results.csv"
 
-os.makedirs("class_images", exist_ok=True)  # 创建文件夹以保存 PDF
+os.makedirs("class_images", exist_ok=True)
 
 
 # --- Model & Data Definitions ---
@@ -106,6 +112,7 @@ def load_data(dataset_name):
         classes, ch = 37, 3
     else: raise ValueError(f"Unknown dataset {dataset_name}")
     
+    # num_workers=0 to ensure safety in simple scripts
     return DataLoader(d, batch_size=64, shuffle=False, num_workers=0), classes, ch
 
 
@@ -113,15 +120,11 @@ def load_data(dataset_name):
 def compute_mse(t1, t2):
     return torch.mean((t1 - t2) ** 2).item()
 
-def compute_sqnr(t_clean, t_quant):
-    noise = t_clean - t_quant
-    power_clean = torch.sum(t_clean ** 2)
-    power_noise = torch.sum(noise ** 2)
-    if power_noise == 0: return 100.0 # Max dB
-    return (10 * torch.log10(power_clean / power_noise)).item()
-
-def measure_quantization_error(clean_model, quant_model, dataloader, device):
-    # 1. Weight Analysis
+def measure_weight_mse(clean_model, quant_model, device):
+    """
+    Computes Weight MSE only. 
+    Activation SQNR is now computed dynamically on logits in the main loop.
+    """
     w_mse_list = []
     clean_params = dict(clean_model.named_parameters())
     quant_params = dict(quant_model.named_parameters())
@@ -129,89 +132,48 @@ def measure_quantization_error(clean_model, quant_model, dataloader, device):
     for name, p_c in clean_params.items():
         if name in quant_params:
             p_q = quant_params[name]
+            # Only compare if shapes match
             if p_c.shape == p_q.shape:
                 w_mse_list.append(compute_mse(p_c.to(device), p_q.to(device)))
-    avg_w_mse = np.mean(w_mse_list) if w_mse_list else 0
-
-    # 2. Activation Analysis (Forward Hook)
-    act_sqnr_list = []
-    clean_acts = {}
     
-    def get_clean_hook(name):
-        def hook(model, input, output):
-            clean_acts[name] = output.detach()
-        return hook
-
-    def get_quant_hook(name):
-        def hook(model, input, output):
-            if name in clean_acts:
-                sqnr = compute_sqnr(clean_acts[name], output.detach())
-                act_sqnr_list.append(sqnr)
-        return hook
-
-    hooks = []
-    for name, m in clean_model.named_modules():
-        if isinstance(m, (nn.Conv2d, nn.Linear)):
-            hooks.append(m.register_forward_hook(get_clean_hook(name)))
-            
-    # Run one batch
-    inputs, _ = next(iter(dataloader))
-    inputs = inputs.to(device)
-    with torch.no_grad():
-        clean_model(inputs)
-        
-    for h in hooks: h.remove()
-    hooks = []
-    
-    for name, m in quant_model.named_modules():
-        if isinstance(m, (nn.Conv2d, nn.Linear)):
-            hooks.append(m.register_forward_hook(get_quant_hook(name)))
-            
-    with torch.no_grad():
-        quant_model(inputs)
-        
-    for h in hooks: h.remove()
-    
-    avg_act_sqnr = np.mean(act_sqnr_list) if act_sqnr_list else 0
-    return avg_w_mse, avg_act_sqnr
+    avg_w_mse = np.mean(w_mse_list) if w_mse_list else 0.0
+    return avg_w_mse
 
 
-# --- 新增：可视化函数 ---
+# --- Visualization Function ---
 def visualize_images(images, predictions, ground_truth, pred_probs, dataset_name, pdf):
-    # 只取前 20 张图像进行可视化
-    images = images[:20]
-    predictions = predictions[:20]
-    ground_truth = ground_truth[:20]
-    pred_probs = pred_probs[:20]
+    # Ensure inputs are valid lists/arrays and take top 20
+    count = min(len(images), 20)
+    if count == 0: return
+
+    images = images[:count]
+    predictions = predictions[:count]
+    ground_truth = ground_truth[:count]
+    pred_probs = pred_probs[:count]
     
     fig, axes = plt.subplots(2, 10, figsize=(12, 2.5))
     for i, ax in enumerate(axes.flat):
-        if i < len(images):
-            img = images[i]  # shape: (C, H, W)
-            channels = img.shape[0]
+        if i < count:
+            img = images[i]  # shape: (C, H, W) or (H, W, C) depending on source, usually (C, H, W) from tensor
             
-            # 根据数据集选择正确的 mean/std 并反归一化
-            if "MNIST" in dataset_name or "FashionMNIST" in dataset_name:
-                mean = np.array([0.1307 if "MNIST" in dataset_name else 0.2860]).reshape(1, 1, 1)
-                std = np.array([0.3081 if "MNIST" in dataset_name else 0.3530]).reshape(1, 1, 1)
-            else:
-                mean = np.array([0.485, 0.456, 0.406]).reshape(3, 1, 1)
-                std = np.array([0.229, 0.224, 0.225]).reshape(3, 1, 1)
+            # Simple normalization for display
+            if img.max() != img.min():
+                img = (img - img.min()) / (img.max() - img.min())
             
-            img = img * std + mean
-            img = np.clip(img, 0, 1)
-            img = img.transpose(1, 2, 0)  # to (H, W, C)
+            img = np.transpose(img, (1, 2, 0)) # To (H, W, C)
             
-            if channels == 1:
-                img = img.squeeze(2)  # to (H, W)
+            if img.shape[2] == 1:
+                img = img.squeeze(2)
                 ax.imshow(img, cmap='gray')
             else:
                 ax.imshow(img)
                 
             color = 'green' if predictions[i] == ground_truth[i] else 'red'
-            ax.set_title(f"Pred:{predictions[i]} (Prob:{pred_probs[i]:.2f})\nTrue:{ground_truth[i]}", 
+            ax.set_title(f"P:{predictions[i]} ({pred_probs[i]:.2f})\nT:{ground_truth[i]}", 
                          color=color, fontsize=8)
             ax.axis('off')
+        else:
+            ax.axis('off') # Hide unused subplots
 
     plt.tight_layout(pad=0.8)
     pdf.savefig(bbox_inches='tight')
@@ -243,6 +205,7 @@ def run_experiment_and_save():
         print(f"\n--- Processing {dataset} ---")
         testloader, num_classes, in_ch = load_data(dataset)
         
+        # 1. Prepare Clean Model
         clean_model = ResNet(in_ch, num_classes)
         model_path = f"{dataset}_best_model.pth" if dataset == "Caltech101" else f"{dataset}_final_model.pth"
         
@@ -251,60 +214,90 @@ def run_experiment_and_save():
             print(f"Loaded weights: {model_path}")
         except FileNotFoundError:
             print(f"Warning: Weights not found. Using random init.")
-        except RuntimeError as e:
-            print(f"Error loading weights: {e}\nCheck if model architecture matches weights.")
 
-        clean_model.eval()
-
+        # Fuse Clean Model (Standard Baseline)
         print("Fusing BN layers...")
         clean_model = fuse_resnet(clean_model)
-        
-        clean_model.to(device)
+        clean_model.eval()
+        clean_model.to(device) # Move Clean Model to GPU once
 
         for fmt_name, (exp, sig) in float_types.items():
             for rm in rounding_modes:
+                # PDF per configuration
                 pdf_filename = f"class_images/{dataset}_{fmt_name}_{rm}_visualizations.pdf"
-                with PdfPages(pdf_filename) as pdf:
-                    print(f"Running: {fmt_name} (R{rm})...", end="")
-                    
-                    model_q = copy.deepcopy(clean_model).to("cpu") 
-                    
-                    chopper = LightChop(exp_bits=exp, sig_bits=sig, rmode=rm)
-                    model_q = post_quantization(model_q, chopper)
-                    
-                    model_q.to(device)
-                    w_mse, act_sqnr = measure_quantization_error(clean_model, model_q, testloader, device)
-                    
-                    correct = 0
-                    total = 0
-                    predictions, ground_truth, images, pred_probs = [], [], [], []
-                    with torch.no_grad():
+                
+                print(f"Running: {fmt_name} (R{rm})...", end="")
+                
+                # 2. Prepare Quantized Model
+                model_q = copy.deepcopy(clean_model).to("cpu") # Copy on CPU to save memory
+                chopper = LightChop(exp_bits=exp, sig_bits=sig, rmode=rm)
+                model_q = post_quantization(model_q, chopper)
+                model_q.to(device)
+                
+                # 3. Compute Weight MSE (Static Analysis)
+                w_mse = measure_weight_mse(clean_model, model_q, device)
+                
+                # 4. Inference & Logit SQNR (Dynamic Analysis)
+                correct = 0
+                total = 0
+                
+                # Accumulators for Global SQNR Calculation
+                sum_signal_pow = 0.0
+                sum_noise_pow = 0.0
+                
+                # Lists for visualization (Small subset only)
+                vis_predictions, vis_ground_truth, vis_images, vis_pred_probs = [], [], [], []
+                collected_vis = False
+                
+                with torch.no_grad():
+                    with PdfPages(pdf_filename) as pdf: # Open PDF here
                         for inputs, labels in testloader:
                             inputs, labels = inputs.to(device), labels.to(device)
-                            outputs = model_q(inputs)
-                            probabilities = torch.softmax(outputs, dim=1)
-                            max_probs, predicted = torch.max(probabilities, 1)
                             
+                            # Parallel Inference
+                            logits_q = model_q(inputs)
+                            logits_c = clean_model(inputs)
+                            
+                            # Calculate Accuracy
+                            probs = torch.softmax(logits_q, dim=1)
+                            max_probs, predicted = torch.max(probs, 1)
                             total += labels.size(0)
                             correct += (predicted == labels).sum().item()
                             
-                            predictions.extend(predicted.cpu().numpy())
-                            ground_truth.extend(labels.cpu().numpy())
-                            images.extend(inputs.cpu().numpy())
-                            pred_probs.extend(max_probs.cpu().numpy())
-                    
-                    accuracy = 100 * correct / total
-                    print(f" Acc: {accuracy:.2f}%, SQNR: {act_sqnr:.2f}dB")
-                    
-                    # 生成可视化 PDF
-                    visualize_images(images, predictions, ground_truth, pred_probs, dataset, pdf)
+                            # Calculate Batch Logit SQNR Components
+                            # (Sum of Squares for Signal and Noise)
+                            noise = logits_c - logits_q
+                            sum_signal_pow += torch.sum(logits_c ** 2).item()
+                            sum_noise_pow += torch.sum(noise ** 2).item()
+                            
+                            # Collect Data for Visualization (First Batch Only)
+                            if not collected_vis:
+                                vis_predictions.extend(predicted.cpu().numpy())
+                                vis_ground_truth.extend(labels.cpu().numpy())
+                                vis_images.extend(inputs.cpu().float().numpy())
+                                vis_pred_probs.extend(max_probs.cpu().numpy())
+                                collected_vis = True
+                        
+                        # End of dataset loop
+                        accuracy = 100 * correct / total
+                        
+                        # Compute Final SQNR
+                        if sum_noise_pow == 0:
+                            act_sqnr = 100.0 # Perfect match
+                        else:
+                            act_sqnr = 10 * np.log10(sum_signal_pow / sum_noise_pow)
+
+                        print(f" Acc: {accuracy:.2f}%, Logit SQNR: {act_sqnr:.2f}dB")
+                        
+                        # Create Visualization Page
+                        visualize_images(vis_images, vis_predictions, vis_ground_truth, vis_pred_probs, dataset, pdf)
                 
+                # 5. Save Results
                 with open(RESULTS_FILE, 'a', newline='') as f:
                     csv.writer(f).writerow([
                         dataset, fmt_name, exp, sig, rm, 
                         f"{accuracy:.4f}", f"{w_mse:.8f}", f"{act_sqnr:.4f}"
                     ])
-
 
 if __name__ == "__main__":
     run_experiment_and_save()
