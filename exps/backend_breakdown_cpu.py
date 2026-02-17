@@ -37,12 +37,12 @@ for i, size in enumerate(arr_sizes):
 
             pychop.backend("jax")
             def jax_eager_op(A):
-                ch = LightChop(exp_bits=5, sig_bits=10, rmode=mode_idx + 1)
+                ch = LightChop(exp_bits=8, sig_bits=7, rmode=mode_idx + 1)
                 return ch(A)
 
             @jit
             def jax_jit_op(A):
-                ch = LightChop(exp_bits=5, sig_bits=10, rmode=mode_idx + 1)
+                ch = LightChop(exp_bits=8, sig_bits=7, rmode=mode_idx + 1)
                 return ch(A)
 
             _ = jax_jit_op(A_jax)  # warm-up
@@ -52,11 +52,11 @@ for i, size in enumerate(arr_sizes):
                 gc.collect()
 
                 pychop.backend("numpy")
-                ch_np = LightChop(exp_bits=5, sig_bits=10, rmode=mode_idx + 1)
+                ch_np = LightChop(exp_bits=8, sig_bits=7, rmode=mode_idx + 1)
                 st = time(); _ = ch_np(A_np); times["numpy"].append(time()-st)
 
                 pychop.backend("torch")
-                ch_th = LightChop(exp_bits=5, sig_bits=10, rmode=mode_idx + 1)
+                ch_th = LightChop(exp_bits=8, sig_bits=7, rmode=mode_idx + 1)
                 st = time(); _ = ch_th(A_th); times["torch_cpu"].append(time()-st)
 
                 pychop.backend("jax")

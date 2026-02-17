@@ -17,8 +17,8 @@ backend_types = ["cpu", "gpu"]
 backend_labels = {
     "numpy": "NumPy",
     "torch_cpu": "GPU, PyTorch",
-    "jax_eager": "JAX",
-    "jax_jit": "JAX (JIT)",
+    "jax_eager": "GPU, JAX",
+    "jax_jit": "GPU, JAX (JIT)",
     "torch_gpu": "GPU, PyTorch"
 }
 

@@ -90,9 +90,82 @@ def plot_rounding_mode_impact(df):
     plt.xlabel("Rounding Mode Index")
     plt.xticks(sorted(df['Rounding_Mode'].unique()))
     plt.tight_layout()
-    plt.savefig(f"{OUTPUT_DIR}/rounding_impact_weight_mse.png", dpi=300)
+    plt.savefig(f"{OUTPUT_DIR}/rounding_impact_weight_mse1.png", dpi=300)
     plt.close()
-    print("Generated: rounding_impact_weight_mse.png")
+    print("Generated: rounding_impact_weight_mse1.png")
+
+
+    # Filter for one dataset to keep plot clean (assuming behavior is similar across datasets)
+    subset = df[df['Dataset'] == df['Dataset'].unique()[1]]
+    dataset_name = df['Dataset'].unique()[1]
+    
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(
+        data=subset, 
+        x="Rounding_Mode", 
+        y="Weight_MSE", 
+        hue="Format", 
+        marker="o",
+        palette="magma"
+    )
+    
+    plt.title(f"Effect of Rounding Mode on Weight Error (Dataset: {dataset_name})")
+    plt.ylabel("Weight Mean Squared Error (MSE)")
+    plt.xlabel("Rounding Mode Index")
+    plt.xticks(sorted(df['Rounding_Mode'].unique()))
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/rounding_impact_weight_mse2.png", dpi=300)
+    plt.close()
+    print("Generated: rounding_impact_weight_mse2.png")
+
+
+        # Filter for one dataset to keep plot clean (assuming behavior is similar across datasets)
+    subset = df[df['Dataset'] == df['Dataset'].unique()[2]]
+    dataset_name = df['Dataset'].unique()[2]
+    
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(
+        data=subset, 
+        x="Rounding_Mode", 
+        y="Weight_MSE", 
+        hue="Format", 
+        marker="o",
+        palette="magma"
+    )
+    
+    plt.title(f"Effect of Rounding Mode on Weight Error (Dataset: {dataset_name})")
+    plt.ylabel("Weight Mean Squared Error (MSE)")
+    plt.xlabel("Rounding Mode Index")
+    plt.xticks(sorted(df['Rounding_Mode'].unique()))
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/rounding_impact_weight_mse3.png", dpi=300)
+    plt.close()
+    print("Generated: rounding_impact_weight_mse3.png")
+
+
+        # Filter for one dataset to keep plot clean (assuming behavior is similar across datasets)
+    subset = df[df['Dataset'] == df['Dataset'].unique()[3]]
+    dataset_name = df['Dataset'].unique()[3]
+    
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(
+        data=subset, 
+        x="Rounding_Mode", 
+        y="Weight_MSE", 
+        hue="Format", 
+        marker="o",
+        palette="magma"
+    )
+    
+    plt.title(f"Effect of Rounding Mode on Weight Error (Dataset: {dataset_name})")
+    plt.ylabel("Weight Mean Squared Error (MSE)")
+    plt.xlabel("Rounding Mode Index")
+    plt.xticks(sorted(df['Rounding_Mode'].unique()))
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/rounding_impact_weight_mse4.png", dpi=300)
+    plt.close()
+    print("Generated: rounding_impact_weight_mse4.png")
+
 
 def plot_tradeoff_efficiency(df):
     """

@@ -19,13 +19,21 @@ from torchvision.transforms import functional as F
 import os
 import requests
 import zipfile
-import csv
+import csv, random
 from datetime import datetime
 from pychop.layers import post_quantization
 
-
 pychop.backend("torch")
+torch.backends.cudnn.enabled = False
 
+seed = 42
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 
 def download_coco_val2017():
@@ -68,7 +76,6 @@ def download_coco_val2017():
     return loader, dataset.coco
 
 
-
 def get_quantized_faster_rcnn(chop):
     """Load and quantize Faster R-CNN model weights."""
     model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
@@ -76,6 +83,70 @@ def get_quantized_faster_rcnn(chop):
     
     model = post_quantization(model, chop)
     return model.cuda()
+
+
+def compute_quantization_errors(clean_model, quant_model, dataloader):
+    """
+    Computes Weight MSE and Feature Map SQNR.
+    For object detection, we hook the backbone (FPN) output because 
+    RPN proposals have dynamic shapes, preventing direct logit subtraction.
+    """
+    # 1. Weight MSE
+    w_mse_list = []
+    clean_params = dict(clean_model.named_parameters())
+    quant_params = dict(quant_model.named_parameters())
+    
+    for name, p_c in clean_params.items():
+        if name in quant_params:
+            p_q = quant_params[name]
+            if p_c.shape == p_q.shape:
+                w_mse_list.append(torch.mean((p_c.cuda() - p_q.cuda())**2).item())
+    
+    avg_w_mse = np.mean(w_mse_list) if w_mse_list else 0.0
+
+    # 2. Feature Map SQNR (Hooking Backbone FPN)
+    clean_feats = []
+    quant_feats = []
+    
+    def get_clean_hook(module, input, output):
+        # '0' represents the highest-resolution feature map (P2) from FPN
+        clean_feats.append(output['0'].detach())
+        
+    def get_quant_hook(module, input, output):
+        quant_feats.append(output['0'].detach())
+
+    h1 = clean_model.backbone.register_forward_hook(get_clean_hook)
+    h2 = quant_model.backbone.register_forward_hook(get_quant_hook)
+
+    # Run exactly 1 batch for numerical error estimation
+    images, _ = next(iter(dataloader))
+    images = [img.cuda() for img in images]
+
+    with torch.no_grad():
+        clean_model(images)
+        quant_model(images)
+
+    h1.remove()
+    h2.remove()
+
+    # Calculate SQNR
+    if clean_feats and quant_feats:
+        c_feat = clean_feats[0]
+        q_feat = quant_feats[0]
+        
+        noise = c_feat - q_feat
+        pow_clean = torch.sum(c_feat ** 2)
+        pow_noise = torch.sum(noise ** 2)
+        
+        if pow_noise == 0:
+            sqnr = 100.0  # Perfect match
+        else:
+            sqnr = (10 * torch.log10(pow_clean / pow_noise)).item()
+    else:
+        sqnr = 0.0
+
+    return avg_w_mse, sqnr
+# ------------------------
 
 
 def run_inference(model, loader, use_amp=False, max_images=None, quantizer=None):
@@ -101,11 +172,7 @@ def run_inference(model, loader, use_amp=False, max_images=None, quantizer=None)
                     outputs = model(images)
 
                 for output in outputs:
-                    #if quantizer is not None:
-                    #    output["boxes"] = #quantizer(output["boxes"])
-                    #    output["scores"] = #quantizer(output["scores"])
-                        
-                    output["labels"] = output["labels"]# .float()
+                    output["labels"] = output["labels"]
 
                 latency = (time.time() - start_time) * 1000 / len(images)
                 latencies.extend([latency] * len(images))
@@ -119,16 +186,6 @@ def run_inference(model, loader, use_amp=False, max_images=None, quantizer=None)
                     labels = output["labels"].cpu().numpy()
                     image_id = target[0]["image_id"]
                     image_ids.append(image_id)
-
-                    if i < 2:
-                        print(f"Image {image_id}: {len(boxes)} boxes detected")
-                        for j in range(min(3, len(boxes))):
-                            x, y, x2, y2 = boxes[j]
-                            width, height = x2 - x, y2 - y
-                            print(f"  Pred Box: [{x:.2f}, {y:.2f}, {width:.2f}, {height:.2f}], Score: {scores[j]:.3f}, Label: {labels[j]}")
-                        print(f"  Ground Truth: {len(target)} annotations")
-                        for j in range(min(3, len(target))):
-                            print(f"    GT Box: {target[j]['bbox']}, Category: {target[j]['category_id']}")
 
                     for box, score, label in zip(boxes, scores, labels):
                         if score > 0.5 and label > 0:
@@ -151,7 +208,6 @@ def run_inference(model, loader, use_amp=False, max_images=None, quantizer=None)
                 print(f"Error processing batch {i}: {e}")
                 continue
 
-    print(f"Total predictions: {len(predictions)} across {len(image_ids)} images")
     return latencies, predictions, images_for_viz, outputs_for_viz, image_ids
 
 def evaluate_coco(predictions, coco_gt, image_ids):
@@ -168,79 +224,19 @@ def evaluate_coco(predictions, coco_gt, image_ids):
     coco_eval.summarize()
     return coco_eval.stats[0]
 
-# def save_results_to_csv(latencies_fp32, latencies_quant, map_fp32, map_quant, chop, filename_prefix="results"):
-#     """Save inference results to a CSV file."""
-    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-#     filename = f"{filename_prefix}.csv"
-# 
-#     with open(filename, "w", newline="") as f:
-#         writer = csv.writer(f)
-#         writer.writerow(["Mode", "Mean Latency (ms)", "Std Latency (ms)", "mAP@0.5:0.95"])
-#         writer.writerow(["FP32", f"{np.mean(latencies_fp32):.2f}", f"{np.std(latencies_fp32):.2f}", f"{map_fp32:.3f}"])
-#         writer.writerow([f"Quantized ({chop.num_bits}-bit)", f"{np.mean(latencies_quant):.2f}", f"{np.std(latencies_quant):.2f}", f"{map_quant:.3f}"])
-#     print(f"Results saved to {filename}")
-
-
-# def plot_detection(images, outputs, targets, prefix="detection"):
-#     """Visualize predictions and ground truth for first batch and save to PNGs."""
-#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-#     saved_files = []
-#     
-#     for i, (image, output, target) in enumerate(zip(images, outputs, targets)):
-#         fig, ax = plt.subplots(1, figsize=(12, 9))
-#         img = image.permute(1, 2, 0).numpy()
-#         img = np.clip(img, 0, 1)
-#         ax.imshow(img)
-# 
-#         for ann in target:
-#             x, y, w, h = ann["bbox"]
-#             rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor="g", facecolor="none", linestyle="--")
-#             ax.add_patch(rect)
-#             plt.text(x, y, f"GT {ann['category_id']}", color="white", bbox=dict(facecolor="green", alpha=0.5))
-# 
-#         boxes = output["boxes"].cpu().numpy()
-#         scores = output["scores"].cpu().numpy()
-#         labels = output["labels"].cpu().numpy()
-#         for box, score, label in zip(boxes, scores, labels):
-#             if score > 0.5 and label > 0:
-#                 x, y, x2, y2 = box
-#                 rect = patches.Rectangle((x, y), x2 - x, y2 - y, linewidth=2, edgecolor="r", facecolor="none")
-#                 ax.add_patch(rect)
-#                 plt.text(x, y, f"Pred {label} ({score:.2f})", color="white", bbox=dict(facecolor="red", alpha=0.5))
-# 
-#         image_id = target[0]["image_id"]
-#         plt.title(f"Object Detection (Image {image_id}, Red: Pred, Green: GT)")
-#         plt.axis("off")
-#         
-#         filename = f"obj_images/{prefix}_image_{image_id}.png"
-#         plt.savefig(filename)
-#         plt.close(fig)  # Close figure to free memory
-#         saved_files.append(filename)
-#         
-#         if i >= 1:  # Limit to first two images
-#             break
-#     
-#     print(f"Detection visualizations saved to: {', '.join(saved_files)}")
-
 
 def plot_detection_all(images, outputs, targets, prefix="detection"):
-    """Visualize predictions and ground truth for first 6 images in a single plot."""
-    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Limit to 8 images or available images if less than 6
+    """Visualize predictions and ground truth for first 8 images in a single plot."""
+    os.makedirs("obj_images", exist_ok=True)
     num_images = min(8, len(images))
     if num_images == 0:
-        print("No images available for visualization!")
         return
     
-    # Create a 2x5 grid of subplots with adjusted figure size
     fig, axes = plt.subplots(2, 4, figsize=(16, 10), constrained_layout=True)
-    axes = axes.flatten()  # Flatten the 2D array of axes for easier iteration
+    axes = axes.flatten() 
     
     for i in range(num_images):
-        # Ensure we have valid image, output, and target data
         if i >= len(outputs) or i >= len(targets):
-            print(f"Warning: Missing output or target data for image {i}")
             axes[i].axis("off")
             continue
             
@@ -248,13 +244,11 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
         output = outputs[i]
         target = targets[i]
         
-        # Convert image tensor to numpy array and ensure correct format
         img = image.permute(1, 2, 0).numpy()
         img = np.clip(img, 0, 1)
         axes[i].imshow(img)
 
-        # Plot ground truth boxes (green dashed)
-        if target:  # Check if target is not empty
+        if target:
             for ann in target:
                 x, y, w, h = ann["bbox"]
                 rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor="darkred", 
@@ -263,8 +257,7 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
                 axes[i].text(x, y-5, f"GT {ann['category_id']}", color="black", 
                            bbox=dict(facecolor="tomato", alpha=0.5))
 
-        # Plot predicted boxes (red solid)
-        if "boxes" in output:  # Check if output contains boxes
+        if "boxes" in output: 
             boxes = output["boxes"].cpu().numpy()
             scores = output["scores"].cpu().numpy()
             labels = output["labels"].cpu().numpy()
@@ -277,23 +270,14 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
                     axes[i].text(x, y-5, f"Pred {label} ({score:.2f})", color="black", 
                                bbox=dict(facecolor="yellowgreen", alpha=0.45))
 
-        # Set title with image ID if available
-        # image_id = target[0]["image_id"] if target and len(target) > 0 else f"Unknown_{i}"
-        # axes[i].set_title(f"Image {image_id}")
         axes[i].axis("off")
 
     for i in range(num_images, 8):
         axes[i].axis("off")
 
-    # plt.suptitle("Object Detection (Red: Ground Truth, Green: Predictions)", 
-    #            fontsize=19, y=1.03)
-    
-    # Save the figure
     filename = f"obj_images/{prefix}.png"
     plt.savefig(filename, bbox_inches='tight', dpi=400)
-    plt.close(fig)  # Close figure to free memory
-    
-    print(f"Detection visualization saved to: {filename}")
+    plt.close(fig) 
 
 
 if __name__ == "__main__":
@@ -307,7 +291,6 @@ if __name__ == "__main__":
     model_fp32 = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT).cuda()
     model_fp32.eval()
 
-
     max_images = 100  
 
     # FP32 Inference
@@ -316,17 +299,15 @@ if __name__ == "__main__":
                                     loader, use_amp=False, max_images=max_images, quantizer=None)
     map_fp32 = evaluate_coco(preds_fp32, coco_gt, ids_fp32)
 
-
-    # save_results_to_csv(latencies_fp32, latencies_quant, map_fp32, map_quant, quantizer_int8)
     filename = f"obj_detect_results_ft.csv"
 
+    # --- 新增：更新 CSV 表头 ---
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Mode", "Rounding", "Mean Latency (ms)", "Std Latency (ms)", "mAP@0.5:0.95"])
-        writer.writerow(["FP32 (reference)", "1", f"{np.mean(latencies_fp32):.2f}", f"{np.std(latencies_fp32):.2f}", f"{map_fp32:.3f}"])
+        writer.writerow(["Mode", "Rounding", "Mean Latency (ms)", "Std Latency (ms)", "mAP@0.5:0.95", "Weight_MSE", "Feature_SQNR_dB"])
+        writer.writerow(["FP32 (reference)", "1", f"{np.mean(latencies_fp32):.2f}", f"{np.std(latencies_fp32):.2f}", f"{map_fp32:.3f}", "0.000000", "100.00"])
         
-        # Quantized Model
-        for i in [1, 2, 3, 4, 5, 6]:#np.arange(1, 3):
+        for i in [1, 2, 3, 4, 5, 6]:
             print("\n\n---------------------------------")
             quantizer_ft52 = LightChop(exp_bits=5, sig_bits=2, rmode=i)
             quantizer_ft43 = LightChop(exp_bits=4, sig_bits=3, rmode=i)
@@ -350,73 +331,76 @@ if __name__ == "__main__":
             model_quant_ft510 = get_quantized_faster_rcnn(quantizer_ft510)
             model_quant_ft823 = get_quantized_faster_rcnn(quantizer_ft823)
 
-            print(f"Running quantized inference (simulated (52)...")
+            # --- 新增：在这里计算各项 Error Metrics ---
+            print("Computing Quantization Errors...")
+            mse_52, sqnr_52 = compute_quantization_errors(model_fp32, model_quant_ft52, loader)
+            mse_43, sqnr_43 = compute_quantization_errors(model_fp32, model_quant_ft43, loader)
+            mse_55, sqnr_55 = compute_quantization_errors(model_fp32, model_quant_ft55, loader)
+            mse_57, sqnr_57 = compute_quantization_errors(model_fp32, model_quant_ft57, loader)
+            mse_84, sqnr_84 = compute_quantization_errors(model_fp32, model_quant_ft84, loader)
+            mse_87, sqnr_87 = compute_quantization_errors(model_fp32, model_quant_ft87, loader)
+            mse_tf32, sqnr_tf32 = compute_quantization_errors(model_fp32, model_quant_tf32, loader)
+            mse_510, sqnr_510 = compute_quantization_errors(model_fp32, model_quant_ft510, loader)
+            mse_823, sqnr_823 = compute_quantization_errors(model_fp32, model_quant_ft823, loader)
+            # ------------------------------------------
+
+            print(f"Running quantized inference (simulated 52)...")
             latencies_quant52, preds_quant52, img_quant52, out_quant52, ids_quant52 = run_inference(model_quant_ft52, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft52)
-            
             map_quant52 = evaluate_coco(preds_quant52, coco_gt, ids_quant52)
 
-
-            print(f"Running quantized inference (simulated (43)...")
+            print(f"Running quantized inference (simulated 43)...")
             latencies_quant43, preds_quant43, img_quant43, out_quant43, ids_quant43 = run_inference(model_quant_ft43, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft43)
-            
             map_quant43 = evaluate_coco(preds_quant43, coco_gt, ids_quant43)
 
-            print(f"Running quantized inference (simulated (55)...")
+            print(f"Running quantized inference (simulated 55)...")
             latencies_quant55, preds_quant55, img_quant55, out_quant55, ids_quant55 = run_inference(model_quant_ft55, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft55)
-            
             map_quant55 = evaluate_coco(preds_quant55, coco_gt, ids_quant55)
 
-            print(f"Running quantized inference (simulated (43)...")
+            print(f"Running quantized inference (simulated 57)...")
             latencies_quant57, preds_quant57, img_quant57, out_quant57, ids_quant57 = run_inference(model_quant_ft57, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft57)
-            
             map_quant57 = evaluate_coco(preds_quant57, coco_gt, ids_quant57)
 
-            print(f"Running quantized inference (simulated (84)...")
+            print(f"Running quantized inference (simulated 84)...")
             latencies_quant84, preds_quant84, img_quant84, out_quant84, ids_quant84 = run_inference(model_quant_ft84, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft84)
-            
             map_quant84 = evaluate_coco(preds_quant84, coco_gt, ids_quant84)
 
-            print(f"Running quantized inference (simulated (tf32)...")
+            print(f"Running quantized inference (simulated tf32)...")
             latencies_quanttf32, preds_quanttf32, img_quanttf32, out_quanttf32, ids_quanttf32 = run_inference(model_quant_tf32, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_tf32)
-            
             map_quanttf32 = evaluate_coco(preds_quanttf32, coco_gt, ids_quanttf32)
 
-            print(f"Running quantized inference (simulated (87)...")
+            print(f"Running quantized inference (simulated 87)...")
             latencies_quant87, preds_quant87, img_quant87, out_quant87, ids_quant87 = run_inference(model_quant_ft87, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft87)
-            
             map_quant87 = evaluate_coco(preds_quant87, coco_gt, ids_quant87)
 
-            print(f"Running quantized inference (simulated (52)...")
+            print(f"Running quantized inference (simulated 510)...")
             latencies_quant510, preds_quant510, img_quant510, out_quant510, ids_quant510 = run_inference(model_quant_ft510, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft510)
-            
             map_quant510 = evaluate_coco(preds_quant510, coco_gt, ids_quant510)
 
-            print(f"Running quantized inference (simulated (823)...")
+            print(f"Running quantized inference (simulated 823)...")
             latencies_quant823, preds_quant823, img_quant823, out_quant823, ids_quant823 = run_inference(model_quant_ft823, 
                                             loader, use_amp=False, max_images=max_images, quantizer=quantizer_ft823)
-            
             map_quant823 = evaluate_coco(preds_quant823, coco_gt, ids_quant823)
 
             # Print Results
-            print(f"FP32 - Latency: {np.mean(latencies_fp32):.2f} ± {np.std(latencies_fp32):.2f} ms, mAP: {map_fp32:.3f}")
-            print(f"Quantized (43) - Latency: {np.mean(latencies_quant43):.2f} ± {np.std(latencies_quant43):.2f} ms, mAP: {map_quant43:.3f}")
-            print(f"Quantized (52) - Latency: {np.mean(latencies_quant52):.2f} ± {np.std(latencies_quant52):.2f} ms, mAP: {map_quant52:.3f}")
-            print(f"Quantized (55) - Latency: {np.mean(latencies_quant55):.2f} ± {np.std(latencies_quant55):.2f} ms, mAP: {map_quant55:.3f}")
-            print(f"Quantized (57) - Latency: {np.mean(latencies_quant57):.2f} ± {np.std(latencies_quant57):.2f} ms, mAP: {map_quant57:.3f}")
+            print(f"FP32 - mAP: {map_fp32:.3f}")
+            print(f"Quantized (43) - mAP: {map_quant43:.3f}, SQNR: {sqnr_43:.2f}dB")
+            print(f"Quantized (52) - mAP: {map_quant52:.3f}, SQNR: {sqnr_52:.2f}dB")
+            print(f"Quantized (55) - mAP: {map_quant55:.3f}, SQNR: {sqnr_55:.2f}dB")
+            print(f"Quantized (57) - mAP: {map_quant57:.3f}, SQNR: {sqnr_57:.2f}dB")
             
-            print(f"Quantized (84) - Latency: {np.mean(latencies_quant84):.2f} ± {np.std(latencies_quant84):.2f} ms, mAP: {map_quant84:.3f}")
-            print(f"Quantized (tf32) - Latency: {np.mean(latencies_quanttf32):.2f} ± {np.std(latencies_quanttf32):.2f} ms, mAP: {map_quanttf32:.3f}")
-            print(f"Quantized (87) - Latency: {np.mean(latencies_quant87):.2f} ± {np.std(latencies_quant87):.2f} ms, mAP: {map_quant87:.3f}")
-            print(f"Quantized (510) - Latency: {np.mean(latencies_quant510):.2f} ± {np.std(latencies_quant510):.2f} ms, mAP: {map_quant510:.3f}")
-            print(f"Quantized (823) - Latency: {np.mean(latencies_quant823):.2f} ± {np.std(latencies_quant823):.2f} ms, mAP: {map_quant823:.3f}")
+            print(f"Quantized (84) - mAP: {map_quant84:.3f}, SQNR: {sqnr_84:.2f}dB")
+            print(f"Quantized (tf32) - mAP: {map_quanttf32:.3f}, SQNR: {sqnr_tf32:.2f}dB")
+            print(f"Quantized (87) - mAP: {map_quant87:.3f}, SQNR: {sqnr_87:.2f}dB")
+            print(f"Quantized (510) - mAP: {map_quant510:.3f}, SQNR: {sqnr_510:.2f}dB")
+            print(f"Quantized (823) - mAP: {map_quant823:.3f}, SQNR: {sqnr_823:.2f}dB")
             
             batch_size = len(img_quant43)
             targets = [loader.dataset[i][1] for i in range(batch_size)]
@@ -431,16 +415,16 @@ if __name__ == "__main__":
             plot_detection_all(img_quant510, out_quant510, targets, prefix=f"detection_quant_510_r{i}")
             plot_detection_all(img_quant823, out_quant823, targets, prefix=f"detection_quant_823_r{i}")
 
-            # writer.writerow([f"Quantized ({quantizer_int4.num_bits}-bit)", f"{np.mean(latencies_quant4):.2f}", f"{np.std(latencies_quant4):.2f}", f"{map_quant4:.3f}"])
-            writer.writerow(["q43", f"{i}", f"{np.mean(latencies_quant43):.2f}", f"{np.std(latencies_quant43):.2f}", f"{map_quant43:.3f}"])
-            writer.writerow(["q52", f"{i}", f"{np.mean(latencies_quant52):.2f}", f"{np.std(latencies_quant52):.2f}", f"{map_quant52:.3f}"])
-            writer.writerow(["Custom(5, 5)", f"{i}", f"{np.mean(latencies_quant55):.2f}", f"{np.std(latencies_quant55):.2f}", f"{map_quant55:.3f}"])
-            writer.writerow(["Custom(5, 7)", f"{i}", f"{np.mean(latencies_quant57):.2f}", f"{np.std(latencies_quant57):.2f}", f"{map_quant57:.3f}"])
+            # --- 新增：将 MSE 和 SQNR 写入 CSV ---
+            writer.writerow(["q43", f"{i}", f"{np.mean(latencies_quant43):.2f}", f"{np.std(latencies_quant43):.2f}", f"{map_quant43:.3f}", f"{mse_43:.8f}", f"{sqnr_43:.2f}"])
+            writer.writerow(["q52", f"{i}", f"{np.mean(latencies_quant52):.2f}", f"{np.std(latencies_quant52):.2f}", f"{map_quant52:.3f}", f"{mse_52:.8f}", f"{sqnr_52:.2f}"])
+            writer.writerow(["Custom(5, 5)", f"{i}", f"{np.mean(latencies_quant55):.2f}", f"{np.std(latencies_quant55):.2f}", f"{map_quant55:.3f}", f"{mse_55:.8f}", f"{sqnr_55:.2f}"])
+            writer.writerow(["Custom(5, 7)", f"{i}", f"{np.mean(latencies_quant57):.2f}", f"{np.std(latencies_quant57):.2f}", f"{map_quant57:.3f}", f"{mse_57:.8f}", f"{sqnr_57:.2f}"])
             
-            writer.writerow(["Custom(8, 4)", f"{i}", f"{np.mean(latencies_quant84):.2f}", f"{np.std(latencies_quant84):.2f}", f"{map_quant84:.3f}"])
-            writer.writerow(["bfloat16", f"{i}", f"{np.mean(latencies_quant87):.2f}", f"{np.std(latencies_quant87):.2f}", f"{map_quant87:.3f}"])
-            writer.writerow(["tf32", f"{i}", f"{np.mean(latencies_quanttf32):.2f}", f"{np.std(latencies_quanttf32):.2f}", f"{map_quanttf32:.3f}"])
-            writer.writerow(["half", f"{i}", f"{np.mean(latencies_quant510):.2f}", f"{np.std(latencies_quant510):.2f}", f"{map_quant510:.3f}"])
-            writer.writerow(["FP32", f"{i}", f"{np.mean(latencies_quant823):.2f}", f"{np.std(latencies_quant823):.2f}", f"{map_quant823:.3f}"])
+            writer.writerow(["Custom(8, 4)", f"{i}", f"{np.mean(latencies_quant84):.2f}", f"{np.std(latencies_quant84):.2f}", f"{map_quant84:.3f}", f"{mse_84:.8f}", f"{sqnr_84:.2f}"])
+            writer.writerow(["bfloat16", f"{i}", f"{np.mean(latencies_quant87):.2f}", f"{np.std(latencies_quant87):.2f}", f"{map_quant87:.3f}", f"{mse_87:.8f}", f"{sqnr_87:.2f}"])
+            writer.writerow(["tf32", f"{i}", f"{np.mean(latencies_quanttf32):.2f}", f"{np.std(latencies_quanttf32):.2f}", f"{map_quanttf32:.3f}", f"{mse_tf32:.8f}", f"{sqnr_tf32:.2f}"])
+            writer.writerow(["half", f"{i}", f"{np.mean(latencies_quant510):.2f}", f"{np.std(latencies_quant510):.2f}", f"{map_quant510:.3f}", f"{mse_510:.8f}", f"{sqnr_510:.2f}"])
+            writer.writerow(["FP32", f"{i}", f"{np.mean(latencies_quant823):.2f}", f"{np.std(latencies_quant823):.2f}", f"{map_quant823:.3f}", f"{mse_823:.8f}", f"{sqnr_823:.2f}"])
 
         print(f"Results saved to {filename}")
