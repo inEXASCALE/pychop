@@ -1,0 +1,44 @@
+# Copyright (c) 2024 Graphcore Ltd. All rights reserved.
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ['gfloat']
+package-dir = {"" = "src"}
+
+[project]
+name =  "gfloat"
+version = "0.5.2" # Set version in package.sh
+authors = [
+    {name = "Andrew Fitzgibbon", email = "awf@fitzgibbon.ie"},
+]
+description = "Generic floating point handling in Python"
+readme = "README.md"
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Development Status :: 3 - Alpha",
+]
+requires-python = ">=3.8.1"
+dynamic = ["dependencies", "optional-dependencies"]
+
+[tool.setuptools.dynamic]
+# version = {attr = "gfloat.VERSION"} # Wow: https://github.com/pypa/setuptools/issues/1724
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies = {dev = {file = ["requirements-dev.txt"]}}
+
+[tool.black]
+line-length = 90
+fast = true
+
+[tool.mypy]
+[[tool.mypy.overrides]]
+module = ["torchao.*", "array_api_compat.*", "array_api_strict.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "--nbval"
+testpaths = ["docs", "test"]

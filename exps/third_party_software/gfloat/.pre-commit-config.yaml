@@ -1,0 +1,27 @@
+# Copyright (c) 2024 Graphcore Ltd.  All rights reserved.
+
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+
+-   repo: https://github.com/psf/black
+    rev: 24.4.0
+    hooks:
+    - id: black-jupyter
+
+-   repo: local
+    hooks:
+    - id: etc/check-copyright.sh
+      name: check copyright
+      entry: etc/check-copyright.sh
+      language: script
+      exclude: |
+            (?x)(
+                ^docs/Makefile$|
+                ^docs/make.bat$|
+                (/|)requirements.*\.txt$
+            )

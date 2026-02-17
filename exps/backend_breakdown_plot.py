@@ -7,7 +7,16 @@ sns.set(style="whitegrid", font_scale=1.2)
 os.makedirs("results", exist_ok=True)
 
 arr_sizes = [2000, 4000, 6000, 8000, 10000]
-rounding_modes = ["Nearest (even)","Up","Down","Zero","Stochastic (prop)","Stochastic (uniform)"]
+rounding_modes = ["Nearest (even)", "Up", "Down", "Zero", "Stochastic (prop)", "Stochastic (uniform)"]
+rounding_mode_names = [
+    'Round to nearest', 
+    'Round up', 
+    'Round down', 
+    'Round toward zero', 
+    'Stochastic (prob.)', 
+    'Stochastic (uniform)'
+]
+
 operations = ["quantize_only"]
 metrics = ["time", "throughput"]
 metric_names = {"time": "Runtime (seconds)", "throughput": "Throughput (G elements/s)"}
@@ -22,10 +31,29 @@ backend_labels = {
     "torch_gpu": "GPU, PyTorch"
 }
 
+backend_styles = {
+    "numpy": {"marker": "o", "linestyle": "-", "linewidth": 2},
+    "torch_cpu": {"marker": "s", "linestyle": "--", "linewidth": 2},
+    "jax_eager": {"marker": "^", "linestyle": "-.", "linewidth": 2},
+    "jax_jit": {"marker": "v", "linestyle": ":", "linewidth": 2},
+    "torch_gpu": {"marker": "D", "linestyle": "-", "linewidth": 2}
+}
+
+backend_colors = {
+    "numpy": "tab:blue",
+    "torch_cpu": "tab:orange",
+    "jax_eager": "tab:green",
+    "jax_jit": "tab:red",
+    "torch_gpu": "tab:purple"
+}
+
+fontsize = 15
 
 for op in operations:
-    for mode in rounding_modes:
+    for i, mode in enumerate(rounding_modes):
         safe_mode = mode.replace(" ", "_").replace("(", "").replace(")", "")
+        readable_mode = rounding_mode_names[i]
+
         for metric in metrics:
             plt.figure(figsize=(8, 6))
             files_exist = False  
@@ -33,7 +61,7 @@ for op in operations:
             for btype in backend_types:
                 csv_file = f"results/{op}_{safe_mode}_{btype}_{metric}.csv"
                 if not os.path.exists(csv_file):
-                    print(f"警告：文件 {csv_file} 不存在，跳过")
+                    print(f"Warning: did not find {csv_file}, skipping")
                     continue
 
                 df = pd.read_csv(csv_file, index_col=0)
@@ -42,23 +70,37 @@ for op in operations:
 
                 for col in df.columns:
                     label = backend_labels.get(col, col)
-                    plt.plot(df.index, df[col], marker='o', label=label)
+                    style = backend_styles.get(col, {"marker": "o", "linestyle": "-", "linewidth": 3})
+                    plt.plot(
+                        df.index,
+                        df[col],
+                        marker=style["marker"],
+                        linestyle=style["linestyle"],
+                        linewidth=style["linewidth"],
+                        color=backend_colors.get(col, "black"),
+                        label=label,
+                        markersize=8
+                    )
 
             if not files_exist:
-                print(f"警告：没有找到任何 {metric} 文件，跳过绘图")
+                print(f"Warning: did not find any {metric} files, skipping visualization")
                 plt.close()
                 continue
 
-            plt.title(f"{op.replace('_', ' ').capitalize()} - {mode.capitalize()} - {metric_names[metric]}")
-            plt.xlabel("Matrix Size (N x N)")
-            plt.ylabel(metric_names[metric])
+            plt.title(f"{readable_mode}", fontsize=fontsize)
+            plt.xlabel("Matrix Size (N x N)", fontsize=fontsize)
+            plt.ylabel(metric_names[metric], fontsize=fontsize)
             plt.yscale(y_scales[metric])
-            plt.legend(loc='upper left', framealpha=0.0)
+
+            plt.legend(loc='upper left', framealpha=0.0, fontsize=fontsize)
+
+            plt.xticks(arr_sizes, arr_sizes, fontsize=fontsize)
+            plt.yticks(fontsize=fontsize)
+
             plt.grid(True, which="both", ls="--")
             plt.tight_layout()
 
-            # 保存图表
             plt.savefig(f"results/{op}_{safe_mode}_{metric}.png")
             plt.close()
 
-print("\n可视化完成！图表已保存到 results/ 目录。")
+print("\nCompleted! Plots are saved in the 'results/' folder.")

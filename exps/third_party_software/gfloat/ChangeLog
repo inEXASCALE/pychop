@@ -1,0 +1,27 @@
+
+0.5: August 21, 2025
+  - Use array-api for cross-framework compatibility
+  - Fix rounding issue for large bfloat16s by @blissb-positron in #49
+  - Replaced microxscaling with torchao
+  - Update IEEE P3109 implementation to Interim Report v3
+
+0.4: Nov 13, 2024
+  - Add stochastic rounding
+  - Add vectorized versions of round/encode/decode for near-JAX speed
+  - Update IEEE P3109 implementation to Interim report v2
+
+0.3: Jun 10, 2024
+  - Use python ints throughout, adding float64 to test
+  - Simplify round, fix directed rounding
+  - Rename "ival" to "code" in FloatValue
+  - Shorten format names from "format_info_*" to "*"
+
+0.2: May 21, 2024
+  - Add MX Formats
+  - Improved CI
+  - Add value table pretty-printing
+
+0.1: May 2, 2024
+  - First released version
+
+Copyright (c) 2024 Graphcore Ltd. All rights reserved.

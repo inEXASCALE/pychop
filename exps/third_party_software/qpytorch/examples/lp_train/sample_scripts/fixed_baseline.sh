@@ -1,0 +1,20 @@
+python train.py --dataset CIFAR10 \
+       --data_path ./data \
+       --model VGG16LP \
+       --epochs=200 \
+       --lr_init=0.05 \
+       --wd=5e-4 \
+       --wl-weight 12 \
+       --wl-grad 12 \
+       --wl-momentum 12 \
+       --fl-weight 12 \
+       --fl-grad 12 \
+       --fl-momentum 12 \
+       --seed 100 \
+       --batch_size 128  \
+       --weight-rounding stochastic \
+       --grad-rounding stochastic \
+       --momentum-rounding stochastic \
+       --weight-type fixed \
+       --grad-type fixed \
+       --momentum-type fixed;

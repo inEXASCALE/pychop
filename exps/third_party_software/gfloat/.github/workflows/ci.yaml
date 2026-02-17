@@ -1,0 +1,43 @@
+# Copyright (c) 2024 Graphcore Ltd.  All rights reserved.
+
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pytest-container:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install requirements
+        run: |
+          pip install -U pip
+          pip install .[dev]
+
+      - name: Log installed environment
+        run: |
+          python3 -m pip freeze
+
+      - name: Pre-commit all files
+        run: |
+          pre-commit run --all-files
+
+      - name: Run unit tests
+        run: |
+          pytest -vv .
+
+      - name: MyPy
+        run: |
+          mypy --disallow-untyped-defs --enable-error-code redundant-expr src test
+
+      - name: Ensure that docs build
+        run: |
+          cd docs && make html
