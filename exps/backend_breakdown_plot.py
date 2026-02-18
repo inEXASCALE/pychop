@@ -20,7 +20,7 @@ rounding_mode_names = [
 operations = ["quantize_only"]
 metrics = ["time", "throughput"]
 metric_names = {"time": "Runtime (seconds)", "throughput": "Throughput (G elements/s)"}
-y_scales = {"time": "log", "throughput": "linear"}
+y_scales = {"time": "log", "throughput": "log"}
 
 backend_types = ["cpu", "gpu"]
 backend_labels = {

@@ -67,7 +67,7 @@ for i, backend in enumerate(["numpy", "jax", "torch"]):
             label=f"gfloat {backend_labels[backend]}"
         )
 
-ax_left.set_title(f"Quantization Performance — {short_name} (log scale)", fontsize=fontsize + 1)
+ax_left.set_title(f"Quantization Performance — {short_name}", fontsize=fontsize + 1)
 ax_left.set_xlabel("Matrix Size (N×N)", fontsize=fontsize)
 ax_left.set_ylabel("Average Time (seconds)", fontsize=fontsize)
 ax_left.tick_params(axis='both', labelsize=fontsize-1)
@@ -95,7 +95,7 @@ for i, backend in enumerate(["numpy", "jax", "torch"]):
             label=f"gfloat {backend_labels[backend]}"
         )
 
-ax_right.set_title(f"Quantization Performance — {short_name} (log scale)", fontsize=fontsize + 1)
+ax_right.set_title(f"Quantization Performance — {short_name}", fontsize=fontsize + 1)
 ax_right.set_xlabel("Matrix Size (N×N)", fontsize=fontsize)
 # No ylabel on right since sharey=True
 ax_right.tick_params(axis='both', labelsize=fontsize-1)
