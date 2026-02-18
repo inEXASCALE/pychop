@@ -15,4 +15,5 @@ exps/additional_cp/resnet18_2/*.pth
 exps/additional_cp/resnet18_1/qat_models/
 exps/additional_cp/resnet18_2/qat_models/
 exps/*.pth
+exps/*.npz
 pychop.egg-info/
