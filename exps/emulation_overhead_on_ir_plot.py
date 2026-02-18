@@ -115,8 +115,7 @@ def visualize(csv_path='results/pychop_overhead.csv', fontsize=12):
         fig_name = f"overhead_comparison_size_{n}"
 
         plt.savefig(output_dir / f"{fig_name}.png",
-                    dpi=600,
-                    bbox_inches='tight')
+                    dpi=600, bbox_inches='tight')
         plt.savefig(output_dir / f"{fig_name}.pdf",
                     bbox_inches='tight')
         plt.savefig(output_dir / f"{fig_name}.svg",
