@@ -157,6 +157,8 @@ def iterative_refinement_native(A: np.ndarray, b: np.ndarray,
     return x
 
 
+
+
 def iterative_refinement_emulated(A: np.ndarray, b: np.ndarray,
                                   max_iter: int = 10, tol: float = 1e-6,
                                   backend: str = 'numpy') -> np.ndarray:
