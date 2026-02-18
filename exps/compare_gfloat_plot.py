@@ -34,7 +34,7 @@ for fmt in formats:
 # shared legend placed at the bottom center
 # ────────────────────────────────────────────────
 
-fontsize = 15
+fontsize = 14
 linewidth = 1.9
 markers = ['o', 's', '^', 'D', 'v', 'P']
 linestyles = ['-', '--', '-.']
