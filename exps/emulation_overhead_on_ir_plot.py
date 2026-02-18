@@ -47,7 +47,7 @@ def visualize(csv_path='results/pychop_overhead.csv', fontsize=12):
 
     df = pd.read_csv(csv_path)
 
-    for n in [2000, 5000]:
+    for n in [2000, 4000, 6000, 8000]:
 
         df_n = df[df['size'] == n]
         raw_backends = df_n['backend'].unique()

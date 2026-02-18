@@ -16,7 +16,25 @@ from scipy.linalg import qr, lu_factor, lu_solve
 
 import pychop
 from pychop import LightChop
+import random
+import torch
 
+def fix_seed(seed: int = 42):
+    """
+    Fix random seed for reproducibility in PyTorch, NumPy, and Python.
+    """
+    random.seed(seed)                   # Python random
+    np.random.seed(seed)                # NumPy
+    torch.manual_seed(seed)             # PyTorch CPU
+    torch.cuda.manual_seed(seed)        # PyTorch GPU
+    torch.cuda.manual_seed_all(seed)    # All GPUs if multi-GPU
+
+    # For deterministic behavior (may slow down some operations)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+fix_seed(42)
 
 
 def compare_solutions(x_native, x_emulated, tol: float = 1e-6) -> bool:
@@ -153,8 +171,8 @@ def iterative_refinement_emulated(A: np.ndarray, b: np.ndarray,
 
     if backend == 'numpy':
         lib = np
-        A_in = ch(A.copy().astype(np.float32))
-        b_in = ch(b.copy().astype(np.float32))
+        A_in = ch(A.copy()).astype(np.float32)
+        b_in = ch(b.copy()).astype(np.float32)
         lib_matmul = np.matmul
         lib_norm = np.linalg.norm
 
@@ -239,7 +257,7 @@ def measure_time(func, *args, num_runs: int = 4, **kwargs) -> float:
 
 def run_benchmark():
     results = []
-    sizes = [2000, 5000]
+    sizes = [2000, 4000, 6000, 8000]
 
     for n in sizes:
         print(f"\nGenerating system for n = {n} ...")
