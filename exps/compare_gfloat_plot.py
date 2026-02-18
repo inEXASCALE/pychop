@@ -3,148 +3,126 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 
-# Create output directory if it does not exist
+# Create output directory if needed
 os.makedirs("figures", exist_ok=True)
 
-# Load previously saved results (make sure the filename matches your saved file)
+# Load results
 data = np.load("quantize_results.npz", allow_pickle=True)
-results = data["results"].item()  # loaded as a dictionary
+results = data["results"].item()
 
-# Extract matrix sizes (sorted for consistent plotting)
-sizes = sorted(results.keys())  # e.g. [2000, 4000, 6000, 8000, 10000]
-
-# Define formats (you can also extract them dynamically if preferred)
+# Extract sizes and formats
+sizes = sorted(results.keys())
 formats = ["binary16", "bfloat16"]
 
-# Prepare time dictionaries: format → backend → list of times across sizes
-times_pychop = {fmt: {} for fmt in formats}
-times_gfloat = {fmt: {} for fmt in formats}
+# Prepare time data: format → library → backend → list of times
+times = {
+    "pychop":   {fmt: {} for fmt in formats},
+    "gfloat":   {fmt: {} for fmt in formats},
+}
 
 for fmt in formats:
     for size in sizes:
         res = results[size][fmt]
-        
-        # We use numpy backend for the fairest comparison
-        times_pychop[fmt].setdefault("numpy", []).append(res["pychop_numpy"]["time"])
-        times_gfloat[fmt].setdefault("numpy", []).append(res["gfloat_numpy"]["time"])
-
-        # Optional: collect other backends if you want to plot them later
-        # times_pychop[fmt].setdefault("jax", []).append(res["pychop_jax"]["time"])
-        # times_gfloat[fmt].setdefault("jax", []).append(res["gfloat_jax"]["time"])
+        for lib in ["pychop", "gfloat"]:
+            for backend in ["numpy", "jax", "torch"]:
+                key = f"{lib}_{backend}"
+                if key in res:
+                    times[lib][fmt].setdefault(backend, []).append(res[key]["time"])
 
 # ────────────────────────────────────────────────
-# Time comparison plots — one figure per format (bf16 and fp16 separately)
+# Time comparison: one figure per format, all backends shown
 # ────────────────────────────────────────────────
 
-fontsize = 14
-linewidth = 2
-markers = ['o', 's', '^']
-linestyles = ['-', '--']
+fontsize = 15
+linewidth = 1.8
+markers = ['o', 's', '^', 'D', 'v', 'P']
+linestyles = ['-', '--', '-.']
 
-# Which backends to include in the plot (currently only numpy)
-backends_to_plot = ["numpy"]
+backend_labels = {
+    "numpy": "NumPy",
+    "jax":   "JAX",
+    "torch": "PyTorch"
+}
 
-for fmt in ["bfloat16", "binary16"]:
-    label_map = {"bfloat16": "bf16", "binary16": "fp16"}
-    short_name = label_map[fmt]
+for fmt in formats:
+    short_name = "fp16" if fmt == "binary16" else "bf16"
     
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(10, 6))
     
-    for backend in backends_to_plot:
-        # Plot PyChop
-        plt.plot(sizes, times_pychop[fmt][backend],
-                 marker='o', linestyle='-',
-                 linewidth=linewidth, markersize=8,
-                 label=f"PyChop ({short_name})")
+    lines = []
+    labels = []
+    
+    for i, backend in enumerate(["numpy", "jax", "torch"]):
+        # PyChop
+        if backend in times["pychop"][fmt]:
+            line, = plt.plot(
+                sizes, times["pychop"][fmt][backend],
+                marker=markers[i], linestyle=linestyles[0],
+                linewidth=linewidth, markersize=7,
+                label=f"PyChop {backend_labels[backend]}"
+            )
+            lines.append(line)
+            labels.append(f"PyChop {backend_labels[backend]}")
         
-        # Plot gfloat
-        plt.plot(sizes, times_gfloat[fmt][backend],
-                 marker='s', linestyle='--',
-                 linewidth=linewidth, markersize=8, alpha=0.85,
-                 label=f"gfloat ({short_name})")
+        # gfloat
+        if backend in times["gfloat"][fmt]:
+            line, = plt.plot(
+                sizes, times["gfloat"][fmt][backend],
+                marker=markers[i+3], linestyle=linestyles[1],
+                linewidth=linewidth, markersize=7, alpha=0.9,
+                label=f"gfloat {backend_labels[backend]}"
+            )
+            lines.append(line)
+            labels.append(f"gfloat {backend_labels[backend]}")
     
     plt.xlabel("Matrix Size", fontsize=fontsize)
-    plt.ylabel("Average Time (seconds)", fontsize=fontsize)
-    plt.title(f"PyChop vs gfloat — {short_name}", fontsize=fontsize + 2)
-    plt.xticks(sizes, fontsize=fontsize)
-    plt.yticks(fontsize=fontsize)
-    plt.grid(True, alpha=0.3)
-    plt.legend(fontsize=fontsize, loc="upper left")
-    plt.tight_layout()
+    plt.ylabel("Average Quantization Time (s)", fontsize=fontsize)
+    #plt.title(f"Quantization Performance — {short_name}", fontsize=fontsize + 2)
+    plt.xticks(sizes, fontsize=fontsize-1)
+    plt.yticks(fontsize=fontsize-1)
+    plt.grid(True, alpha=0.25, linestyle='--')
     
-    # Save separate figures for each format
-    safe_name = short_name.replace(" ", "_")
-    plt.savefig(f"figures/time_comparison_{safe_name}.png", dpi=150)
-    plt.close()
-
-# ────────────────────────────────────────────────
-# Consistency heatmap (both formats together)
-# ────────────────────────────────────────────────
-
-match_matrix = np.zeros((len(sizes), len(formats)))
-
-# Note: If you did not save a "match" field, this will remain all zeros.
-# You can add your own consistency check logic here if needed.
-for i, size in enumerate(sizes):
-    for j, fmt in enumerate(formats):
-        # Example: match_matrix[i, j] = int(results[size][fmt].get("match", 0))
-        pass
-
-# Only generate the plot if there is any non-zero data
-if np.any(match_matrix):
-    plt.figure(figsize=(5, 6))
-    sns.heatmap(match_matrix,
-                annot=True,
-                xticklabels=[label_map.get(f, f) for f in formats],
-                yticklabels=sizes,
-                cmap="Greens",
-                cbar=False,
-                fmt=".0f",
-                linewidths=1)
-    plt.xlabel("Format", fontsize=fontsize)
-    plt.ylabel("Matrix Size", fontsize=fontsize)
-    plt.title("Consistency (1 = match)", fontsize=fontsize)
-    plt.xticks(fontsize=fontsize)
-    plt.yticks(fontsize=fontsize, rotation=0)
+    # Put legend outside to avoid crowding
+    plt.legend(lines, labels,
+               loc='upper left', bbox_to_anchor=(1.02, 1),
+               fontsize=fontsize-1, frameon=True)
+    
     plt.tight_layout()
-    plt.savefig("figures/consistency_heatmap.png", dpi=150)
+    plt.savefig(f"figures/time_comparison_{short_name}.png", dpi=160, bbox_inches='tight')
     plt.close()
 
 # ────────────────────────────────────────────────
-# Relative error heatmap (both formats together)
+# Relative error heatmap (PyChop numpy vs gfloat numpy)
 # ────────────────────────────────────────────────
+
+label_map = {"binary16": "fp16", "bfloat16": "bf16"}
 
 err_matrix = np.zeros((len(sizes), len(formats)))
 
 for i, size in enumerate(sizes):
     for j, fmt in enumerate(formats):
-        # Retrieve the relative error saved earlier
-        err_matrix[i, j] = results[size][fmt].get("rel_error_numpy", 0.0)
+        err_matrix[i, j] = results[size][fmt].get("rel_error_numpy", np.nan)
 
 plt.figure(figsize=(5, 6))
 sns.heatmap(err_matrix,
             annot=True,
             fmt=".2e",
-            xticklabels=[label_map.get(f, f) for f in formats],
+            xticklabels=[label_map[f] for f in formats],
             yticklabels=sizes,
-            cmap="magma",
-            linewidths=1)
+            cmap="magma_r",
+            linewidths=0.8,
+            cbar_kws={'label': 'Relative Error'})
 
 plt.xlabel("Format", fontsize=fontsize)
 plt.ylabel("Matrix Size", fontsize=fontsize)
-plt.title("Relative Error (PyChop vs gfloat)", fontsize=fontsize)
+plt.title("Relative Error\n(PyChop numpy vs gfloat numpy)", fontsize=fontsize)
 plt.xticks(fontsize=fontsize)
 plt.yticks(fontsize=fontsize, rotation=0)
 plt.tight_layout()
-plt.savefig("figures/relative_error_heatmap.png", dpi=150)
+plt.savefig("figures/relative_error_heatmap.png", dpi=160)
 plt.close()
 
-# ────────────────────────────────────────────────
-# Print summary of saved figures
-# ────────────────────────────────────────────────
-
-print("Figures saved in ./figures/")
-print("  - time_comparison_bf16.png")
-print("  - time_comparison_fp16.png")
-print("  - consistency_heatmap.png      (if consistency data exists)")
-print("  - relative_error_heatmap.png")
+print("Saved figures:")
+print("  figures/time_comparison_fp16.png")
+print("  figures/time_comparison_bf16.png")
+print("  figures/relative_error_heatmap.png")
