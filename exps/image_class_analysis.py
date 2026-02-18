@@ -146,6 +146,120 @@ def plot_rounding_mode_impact(df):
         print(f"Generated: rounding_impact_weight_mse{i}.png")
 
 
+def plot_rounding_mode_impact_combined(df):
+    """
+    Combined figure: Effect of Rounding Mode on Weight MSE across all datasets.
+    - One subplot per dataset, sharing the same y-axis scale for fair comparison.
+    - Single shared legend placed at the bottom center of the entire figure.
+    - Each 'Format' uses a unique combination of color + linestyle + marker.
+    """
+    datasets = sorted(df['Dataset'].unique())           # consistent order
+    n_datasets = len(datasets)
+    
+    if n_datasets == 0:
+        print("No datasets found.")
+        return
+    
+    # Define style cycles — enough combinations for most format cases
+    import itertools
+    markers = ['o', 's', '^', 'D', 'v', 'p', '*', 'X', '<', '>']
+    linestyles = ['-', '--', '-.', ':', (0, (3,1,1,1)), (0, (5,1)), (0, (1,1))]
+    style_combinations = list(itertools.product(markers, linestyles))
+    
+    # Decide layout: try to make it roughly square-ish or wide
+    # For 4 datasets → 2×2; adjust cols if you prefer different aspect
+    ncols = min(2, n_datasets) if n_datasets <= 4 else min(3, n_datasets)
+    nrows = (n_datasets + ncols - 1) // ncols
+    
+    fig, axes = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=(5 * ncols, 4 * nrows),   # adjust size as needed
+        sharex=True,
+        sharey=True,                      # important: same MSE scale
+        squeeze=False
+    )
+    
+    # Flatten axes for easy iteration
+    axes_flat = axes.flat
+    
+    # Get all unique formats across the whole dataframe (for consistent legend)
+    all_formats = sorted(df['Format'].unique())
+    n_formats = len(all_formats)
+    
+    # Choose a good categorical palette
+    palette = sns.color_palette("tab10", n_colors=max(10, n_formats))
+    
+    # To collect handles/labels only once (for shared legend)
+    handles, labels = [], []
+    
+    for idx, dataset_name in enumerate(datasets):
+        ax = axes_flat[idx]
+        subset = df[df['Dataset'] == dataset_name].copy()
+        
+        for j, fmt in enumerate(all_formats):
+            data_fmt = subset[subset['Format'] == fmt]
+            if data_fmt.empty:
+                continue
+                
+            marker, ls = style_combinations[j % len(style_combinations)]
+            color = palette[j % len(palette)]
+            
+            line, = ax.plot(
+                data_fmt["Rounding_Mode"],
+                data_fmt["Weight_MSE"],
+                color=color,
+                linestyle=ls,
+                marker=marker,
+                markersize=7,
+                linewidth=1.8,
+                alpha=0.95,
+                label=fmt
+            )
+            
+            # Collect only once (first appearance of each format)
+            if fmt not in labels:
+                handles.append(line)
+                labels.append(fmt)
+        
+        ax.set_title(f"{dataset_name}", fontsize=13, pad=8)
+        ax.set_xlabel("Rounding Mode Index" if idx >= (nrows-1)*ncols else "")
+        ax.set_ylabel("Weight MSE" if idx % ncols == 0 else "")
+        ax.grid(True, linestyle="--", alpha=0.6)
+        
+        # Use the actual unique rounding modes from data
+        unique_rm = sorted(subset['Rounding_Mode'].unique())
+        ax.set_xticks(unique_rm)
+        ax.tick_params(axis='both', which='major', labelsize=11)
+    
+    # Hide empty subplots if any
+    for ax in axes_flat[len(datasets):]:
+        ax.set_visible(False)
+    
+    # Place one shared legend at the bottom center
+    fig.legend(
+        handles=handles,
+        labels=labels,
+        loc='lower center',
+        bbox_to_anchor=(0.5, -0.1),   # adjust -0.01 ~ -0.05 if needed
+        ncol=max(4, n_formats // 2),   # make legend horizontal-ish
+        title="Quantization Format",
+        frameon=True,
+        fontsize=12,
+        title_fontsize=13
+    )
+    
+    # Adjust layout to make room for the bottom legend
+    fig.tight_layout(rect=[0, 0.04, 1, 0.98])  # leave space at bottom
+    
+    # Save
+    save_path = f"{OUTPUT_DIR}/rounding_impact_weight_mse_combined.png"
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    
+    print(f"Generated combined plot: rounding_impact_weight_mse_combined.png")
+
+
 def plot_tradeoff_efficiency(df):
     """
     Box plot: Accuracy vs theoretical bit cost (Bits = Exp + Sig + sign bit).
@@ -186,6 +300,7 @@ if __name__ == "__main__":
     plot_accuracy_by_format(df)
     plot_sqnr_vs_accuracy(df)
     plot_rounding_mode_impact(df)
+    plot_rounding_mode_impact_combined(df)
     plot_tradeoff_efficiency(df)
    
     print(f"\nAnalysis complete. Check the '{OUTPUT_DIR}' folder.")
