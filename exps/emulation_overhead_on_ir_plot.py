@@ -34,7 +34,7 @@ def visualize(csv_path='results/pychop_overhead.csv', fontsize=12):
     backend_name_map = {
         "numpy": "NumPy",
         "jax": "JAX",
-        "pytorch": "PyTorch",
+        "torch": "PyTorch",
         "tensorflow": "TensorFlow",
         "cupy": "CuPy",
         "mkl": "MKL",
