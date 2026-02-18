@@ -77,11 +77,12 @@ for fmt in formats:
     ax.grid(True, which="both", alpha=0.3, linestyle='--')
     
     # Legend outside the plot
-    ax.legend(
-        loc='upper left',
-        bbox_to_anchor=(1.02, 1),
-        fontsize=fontsize-1,
-        frameon=True
+    if fmt == "binary16":
+        ax.legend(
+            loc='upper left',
+            bbox_to_anchor=(1.02, 1),
+            fontsize=fontsize-1,
+            frameon=True
     )
     
     plt.tight_layout()
