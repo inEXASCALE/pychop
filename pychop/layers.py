@@ -171,6 +171,7 @@ class FQuantizedLayer(nn.Module):
 
 
 # ===================================================================
+# Float point quantization
 # ===================================================================
 
 # Quantized Convolutional Layers
@@ -850,6 +851,7 @@ class QuantizedAdaptiveAvgPool2d(nn.Module):
 
 
 # ===================================================================
+# Integer quantization
 # ===================================================================
 
 
@@ -1231,9 +1233,8 @@ class IntQuantizedFlatten(nn.Module):
 
 
 # ===================================================================
+# Fixed point quantization
 # ===================================================================
-
-# ----- Fixed-point arithmetic
 
 class FPQuantizedLinear(nn.Module):
     def __init__(self, in_features, out_features, ibits=8, fbits=8, rmode=1):

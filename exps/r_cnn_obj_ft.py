@@ -188,7 +188,7 @@ def run_inference(model, loader, use_amp=False, max_images=None, quantizer=None)
                     image_ids.append(image_id)
 
                     for box, score, label in zip(boxes, scores, labels):
-                        if score > 0.5 and label > 0:
+                        if score > 0.05 and label > 0:
                             x, y, x2, y2 = box
                             width = x2 - x
                             height = y2 - y
