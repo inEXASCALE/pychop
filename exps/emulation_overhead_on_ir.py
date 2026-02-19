@@ -4,7 +4,7 @@ in iterative refinement (Higham-style, LU once + repeated solve).
 
 Tests matrix sizes: 2000 × 2000 and 5000 × 5000
 Condition number: ~10^4
-Backends: numpy, jax, torch (CPU)
+Backends: numpy, jax (CPU), torch (CPU)
 Measurement: 4 runs → discard warm-up (first) → average of next 3
 Saves results to 'results/pychop_overhead.csv'
 """
@@ -37,7 +37,7 @@ def fix_seed(seed: int = 42):
 fix_seed(42)
 
 
-def compare_solutions(x_native, x_emulated, tol: float = 1e-6) -> bool:
+def compare_solutions(x_native, x_emulated, tol: float = 1e-8) -> bool:
     """
     Compare native and emulated FP32 solutions.
     Returns True if they match within the given tolerance.
@@ -173,8 +173,8 @@ def iterative_refinement_emulated(A: np.ndarray, b: np.ndarray,
 
     if backend == 'numpy':
         lib = np
-        A_in = ch(A.copy()).astype(np.float32)
-        b_in = ch(b.copy()).astype(np.float32)
+        A_in = A.copy().astype(np.float32)
+        b_in = b.copy().astype(np.float32)
         lib_matmul = np.matmul
         lib_norm = np.linalg.norm
 
