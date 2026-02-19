@@ -88,7 +88,7 @@ for op in operations:
                 continue
 
             plt.title(f"{readable_mode}", fontsize=fontsize)
-            plt.xlabel("Matrix Size (N x N)", fontsize=fontsize)
+            plt.xlabel("Matrix Size", fontsize=fontsize)
             plt.ylabel(metric_names[metric], fontsize=fontsize)
             plt.yscale(y_scales[metric])
 
@@ -100,7 +100,7 @@ for op in operations:
             plt.grid(True, which="both", ls="--")
             plt.tight_layout()
 
-            plt.savefig(f"results/{op}_{safe_mode}_{metric}.png")
+            plt.savefig(f"figures/{op}_{safe_mode}_{metric}.png")
             plt.close()
 
 print("\nCompleted! Plots are saved in the 'results/' folder.")

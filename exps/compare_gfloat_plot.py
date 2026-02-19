@@ -68,7 +68,7 @@ for i, backend in enumerate(["numpy", "jax", "torch"]):
         )
 
 ax_left.set_title(f"Quantization Performance — {short_name}", fontsize=fontsize + 1)
-ax_left.set_xlabel("Matrix Size (N×N)", fontsize=fontsize)
+ax_left.set_xlabel("Matrix Size", fontsize=fontsize)
 ax_left.set_ylabel("Average Time (seconds)", fontsize=fontsize)
 ax_left.tick_params(axis='both', labelsize=fontsize-1)
 ax_left.grid(True, which="both", alpha=0.3, linestyle='--')
@@ -96,7 +96,7 @@ for i, backend in enumerate(["numpy", "jax", "torch"]):
         )
 
 ax_right.set_title(f"Quantization Performance — {short_name}", fontsize=fontsize + 1)
-ax_right.set_xlabel("Matrix Size (N×N)", fontsize=fontsize)
+ax_right.set_xlabel("Matrix Size", fontsize=fontsize)
 # No ylabel on right since sharey=True
 ax_right.tick_params(axis='both', labelsize=fontsize-1)
 ax_right.grid(True, which="both", alpha=0.3, linestyle='--')

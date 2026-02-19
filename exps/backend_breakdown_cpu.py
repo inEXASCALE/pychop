@@ -79,4 +79,4 @@ for op in operations:
         results_time[op][mode].to_csv(f"results/{op}_{safe_mode}_cpu_time.csv")
         results_throughput[op][mode].to_csv(f"results/{op}_{safe_mode}_cpu_throughput.csv")
 
-print("\nCPU benchmark 完成！")
+print("\nCPU benchmark complted!")

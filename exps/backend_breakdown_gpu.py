@@ -55,4 +55,4 @@ for op in operations:
         results_time[op][mode].to_csv(f"results/{op}_{safe_mode}_gpu_time.csv")
         results_throughput[op][mode].to_csv(f"results/{op}_{safe_mode}_gpu_throughput.csv")
 
-print("\nGPU benchmark 完成！")
+print("\nGPU benchmark completed!")
