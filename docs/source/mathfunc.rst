@@ -19,6 +19,46 @@ Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type o
    - Inputs must satisfy domain constraints (e.g., positive for log, non-zero for reciprocal).
    - `matmul` requires inputs to be at least 1-dimensional; scalars are not allowed.
 
+
+**Example (NumPy):**
+.. code-block:: python
+
+   import numpy as np
+   import pychop.math_func as mf
+   from pychop import chop
+
+   chopper = chop(prec='h')
+   x = np.array([0.0, 1.5708])  # ~ [0, pi/2]
+   result = mf.sin(x, chopper)
+   print(result)  # Expected: ~ [0.0, 1.0] with chopping
+
+
+**Example (PyTorch):**
+.. code-block:: python
+
+   import torch
+   import pychop.math_func as mf
+   from pychop import chop
+
+   chopper = chop(prec='h')
+   x = torch.tensor([0.0, 1.5708])
+   result = mf.sin(x, chopper)
+   print(result)  # Expected: ~ [0.0, 1.0] with chopping
+
+
+**Example (JAX):**
+.. code-block:: python
+
+   import jax.numpy as jnp
+   import pychop.math_func as mf
+   from pychop import chop
+
+   chopper = chop(prec='h')
+   x = jnp.array([0.0, 1.5708])
+   result = mf.sin(x, chopper)
+   print(result)  # Expected: ~ [0.0, 1.0] with chopping
+
+   
 Trigonometric functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
