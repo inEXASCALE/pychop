@@ -12,7 +12,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 from pychop.layers import post_quantization
 sys.path.append('../')
 import pychop
-from pychop import LightChop
+from pychop import Chop
 pychop.backend("torch")
 
 import matplotlib.pyplot as plt
@@ -230,7 +230,7 @@ def run_experiment_and_save():
                 
                 # 2. Prepare Quantized Model
                 model_q = copy.deepcopy(clean_model).to("cpu") # Copy on CPU to save memory
-                chopper = LightChop(exp_bits=exp, sig_bits=sig, rmode=rm)
+                chopper = Chop(exp_bits=exp, sig_bits=sig, rmode=rm)
                 model_q = post_quantization(model_q, chopper)
                 model_q.to(device)
                 

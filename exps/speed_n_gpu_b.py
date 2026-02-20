@@ -1,8 +1,8 @@
 # This script is to compare performance of torch backend and numpy backend
 import h5py
 import pychop
-from pychop import LightChop
 from pychop import Chop
+from pychop import FaultChop
 import numpy as np
 from time import time
 import pandas as pd
@@ -42,8 +42,8 @@ for i in range(sizes):
         for k in range(num_runs):
             pychop.backend('torch')
             
-            ch1 = LightChop(exp_bits=8, sig_bits=7, rmode=j+1)
-            ch2 = Chop('b', rmode=j+1)
+            ch1 = Chop(exp_bits=8, sig_bits=7, rmode=j+1)
+            ch2 = FaultChop('b', rmode=j+1)
             
             # GPU
             try:

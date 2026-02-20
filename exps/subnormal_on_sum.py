@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pychop import LightChop
+from pychop import Chop
 import pychop
 
 pychop.backend('numpy')   
 np.random.seed(42)
 
-ch_with = LightChop(exp_bits=5, sig_bits=10, rmode=1, subnormal=True)   # rmode=1: round-to-nearest
-ch_without = LightChop(exp_bits=5, sig_bits=10, rmode=1, subnormal=False)
+ch_with = Chop(exp_bits=5, sig_bits=10, rmode=1, subnormal=True)   # rmode=1: round-to-nearest
+ch_without = Chop(exp_bits=5, sig_bits=10, rmode=1, subnormal=False)
 
 N = 1000
 r = 0.99                  

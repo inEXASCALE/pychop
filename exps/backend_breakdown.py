@@ -2,7 +2,7 @@ import os
 import gc
 import h5py
 import pychop
-from pychop import LightChop
+from pychop import Chop
 import numpy as np
 import pandas as pd
 import torch
@@ -74,7 +74,7 @@ for i, size in enumerate(arr_sizes):
             pychop.backend("jax")
 
             def jax_eager_op(A):
-                ch = LightChop(
+                ch = Chop(
                     exp_bits=5,
                     sig_bits=10,
                     rmode=mode_idx + 1
@@ -83,7 +83,7 @@ for i, size in enumerate(arr_sizes):
 
             @jit
             def jax_jit_op(A):
-                ch = LightChop(
+                ch = Chop(
                     exp_bits=5,
                     sig_bits=10,
                     rmode=mode_idx + 1
@@ -103,7 +103,7 @@ for i, size in enumerate(arr_sizes):
                 # NumPy
                 # =====================
                 pychop.backend("numpy")
-                ch_np = LightChop(
+                ch_np = Chop(
                     exp_bits=5,
                     sig_bits=10,
                     rmode=mode_idx + 1
@@ -117,7 +117,7 @@ for i, size in enumerate(arr_sizes):
                 # PyTorch CPU
                 # =====================
                 pychop.backend("torch")
-                ch_th = LightChop(
+                ch_th = Chop(
                     exp_bits=5,
                     sig_bits=10,
                     rmode=mode_idx + 1

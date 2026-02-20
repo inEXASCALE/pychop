@@ -4,7 +4,7 @@ import sys
 # appending a path
 sys.path.append('../')
 import pychop
-from pychop import LightChop
+from pychop import Chop
 
 import torchvision
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
@@ -309,16 +309,16 @@ if __name__ == "__main__":
         
         for i in [1, 2, 3, 4, 5, 6]:
             print("\n\n---------------------------------")
-            quantizer_ft52 = LightChop(exp_bits=5, sig_bits=2, rmode=i)
-            quantizer_ft43 = LightChop(exp_bits=4, sig_bits=3, rmode=i)
-            quantizer_ft55 = LightChop(exp_bits=5, sig_bits=5, rmode=i)
-            quantizer_ft57 = LightChop(exp_bits=5, sig_bits=7, rmode=i)
+            quantizer_ft52 = Chop(exp_bits=5, sig_bits=2, rmode=i)
+            quantizer_ft43 = Chop(exp_bits=4, sig_bits=3, rmode=i)
+            quantizer_ft55 = Chop(exp_bits=5, sig_bits=5, rmode=i)
+            quantizer_ft57 = Chop(exp_bits=5, sig_bits=7, rmode=i)
             
-            quantizer_ft84 = LightChop(exp_bits=8, sig_bits=4, rmode=i)
-            quantizer_ft87 = LightChop(exp_bits=8, sig_bits=7, rmode=i)
-            quantizer_tf32 = LightChop(exp_bits=8, sig_bits=10, rmode=i)
-            quantizer_ft510 = LightChop(exp_bits=5, sig_bits=10, rmode=i)
-            quantizer_ft823 = LightChop(exp_bits=8, sig_bits=23, rmode=i)
+            quantizer_ft84 = Chop(exp_bits=8, sig_bits=4, rmode=i)
+            quantizer_ft87 = Chop(exp_bits=8, sig_bits=7, rmode=i)
+            quantizer_tf32 = Chop(exp_bits=8, sig_bits=10, rmode=i)
+            quantizer_ft510 = Chop(exp_bits=5, sig_bits=10, rmode=i)
+            quantizer_ft823 = Chop(exp_bits=8, sig_bits=23, rmode=i)
 
             model_quant_ft52 = get_quantized_faster_rcnn(quantizer_ft52)
             model_quant_ft43 = get_quantized_faster_rcnn(quantizer_ft43)

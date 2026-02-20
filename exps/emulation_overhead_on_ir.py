@@ -15,7 +15,7 @@ import pandas as pd
 from scipy.linalg import qr, lu_factor, lu_solve
 
 import pychop
-from pychop import LightChop
+from pychop import Chop
 import random
 import torch
 
@@ -169,7 +169,7 @@ def iterative_refinement_emulated(A: np.ndarray, b: np.ndarray,
       - LU factorization once in double (typical Higham IR style)
     """
     pychop.backend(backend, 0)   # 0 or 1 depending on your pychop version/behavior; check doc
-    ch = LightChop(exp_bits=8, sig_bits=23, rmode=1)  # IEEE fp32 emulation (nearest-even)
+    ch = Chop(exp_bits=8, sig_bits=23, rmode=1)  # IEEE fp32 emulation (nearest-even)
 
     if backend == 'numpy':
         lib = np

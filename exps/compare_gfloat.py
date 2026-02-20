@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 import time
 
-from pychop import LightChop, backend as pychop_backend
+from pychop import Chop, backend as pychop_backend
 from gfloat import formats, RoundMode, round_ndarray
 jax.config.update("jax_enable_x64", True)
 
@@ -42,7 +42,7 @@ for size in sizes:
         # ---------- PyChop ----------
         for backend_name, X in [("numpy", A_np), ("jax", A_jax), ("torch", A_torch)]:
             pychop_backend(backend_name, 0)
-            ch = LightChop(exp_bits=exp_bits, sig_bits=sig_bits, rmode=1)
+            ch = Chop(exp_bits=exp_bits, sig_bits=sig_bits, rmode=1)
 
             times = []
             X_q = None

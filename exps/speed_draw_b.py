@@ -4,18 +4,18 @@ import numpy as np
 
 csv_files = {
     'chop_runtimes_avg_b.csv': 'chop (MATLAB)',
-    'chop_runtimes_avg_np_b.csv': 'LightChop (MATLAB, NumPy backend)',
-    'chop_runtimes_avg_np2_b.csv': 'Chop (MATLAB, NumPy backend)',
-    'chop_runtimes_avg_th_b.csv': 'LightChop (MATLAB, PyTorch backend)',
-    'chop_runtimes_avg_th2_b.csv': 'Chop (MATLAB, PyTorch backend)',
-    'chop_runtimes_avg_th_gpu_b.csv': 'LightChop (MATLAB, GPU, PyTorch backend)',
-    'chop_runtimes_avg_th2_gpu_b.csv': 'Chop (MATLAB, GPU, PyTorch backend)',
-    'pychop_runtimes_avg_np_b.csv': 'LightChop (Python, NumPy backend)',
-    'pychop_runtimes_avg_np2_b.csv': 'Chop (Python, NumPy backend)',
-    'pychop_runtimes_avg_th_b.csv': 'LightChop (Python, PyTorch backend)',
-    'pychop_runtimes_avg_th2_b.csv': 'Chop (Python, PyTorch backend)',
-    'pychop_runtimes_avg_th_gpu_b.csv': 'LightChop (Python, GPU, PyTorch backend)',
-    'pychop_runtimes_avg_th2_gpu_b.csv': 'Chop (Python, GPU, PyTorch backend)',
+    'chop_runtimes_avg_np_b.csv': 'Chop (MATLAB, NumPy backend)',
+    'chop_runtimes_avg_np2_b.csv': 'FaultChop (MATLAB, NumPy backend)',
+    'chop_runtimes_avg_th_b.csv': 'Chop (MATLAB, PyTorch backend)',
+    'chop_runtimes_avg_th2_b.csv': 'FaultChop (MATLAB, PyTorch backend)',
+    'chop_runtimes_avg_th_gpu_b.csv': 'Chop (MATLAB, GPU, PyTorch backend)',
+    'chop_runtimes_avg_th2_gpu_b.csv': 'FaultChop (MATLAB, GPU, PyTorch backend)',
+    'pychop_runtimes_avg_np_b.csv': 'Chop (Python, NumPy backend)',
+    'pychop_runtimes_avg_np2_b.csv': 'FaultChop (Python, NumPy backend)',
+    'pychop_runtimes_avg_th_b.csv': 'Chop (Python, PyTorch backend)',
+    'pychop_runtimes_avg_th2_b.csv': 'FaultChop (Python, PyTorch backend)',
+    'pychop_runtimes_avg_th_gpu_b.csv': 'Chop (Python, GPU, PyTorch backend)',
+    'pychop_runtimes_avg_th2_gpu_b.csv': 'FaultChop (Python, GPU, PyTorch backend)',
 }
 
 base_path = 'results/'

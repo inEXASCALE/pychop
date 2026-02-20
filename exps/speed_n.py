@@ -1,8 +1,8 @@
 # This script is to compare performance of torch backend and numpy backend
 import h5py
 import pychop
-from pychop import LightChop
 from pychop import Chop
+from pychop import FaultChop
 import numpy as np
 from time import time
 import pandas as pd
@@ -61,8 +61,8 @@ for i in range(sizes):
         for k in range(num_runs):
             pychop.backend('numpy')
             
-            ch1 = LightChop(exp_bits=5, sig_bits=10, rmode=j+1)
-            ch2 = Chop('h', rmode=j+1)
+            ch1 = Chop(exp_bits=5, sig_bits=10, rmode=j+1)
+            ch2 = FaultChop('h', rmode=j+1)
             
             st = time()
             ch1(X)
@@ -79,8 +79,8 @@ for i in range(sizes):
             pychop.backend('torch')
             X_th = torch.from_numpy(X) # torch array
 
-            ch1 = LightChop(exp_bits=5, sig_bits=10, rmode=j+1)
-            ch2 = Chop('h', rmode=j+1)
+            ch1 = Chop(exp_bits=5, sig_bits=10, rmode=j+1)
+            ch2 = FaultChop('h', rmode=j+1)
 
             st = time()
             ch1(X_th)

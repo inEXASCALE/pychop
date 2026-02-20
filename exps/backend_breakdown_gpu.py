@@ -2,7 +2,7 @@
 
 import os, gc, h5py, torch
 import pychop
-from pychop import LightChop
+from pychop import Chop
 from time import time
 import numpy as np
 import pandas as pd
@@ -35,7 +35,7 @@ for i, size in enumerate(arr_sizes):
             # PyTorch GPU
             A_th_gpu = torch.from_numpy(A_np).to("cuda")
             pychop.backend("torch")
-            ch_th = LightChop(exp_bits=8, sig_bits=7, rmode=mode_idx + 1)
+            ch_th = Chop(exp_bits=8, sig_bits=7, rmode=mode_idx + 1)
 
             for k in range(num_runs):
                 gc.collect()

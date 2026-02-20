@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import time
-from pychop import LightChop, backend
+from pychop import Chop, backend
 from qtorch.quant import float_quantize
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -29,7 +29,7 @@ for size in sizes:
         print(f"  Configuration: {cfg_name}")
 
         # --- PyChop ---
-        chopper = LightChop(exp_bits=exp, sig_bits=sig, subnormal=True, rmode=1)
+        chopper = Chop(exp_bits=exp, sig_bits=sig, subnormal=True, rmode=1)
         pychop_times = []
         C_chop = None
         for i in range(4):
