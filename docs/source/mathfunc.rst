@@ -3,7 +3,7 @@ Mathematical functions
 
 ``Pychop`` provides two ways to implement mathematical functions in reduced precision. 
 
-Mathematical functions 1
+Mathematical functions II
 ------------------------------------------------------------------------
 
 The `pychop.math_func` module provides a suite of backend-aware mathematical functions that operate on floating-point numbers or arrays with custom precision chopping. These functions apply a provided `chop` callable to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32).  
@@ -21,6 +21,7 @@ Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type o
 
 
 **Example (NumPy):**
+
 .. code-block:: python
 
    import numpy as np
@@ -34,6 +35,7 @@ Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type o
 
 
 **Example (PyTorch):**
+
 .. code-block:: python
 
    import torch
@@ -47,6 +49,7 @@ Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type o
 
 
 **Example (JAX):**
+
 .. code-block:: python
 
    import jax.numpy as jnp
@@ -58,7 +61,7 @@ Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type o
    result = mf.sin(x, chopper)
    print(result)  # Expected: ~ [0.0, 1.0] with chopping
 
-   
+
 Trigonometric functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

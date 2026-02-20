@@ -9,7 +9,7 @@ This module provides **drop-in quantized layer replacements** for PyTorch models
 to support both floating-point and integer **quantization-aware training (QAT)**.
 
 All classes follow the same API as their original :mod:`torch.nn` counterparts.
-When a ``chop`` quantizer (with STE) is provided, weights and activations are
+When a ``Pychop`` quantizer (with STE) is provided, weights and activations are
 fake-quantized during the forward pass while gradients flow through unchanged
 (Straight-Through Estimator).
 
