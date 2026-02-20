@@ -1,13 +1,15 @@
 Mathematical functions 
 ========================================
-
-``Pychop`` provides two ways to implement mathematical functions in reduced precision. 
+ 
+``Pychop`` provides two ways to implement mathematical functions in reduced precision.  
+The first approach requires specifying a backend, whereas the second approach does not require explicitly specifying one.
 
 
 Mathematical functions I
 ------------------------------------------------------------------------
 
 The `chop` class provides a suite of mathematical functions that operate on floating-point numbers with custom precision chopping. These functions apply the chopping mechanism (via `chop_wrapper`) to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32). Implementations are available for NumPy, PyTorch, and JAX, with slight variations noted below. Functions are categorized for clarity.
+However, this method requires user to specify the backend first. 
 
 .. note::
    - All functions use the `chop_wrapper` method to apply precision chopping before and after computation.
