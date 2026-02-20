@@ -51,7 +51,7 @@ Utility Functions
 
 .. autofunction:: post_quantization
 
-Floating-Point Quantized Layers (QAT)
+Floating-Point / Fixed-point Quantized Layers (QAT)
 =====================================
 
 These layers use ``ChopSTE`` (or ``Chop``) for **floating-point QAT**.

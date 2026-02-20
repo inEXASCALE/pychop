@@ -1,7 +1,7 @@
 Quick start
 =====================================================
 
-The main function of the ``pychop`` is the method ``Chop``, which is loaded by 
+The main function of the ``Pychop`` is the method ``Chop``, which is loaded by 
 
 .. code:: python
 
@@ -10,7 +10,7 @@ The main function of the ``pychop`` is the method ``Chop``, which is loaded by
 
 
     
-``pychop`` supports NumPy (default), JAX, Torch as backend for simulation. Before performing the quantization, to set backend:
+``Pychop`` supports NumPy (default), JAX, Torch as backend for simulation. Before performing the quantization, to set backend:
 
 .. code:: python
 
@@ -20,7 +20,7 @@ The main function of the ``pychop`` is the method ``Chop``, which is loaded by
 
 .. note::
 
-    Users do not need to specify the backend for precision emulation. By using ``pychop.backend("auto")`` (which is the default setting), ``pychop`` will automatically detect the required backend
+    Users do not need to specify the backend for precision emulation. By using ``pychop.backend("auto")`` (which is the default setting), ``Pychop`` will automatically detect the required backend
 
     The difference between setting backend and without setting backend is that the speed of the first run is different, others are almost identical:
 
