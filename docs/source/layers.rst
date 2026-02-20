@@ -51,7 +51,7 @@ Utility Functions
 
 .. autofunction:: post_quantization
 
-Floating-Point / Fixed-point Quantized Layers (QAT)
+Floating-Point / Fixed-point Quantized Layers
 =====================================
 
 These layers use ``ChopSTE`` (or ``Chop``) for **floating-point QAT**.
@@ -178,7 +178,7 @@ Activation & Regularization Layers (Floating-Point)
 .. autoclass:: QuantizedDropout
    :members:
 
-Integer Quantized Layers (QAT)
+Integer Quantized Layers
 ==============================
 
 These layers use ``ChopiSTE`` for **integer QAT** (uniform or symmetric).
