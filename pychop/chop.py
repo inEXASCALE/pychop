@@ -122,8 +122,10 @@ class Chop:
             elif backend == "jax":
                 X = to_jax_array(X) 
                 from .jx.lightchop import LightChop_ as _LightChopImpl
-            else:
+            elif backend == "numpy":
                 X = to_numpy_array(X)  
+                from .np.lightchop import LightChop_ as _LightChopImpl
+            else:
                 from .np.lightchop import LightChop_ as _LightChopImpl
 
             self._impl = _LightChopImpl(

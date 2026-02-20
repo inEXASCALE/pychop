@@ -98,8 +98,10 @@ class Chopf:
                 X = to_torch_tensor(X)
             elif target_backend == "jax":
                 X = to_jax_array(X)
-            else:  # numpy
+            elif target_backend == "numpy": 
                 X = to_numpy_array(X)
+        
+
 
             # Create the backend implementation
             self._get_impl(target_backend)
