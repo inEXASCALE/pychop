@@ -10,9 +10,9 @@ and quantization in modern machine, it supports NumPy, Torch,  or JAX backend.
 
 ``Pychop`` mainly contains three modules for quantization simulation:
 
-* chop: for low precision floating point simulation
-* quant: for integer quantization
-* fixed_point: for fixed point quantization
+* Chop: for low precision floating point simulation
+* Chopi: for integer quantization
+* Chopf: for fixed point quantization
 
 
 Features
