@@ -4,11 +4,11 @@ Welcome to Pychop's documentation!
 Using low precesion can gain extra speedup while resulting in less storage and energy cost. 
 The intention of pychop, motivated by software ``chop`` in Matlab developed by Nick higham, 
 is to simulate the low precision formats based on single and double precisions, 
-which is pravalent on modern machine.  ``pychop`` is a Python package for simulaing low precision 
+which is pravalent on modern machine.  ``Pychop`` is a Python package for simulaing low precision 
 and quantization in modern machine, it supports NumPy, Torch,  or JAX backend. 
 
 
-``pychop`` mainly contains three modules for quantization simulation:
+``Pychop`` mainly contains three modules for quantization simulation:
 
 * chop: for low precision floating point simulation
 * quant: for integer quantization
@@ -18,7 +18,7 @@ and quantization in modern machine, it supports NumPy, Torch,  or JAX backend.
 Features
 --------------------
 
-The ``pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
+The ``Pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
 
 * Customizable Precision:
  
@@ -39,12 +39,12 @@ The optional support_denormals parameter enables handling of subnormal numbers, 
 
 * GPU Acceleration:
 
-Leveraging PyTorch's tensor operations and device support (device parameter), ``pychop`` can run efficiently on GPUs. This allows for fast, vectorized processing of large datasets, making it suitable for large-scale experiments in machine learning and numerical optimization.
+Leveraging PyTorch's tensor operations and device support (device parameter), ``Pychop`` can run efficiently on GPUs. This allows for fast, vectorized processing of large datasets, making it suitable for large-scale experiments in machine learning and numerical optimization.
 
 * Reproducible Stochastic Rounding:
 
 The seed parameter ensures reproducibility in stochastic rounding modes, critical for debugging and comparing results across runs. This is a significant advantage in research settings where consistent outcomes are needed to validate hypotheses.
-To ensure consistency with MATLAB's chop software, ``pychop`` closely follows its API. For the first four rounding modes, it produces identical results given the same user-defined parameters. For stochastic rounding modes (rmode 5 and 6), both tools yield the same output when provided with identical random numbers.
+To ensure consistency with MATLAB's chop software, ``Pychop`` closely follows its API. For the first four rounding modes, it produces identical results given the same user-defined parameters. For stochastic rounding modes (rmode 5 and 6), both tools yield the same output when provided with identical random numbers.
 
 * Ease of Integration:
 
@@ -57,7 +57,7 @@ Includes overflow checking with informative error messages (e.g., OverflowError)
 
 Installation guide
 --------------------
-``pychop`` has the following dependencies for its functionality:
+``Pychop`` has the following dependencies for its functionality:
 
    * numpy>=1.21
    * pandas>=2.0

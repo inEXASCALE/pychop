@@ -2,7 +2,7 @@ Integer quantization
 =====================================================
 
 
-Integer quantization is another important feature of ``pychop``. It intention is to convert the floating point number into 
+Integer quantization is another important feature of ``Pychop``. It intention is to convert the floating point number into 
 low bit-width integer, which speedup the computations in certain computing hardware. It performs quantization with 
 user-defined bitwidths. The following example illustrates the usage of the method.
 
@@ -10,7 +10,7 @@ user-defined bitwidths. The following example illustrates the usage of the metho
 Basic usage
 --------------
 
-The integer arithmetic emulation of ``pychop`` is implemented by the interface ``Chopi``. It can be used in many circumstances, and offer flexible choices for users to choose, such as symmetric quantization or not, number of bitwidth to use, the usage is illustrated as below:
+The integer arithmetic emulation of ``Pychop`` is implemented by the interface ``Chopi``. It can be used in many circumstances, and offer flexible choices for users to choose, such as symmetric quantization or not, number of bitwidth to use, the usage is illustrated as below:
 
 .. class:: Chopi(num_bits=8, symmetric=False, per_channel=False, channel_dim=0)
 
@@ -155,7 +155,7 @@ The integer arithmetic emulation of ``pychop`` is implemented by the interface `
 Quantization aware training
 ----------------------------------------------
 
-``pychop`` provides easy-to-use API ``IntQuantizedLayer`` for quantization aware training.  
+``Pychop`` provides easy-to-use API ``IntQuantizedLayer`` for quantization aware training.  
 
 Simply load the module via:
 

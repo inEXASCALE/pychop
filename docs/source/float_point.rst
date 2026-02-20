@@ -18,7 +18,7 @@ A floating point number systems can be represented by
 ``FaultChop``: soft error simulator for floating point arithmetic
 ----------------------------------------------------------
 
-``pychop`` built-in method ``FaultChop`` supports the following precision:
+``Pychop`` built-in method ``FaultChop`` supports the following precision:
 
 
 
@@ -52,7 +52,7 @@ Besides, the supported rounding modes include (user can specify it by setting th
 
 Subnormal numbers is supported, they are flushed to zero if it not considered (by setting ``subnormal`` to 0).
 
-``pychop`` also supports customized precisions One can also use customized floating point arithmetic by defining precision:
+``Pychop`` also supports customized precisions One can also use customized floating point arithmetic by defining precision:
 
 .. code:: python
 

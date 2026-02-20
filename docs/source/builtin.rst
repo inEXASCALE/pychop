@@ -4,7 +4,7 @@
 Built-in low-precision types
 =================================
 
-``pychop`` ships three ready-made classes that automatically **chop to the
+``Pychop`` ships three ready-made classes that automatically **chop to the
 desired format after every arithmetic operation**:
 
 * :class:`pychop.builtin.CPFloat` – scalar (Python ``float``-like)
