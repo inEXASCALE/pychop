@@ -1,31 +1,29 @@
-import os
-from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array
-
+import os, torch
+from typing import Optional
+from torch.autograd import Function
+from .utils import *
 
 class Chopi:
     """
-    Front-end wrapper class for backend-specific integer quantization implementations.
+    Front-end wrapper for backend-specific integer quantization implementations.
+
+    This class dispatches to a backend implementation (NumPy, PyTorch, or JAX)
+    depending on the environment variable ``chop_backend`` or automatically
+    based on the input type when ``chop_backend="auto"``.
 
     Parameters
     ----------
     bits : int, default=8
-        The bitwidth of the integer format. Larger values allow a wider range.
+        Bit-width of the integer quantization format.
 
     symmetric : bool, default=False
         If True, use symmetric quantization (zero-point fixed at 0).
 
     per_channel : bool, default=False
-        If True, perform quantization per channel along the specified axis.
+        If True, apply per-channel quantization along the specified axis.
 
     axis : int, default=0
-        The axis to treat as the channel dimension when per_channel=True.
-
-    Returns
-    -------
-    Chopi object that can be called on arrays/tensors to quantize them to the specified
-    integer format. The backend is automatically detected from the input type when
-    ``os.environ["chop_backend"]`` is "auto" (default), or fixed via the environment
-    variable.
+        Axis to use as the channel dimension when ``per_channel=True``.
     """
 
     def __init__(
@@ -40,72 +38,134 @@ class Chopi:
         self.per_channel = per_channel
         self.axis = axis
 
-        self._impl = None
-        self._current_backend = None
-        backend = os.environ.get("chop_backend", "auto")
-        self._get_impl(backend)
+        self._impl: Optional[object] = None
+        self._current_backend: Optional[str] = None
 
+    # ---------------------------------------------------------------------
+    # Internal utilities
+    # ---------------------------------------------------------------------
 
-    def _get_impl(self, backend: str):
-        """Create or reuse the backend-specific implementation."""
-        if self._current_backend == backend and self._impl is not None:
-            return self._impl
-
-        impl = None
-
-        if backend != "auto":
-            if backend == "torch":
-                from .tch.integer import Chopi_ as _ChopiImpl
-            elif backend == "jax":
-                from .jx.integer import Chopi_ as _ChopiImpl
-            elif backend == "numpy":
-                from .np.integer import Chopi_ as _ChopiImpl
-            else:
-                raise ValueError(
-                    f"Unsupported backend: {backend}. Must be 'torch', 'jax', or 'numpy'."
-                )
-            
-            impl = _ChopiImpl(
-                bits=self.bits,
-                symmetric=self.symmetric,
-                per_channel=self.per_channel,
-                axis=self.axis,
-            )
-
-        self._impl = impl
-        self._current_backend = backend
-        return impl
-
-    def __call__(self, X):
+    def _resolve_backend(self, X):
+        """Resolve backend based on environment and input type."""
         env_backend = os.environ.get("chop_backend", "auto")
 
         if env_backend == "auto":
-            target_backend = detect_array_type(X)
-        else:
-            target_backend = env_backend
-            if target_backend not in {"torch", "jax", "numpy"}:
-                raise ValueError(
-                    f"Invalid chop_backend environment value: {target_backend}. "
-                    "Must be 'torch', 'jax', or 'numpy'."
-                )
+            return detect_array_type(X)
 
-        # Convert input to the target backend type
-        if target_backend == "torch":
+        if env_backend not in {"torch", "jax", "numpy"}:
+            raise ValueError(
+                f"Invalid chop_backend environment value: {env_backend}. "
+                "Must be 'torch', 'jax', or 'numpy'."
+            )
+
+        return env_backend
+
+    def _get_impl(self, backend: str):
+        """Create or reuse backend implementation."""
+        if self._current_backend == backend and self._impl is not None:
+            return self._impl
+
+        if backend == "torch":
+            from .tch.integer import Chopi_ as _ChopiImpl
+        elif backend == "jax":
+            from .jx.integer import Chopi_ as _ChopiImpl
+        elif backend == "numpy":
+            from .np.integer import Chopi_ as _ChopiImpl
+        else:
+            raise ValueError(
+                f"Unsupported backend: {backend}. "
+                "Must be 'torch', 'jax', or 'numpy'."
+            )
+
+        self._impl = _ChopiImpl(
+            bits=self.bits,
+            symmetric=self.symmetric,
+            per_channel=self.per_channel,
+            axis=self.axis,
+        )
+        self._current_backend = backend
+        return self._impl
+
+    def _ensure_impl(self, X):
+        """Ensure correct backend implementation exists."""
+        backend = self._resolve_backend(X)
+
+        if self._impl is None or self._current_backend != backend:
+            self._get_impl(backend)
+
+        return backend
+
+    # ---------------------------------------------------------------------
+    # Public API
+    # ---------------------------------------------------------------------
+
+    def quantize(self, X):
+        """
+        Quantize input tensor/array.
+
+        Parameters
+        ----------
+        X : array-like
+            Input data.
+
+        Returns
+        -------
+        Q : array-like
+            Quantized representation.
+        """
+        backend = self._ensure_impl(X)
+
+        if backend == "torch":
             X = to_torch_tensor(X)
-        elif target_backend == "jax":
+        elif backend == "jax":
             X = to_jax_array(X)
-        else:  # numpy
+        else:
             X = to_numpy_array(X)
 
-        # Get (or create) the matching implementation
-        impl = self._get_impl(target_backend)
+        return self._impl.quantize(X)
 
-        return impl(X)
+    def dequantize(self, X):
+        """
+        Dequantize quantized tensor/array.
 
-    def __getattr__(self, name):
-        if self._impl is None:
-            raise RuntimeError(
-                "Chopi backend not yet initialized. "
-                "Call the instance with an array/tensor first to determine/create the backend implementation."
-            )
-        return getattr(self._impl, name)
+        Parameters
+        ----------
+        X : array-like
+            Quantized data.
+
+        Returns
+        -------
+        D : array-like
+            Dequantized tensor/array.
+        """
+        backend = self._ensure_impl(X)
+        return self._impl.dequantize(X)
+
+    def __call__(self, X):
+        """
+        Quantize and immediately dequantize input.
+
+        Equivalent to:
+
+        >>> self.dequantize(self.quantize(X))
+
+        Parameters
+        ----------
+        X : array-like
+            Input data.
+
+        Returns
+        -------
+        array-like
+            Dequantized output.
+        """
+        return self.dequantize(self.quantize(X))
+
+    # ---------------------------------------------------------------------
+
+    @property
+    def backend(self) -> Optional[str]:
+        """Return current active backend."""
+        return self._current_backend
+
+

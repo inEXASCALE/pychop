@@ -70,7 +70,7 @@ class Chopf:
                 fbits=self.fbits,
                 rmode=self.rmode,
             )
-            
+
         self._impl = impl
         self._current_backend = backend
         
@@ -82,6 +82,7 @@ class Chopf:
         if env_backend == "auto":
             target_backend = detect_array_type(X)
         else:
+            
             target_backend = env_backend
             if target_backend not in {"torch", "jax", "numpy"}:
                 raise ValueError(

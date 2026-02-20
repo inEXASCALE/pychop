@@ -2,7 +2,7 @@ from .simulate import Simulate
 
 from .float_params import float_params
 from .fixed_point import Chopf
-from .integer import Chopi
+from .integer import Chopi, ChopiSTE
 from .chop import Chop
 from .bitchop import Bitchop
 from .lightchop import LightChop

@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from pychop.layers import *
-from pychop import Chopi
+from pychop import Chopi, ChopiSTE
 
 class StandardCNN(nn.Module):
     def __init__(self):
@@ -212,8 +212,8 @@ if __name__ == "__main__":
     test_layers()
     
     print("\nTraining IQuantized CNN:")
-    chop=Chopi(bits=8, symmetric=False)
-    IQuantized_model = IQuantizedCNN(chop=chop)
+    chop=ChopiSTE(bits=8, symmetric=False)
+    quantized_model  = IQuantizedCNN(chop=chop)
     IQuantized_acc = train_and_evaluate(quantized_model, train_loader, test_loader, device=device)
 
     # Test full models
@@ -223,4 +223,4 @@ if __name__ == "__main__":
     
     print(f"\nFinal Results:")
     print(f"Quantized CNN Test Accuracy: {quantized_acc:.4f}")
-    print(f"Accuracy Difference: {standard_acc - IQuantized_acc:.4f}")
+    print(f"Accuracy Difference: {standard_acc - quantized_acc:.4f}")

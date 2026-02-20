@@ -8,6 +8,10 @@ from .tch.lightchop import LightChopSTE
 import torch
 import copy
 from typing import Optional
+from torch.autograd import Function
+from pychop import Chopi
+
+
 
 def post_quantization(model: torch.nn.Module, chop, eval_mode: bool = True, verbose: bool = False) -> torch.nn.Module:
     """
@@ -1123,15 +1127,62 @@ class QuantizedPReLU(nn.PReLU):
 
 # chop=None 时完全退化为原生 nn.* 层
 
+# ====================== ChopiSTE (必须放在所有 IQuantized 类之前) ======================
+class FakeQuantizeSTE(Function):
+    """Straight-Through Estimator for integer fake-quantization with Chopi."""
+
+    @staticmethod
+    def forward(ctx, input: torch.Tensor, chop: Chopi) -> torch.Tensor:
+        q = chop.quantize(input)
+        dq = chop.dequantize(q)
+        ctx.save_for_backward(input)  # optional, for debugging
+        return dq
+
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor):
+        # STE: gradient flows through unchanged
+        return grad_output, None
+
+
+class ChopiSTE(Chopi):
+    """Chopi with built-in Straight-Through Estimator (STE) for QAT.
+
+    Use this class instead of plain Chopi during training.
+    """
+
+    def __init__(self, bits: int = 8, symmetric: bool = False, **kwargs) -> None:
+        super().__init__(bits=bits, symmetric=symmetric, **kwargs)
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply fake-quantization with STE."""
+        if x is None or x.numel() == 0:
+            return x
+        return FakeQuantizeSTE.apply(x, self)
+
+
+# ====================== IQuantized Layers (all updated with STE + sklearn-style docstrings) ======================
+
 class IQuantizedLinear(nn.Linear):
-    """Integer quantized version of nn.Linear for QAT."""
+    """Integer quantized version of :class:`torch.nn.Linear` for QAT using ChopiSTE.
+
+    Parameters
+    ----------
+    in_features : int
+        Size of each input sample.
+    out_features : int
+        Size of each output sample.
+    bias : bool, default=True
+        If set to ``False``, the layer will not learn an additive bias.
+    chop : ChopiSTE or None, default=None
+        Quantizer instance with STE. If ``None``, falls back to standard Linear.
+    """
 
     def __init__(
         self,
         in_features: int,
         out_features: int,
         bias: bool = True,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(in_features, out_features, bias=bias)
         self.chop = chop
@@ -1140,15 +1191,15 @@ class IQuantizedLinear(nn.Linear):
         if self.chop is None:
             return super().forward(input)
 
-        weight = self.chop.dequantize(self.chop.quantize(self.weight))
-        bias = self.chop.dequantize(self.chop.quantize(self.bias)) if self.bias is not None else None
+        weight = self.chop(self.weight)
+        bias = self.chop(self.bias) if self.bias is not None else None
 
         output = F.linear(input, weight, bias)
-        return self.chop.dequantize(self.chop.quantize(output))
+        return self.chop(output)
 
 
 class IQuantizedConv1d(nn.Conv1d):
-    """Integer quantized Conv1d for QAT."""
+    """Integer quantized 1D convolution for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1161,24 +1212,29 @@ class IQuantizedConv1d(nn.Conv1d):
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = "zeros",
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias, padding_mode)
+        super().__init__(
+            in_channels, out_channels, kernel_size, stride, padding,
+            dilation, groups, bias, padding_mode,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
 
-        weight = self.chop.dequantize(self.chop.quantize(self.weight))
-        bias = self.chop.dequantize(self.chop.quantize(self.bias)) if self.bias is not None else None
+        weight = self.chop(self.weight)
+        bias = self.chop(self.bias) if self.bias is not None else None
 
-        output = F.conv1d(input, weight, bias, self.stride, self.padding, self.dilation, self.groups)
-        return self.chop.dequantize(self.chop.quantize(output))
+        output = F.conv1d(
+            input, weight, bias, self.stride, self.padding, self.dilation, self.groups
+        )
+        return self.chop(output)
 
 
 class IQuantizedConv2d(nn.Conv2d):
-    """Integer quantized Conv2d for QAT."""
+    """Integer quantized 2D convolution for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1191,24 +1247,29 @@ class IQuantizedConv2d(nn.Conv2d):
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = "zeros",
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
+        super().__init__(
+            in_channels, out_channels, kernel_size, stride=stride, padding=padding,
+            dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
 
-        weight = self.chop.dequantize(self.chop.quantize(self.weight))
-        bias = self.chop.dequantize(self.chop.quantize(self.bias)) if self.bias is not None else None
+        weight = self.chop(self.weight)
+        bias = self.chop(self.bias) if self.bias is not None else None
 
-        output = F.conv2d(input, weight, bias, self.stride, self.padding, self.dilation, self.groups)
-        return self.chop.dequantize(self.chop.quantize(output))
+        output = F.conv2d(
+            input, weight, bias, self.stride, self.padding, self.dilation, self.groups
+        )
+        return self.chop(output)
 
 
 class IQuantizedConv3d(nn.Conv3d):
-    """Integer quantized Conv3d for QAT."""
+    """Integer quantized 3D convolution for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1221,24 +1282,29 @@ class IQuantizedConv3d(nn.Conv3d):
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = "zeros",
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
+        super().__init__(
+            in_channels, out_channels, kernel_size, stride=stride, padding=padding,
+            dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
 
-        weight = self.chop.dequantize(self.chop.quantize(self.weight))
-        bias = self.chop.dequantize(self.chop.quantize(self.bias)) if self.bias is not None else None
+        weight = self.chop(self.weight)
+        bias = self.chop(self.bias) if self.bias is not None else None
 
-        output = F.conv3d(input, weight, bias, self.stride, self.padding, self.dilation, self.groups)
-        return self.chop.dequantize(self.chop.quantize(output))
+        output = F.conv3d(
+            input, weight, bias, self.stride, self.padding, self.dilation, self.groups
+        )
+        return self.chop(output)
 
 
 class IQuantizedConvTranspose1d(nn.ConvTranspose1d):
-    """Integer quantized ConvTranspose1d for QAT."""
+    """Integer quantized 1D transposed convolution for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1252,24 +1318,31 @@ class IQuantizedConvTranspose1d(nn.ConvTranspose1d):
         bias: bool = True,
         dilation: Union[int, Tuple[int]] = 1,
         padding_mode: str = "zeros",
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(in_channels, out_channels, kernel_size, stride=stride, padding=padding, output_padding=output_padding, groups=groups, bias=bias, dilation=dilation, padding_mode=padding_mode)
+        super().__init__(
+            in_channels, out_channels, kernel_size, stride=stride, padding=padding,
+            output_padding=output_padding, groups=groups, bias=bias,
+            dilation=dilation, padding_mode=padding_mode,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
 
-        weight = self.chop.dequantize(self.chop.quantize(self.weight))
-        bias = self.chop.dequantize(self.chop.quantize(self.bias)) if self.bias is not None else None
+        weight = self.chop(self.weight)
+        bias = self.chop(self.bias) if self.bias is not None else None
 
-        output = F.conv_transpose1d(input, weight, bias, self.stride, self.padding, self.output_padding, self.groups, self.dilation)
-        return self.chop.dequantize(self.chop.quantize(output))
+        output = F.conv_transpose1d(
+            input, weight, bias, self.stride, self.padding,
+            self.output_padding, self.groups, self.dilation,
+        )
+        return self.chop(output)
 
 
 class IQuantizedConvTranspose2d(nn.ConvTranspose2d):
-    """Integer quantized ConvTranspose2d for QAT."""
+    """Integer quantized 2D transposed convolution for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1283,24 +1356,31 @@ class IQuantizedConvTranspose2d(nn.ConvTranspose2d):
         bias: bool = True,
         dilation: Union[int, Tuple[int, int]] = 1,
         padding_mode: str = "zeros",
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(in_channels, out_channels, kernel_size, stride=stride, padding=padding, output_padding=output_padding, groups=groups, bias=bias, dilation=dilation, padding_mode=padding_mode)
+        super().__init__(
+            in_channels, out_channels, kernel_size, stride=stride, padding=padding,
+            output_padding=output_padding, groups=groups, bias=bias,
+            dilation=dilation, padding_mode=padding_mode,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
 
-        weight = self.chop.dequantize(self.chop.quantize(self.weight))
-        bias = self.chop.dequantize(self.chop.quantize(self.bias)) if self.bias is not None else None
+        weight = self.chop(self.weight)
+        bias = self.chop(self.bias) if self.bias is not None else None
 
-        output = F.conv_transpose2d(input, weight, bias, self.stride, self.padding, self.output_padding, self.groups, self.dilation)
-        return self.chop.dequantize(self.chop.quantize(output))
+        output = F.conv_transpose2d(
+            input, weight, bias, self.stride, self.padding,
+            self.output_padding, self.groups, self.dilation,
+        )
+        return self.chop(output)
 
 
 class IQuantizedConvTranspose3d(nn.ConvTranspose3d):
-    """Integer quantized ConvTranspose3d for QAT."""
+    """Integer quantized 3D transposed convolution for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1314,24 +1394,31 @@ class IQuantizedConvTranspose3d(nn.ConvTranspose3d):
         bias: bool = True,
         dilation: Union[int, Tuple[int, int, int]] = 1,
         padding_mode: str = "zeros",
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(in_channels, out_channels, kernel_size, stride=stride, padding=padding, output_padding=output_padding, groups=groups, bias=bias, dilation=dilation, padding_mode=padding_mode)
+        super().__init__(
+            in_channels, out_channels, kernel_size, stride=stride, padding=padding,
+            output_padding=output_padding, groups=groups, bias=bias,
+            dilation=dilation, padding_mode=padding_mode,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
 
-        weight = self.chop.dequantize(self.chop.quantize(self.weight))
-        bias = self.chop.dequantize(self.chop.quantize(self.bias)) if self.bias is not None else None
+        weight = self.chop(self.weight)
+        bias = self.chop(self.bias) if self.bias is not None else None
 
-        output = F.conv_transpose3d(input, weight, bias, self.stride, self.padding, self.output_padding, self.groups, self.dilation)
-        return self.chop.dequantize(self.chop.quantize(output))
+        output = F.conv_transpose3d(
+            input, weight, bias, self.stride, self.padding,
+            self.output_padding, self.groups, self.dilation,
+        )
+        return self.chop(output)
 
 
 class IQuantizedRNN(nn.RNN):
-    """Integer quantized RNN for QAT (weights quantized)."""
+    """Integer quantized RNN for QAT using ChopiSTE (weights fake-quantized)."""
 
     def __init__(
         self,
@@ -1343,23 +1430,31 @@ class IQuantizedRNN(nn.RNN):
         batch_first: bool = False,
         dropout: float = 0.0,
         bidirectional: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(input_size, hidden_size, num_layers, nonlinearity, bias, batch_first, dropout, bidirectional)
+        super().__init__(
+            input_size, hidden_size, num_layers, nonlinearity, bias,
+            batch_first, dropout, bidirectional,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor, hx: Optional[torch.Tensor] = None):
         if self.chop is None:
             return super().forward(input, hx)
-        for name, param in list(self.named_parameters()):
+
+        # Fake-quantize weights/biases with STE (temporary, no permanent .data change)
+        for name, param in self.named_parameters():
             if "weight" in name or "bias" in name:
-                param.data = self.chop.dequantize(self.chop.quantize(param.data))
+                param_q = self.chop(param)
+                # Use temporary quantized param for this forward pass
+                setattr(self, name, nn.Parameter(param_q, requires_grad=param.requires_grad))
+
         output, hidden = super().forward(input, hx)
-        return self.chop.dequantize(self.chop.quantize(output)), hidden
+        return self.chop(output), hidden
 
 
 class IQuantizedLSTM(nn.LSTM):
-    """Integer quantized LSTM for QAT (weights quantized)."""
+    """Integer quantized LSTM for QAT using ChopiSTE (weights fake-quantized)."""
 
     def __init__(
         self,
@@ -1370,23 +1465,32 @@ class IQuantizedLSTM(nn.LSTM):
         batch_first: bool = False,
         dropout: float = 0.0,
         bidirectional: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(input_size, hidden_size, num_layers, bias, batch_first, dropout, bidirectional)
+        super().__init__(
+            input_size, hidden_size, num_layers, bias, batch_first, dropout, bidirectional,
+        )
         self.chop = chop
 
-    def forward(self, input: torch.Tensor, hx: Optional[Tuple[torch.Tensor, torch.Tensor]] = None):
+    def forward(
+        self,
+        input: torch.Tensor,
+        hx: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
+    ):
         if self.chop is None:
             return super().forward(input, hx)
-        for name, param in list(self.named_parameters()):
+
+        for name, param in self.named_parameters():
             if "weight" in name or "bias" in name:
-                param.data = self.chop.dequantize(self.chop.quantize(param.data))
+                param_q = self.chop(param)
+                setattr(self, name, nn.Parameter(param_q, requires_grad=param.requires_grad))
+
         output, (hn, cn) = super().forward(input, hx)
-        return self.chop.dequantize(self.chop.quantize(output)), (hn, cn)
+        return self.chop(output), (hn, cn)
 
 
 class IQuantizedGRU(nn.GRU):
-    """Integer quantized GRU for QAT (weights quantized)."""
+    """Integer quantized GRU for QAT using ChopiSTE (weights fake-quantized)."""
 
     def __init__(
         self,
@@ -1397,23 +1501,32 @@ class IQuantizedGRU(nn.GRU):
         batch_first: bool = False,
         dropout: float = 0.0,
         bidirectional: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(input_size, hidden_size, num_layers, bias, batch_first, dropout, bidirectional)
+        super().__init__(
+            input_size, hidden_size, num_layers, bias, batch_first, dropout, bidirectional,
+        )
         self.chop = chop
 
-    def forward(self, input: torch.Tensor, hx: Optional[torch.Tensor] = None):
+    def forward(
+        self,
+        input: torch.Tensor,
+        hx: Optional[torch.Tensor] = None,
+    ):
         if self.chop is None:
             return super().forward(input, hx)
-        for name, param in list(self.named_parameters()):
+
+        for name, param in self.named_parameters():
             if "weight" in name or "bias" in name:
-                param.data = self.chop.dequantize(self.chop.quantize(param.data))
+                param_q = self.chop(param)
+                setattr(self, name, nn.Parameter(param_q, requires_grad=param.requires_grad))
+
         output, hidden = super().forward(input, hx)
-        return self.chop.dequantize(self.chop.quantize(output)), hidden
+        return self.chop(output), hidden
 
 
 class IQuantizedMaxPool1d(nn.MaxPool1d):
-    """Integer quantized MaxPool1d (activations quantized)."""
+    """Integer quantized 1D max pooling (activations quantized with STE)."""
 
     def __init__(
         self,
@@ -1423,18 +1536,18 @@ class IQuantizedMaxPool1d(nn.MaxPool1d):
         dilation: int = 1,
         return_indices: bool = False,
         ceil_mode: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode)
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output)) if self.chop is not None else output
+        return self.chop(output) if self.chop is not None else output
 
 
 class IQuantizedMaxPool2d(nn.MaxPool2d):
-    """Integer quantized MaxPool2d (activations quantized)."""
+    """Integer quantized 2D max pooling (activations quantized with STE)."""
 
     def __init__(
         self,
@@ -1444,18 +1557,18 @@ class IQuantizedMaxPool2d(nn.MaxPool2d):
         dilation: Union[int, Tuple[int, int]] = 1,
         return_indices: bool = False,
         ceil_mode: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode)
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output)) if self.chop is not None else output
+        return self.chop(output) if self.chop is not None else output
 
 
 class IQuantizedMaxPool3d(nn.MaxPool3d):
-    """Integer quantized MaxPool3d (activations quantized)."""
+    """Integer quantized 3D max pooling (activations quantized with STE)."""
 
     def __init__(
         self,
@@ -1465,18 +1578,41 @@ class IQuantizedMaxPool3d(nn.MaxPool3d):
         dilation: Union[int, Tuple[int, int, int]] = 1,
         return_indices: bool = False,
         ceil_mode: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode)
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output)) if self.chop is not None else output
+        return self.chop(output) if self.chop is not None else output
+
+
+class IQuantizedAvgPool1d(nn.AvgPool1d):
+    """Integer quantized 1D average pooling (activations quantized with STE)."""
+
+    def __init__(
+        self,
+        kernel_size: int,
+        stride: Optional[int] = None,
+        padding: int = 0,
+        ceil_mode: bool = False,
+        count_include_pad: bool = True,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(
+            kernel_size, stride=stride, padding=padding,
+            ceil_mode=ceil_mode, count_include_pad=count_include_pad,
+        )
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        output = super().forward(input)
+        return self.chop(output) if self.chop is not None else output
 
 
 class IQuantizedAvgPool2d(nn.AvgPool2d):
-    """Integer quantized AvgPool2d (activations quantized)."""
+    """Integer quantized 2D average pooling (activations quantized with STE)."""
 
     def __init__(
         self,
@@ -1486,34 +1622,95 @@ class IQuantizedAvgPool2d(nn.AvgPool2d):
         ceil_mode: bool = False,
         count_include_pad: bool = True,
         divisor_override: Optional[int] = None,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(kernel_size, stride, padding, ceil_mode, count_include_pad, divisor_override)
+        super().__init__(
+            kernel_size, stride=stride, padding=padding,
+            ceil_mode=ceil_mode, count_include_pad=count_include_pad,
+            divisor_override=divisor_override,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output)) if self.chop is not None else output
+        return self.chop(output) if self.chop is not None else output
 
 
-class IQuantizedAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
-    """Integer quantized AdaptiveAvgPool2d (activations quantized)."""
+class IQuantizedAvgPool3d(nn.AvgPool3d):
+    """Integer quantized 3D average pooling (activations quantized with STE)."""
 
     def __init__(
         self,
-        output_size: Union[int, Tuple[int, int]],
-        chop: Optional = None,
+        kernel_size: Union[int, Tuple[int, int, int]],
+        stride: Optional[Union[int, Tuple[int, int, int]]] = None,
+        padding: Union[int, Tuple[int, int, int]] = 0,
+        ceil_mode: bool = False,
+        count_include_pad: bool = True,
+        divisor_override: Optional[int] = None,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(
+            kernel_size, stride=stride, padding=padding,
+            ceil_mode=ceil_mode, count_include_pad=count_include_pad,
+            divisor_override=divisor_override,
+        )
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        output = super().forward(input)
+        return self.chop(output) if self.chop is not None else output
+
+
+class IQuantizedAdaptiveAvgPool1d(nn.AdaptiveAvgPool1d):
+    """Integer quantized 1D adaptive average pooling (activations quantized with STE)."""
+
+    def __init__(
+        self,
+        output_size: Union[int, Tuple[int]],
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(output_size)
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output)) if self.chop is not None else output
+        return self.chop(output) if self.chop is not None else output
 
 
-class IQuantizedBatchNorm2d(nn.BatchNorm2d):
-    """Integer quantized BatchNorm2d for QAT."""
+class IQuantizedAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
+    """Integer quantized 2D adaptive average pooling (activations quantized with STE)."""
+
+    def __init__(
+        self,
+        output_size: Union[int, Tuple[int, int]],
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(output_size)
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        output = super().forward(input)
+        return self.chop(output) if self.chop is not None else output
+
+
+class IQuantizedAdaptiveAvgPool3d(nn.AdaptiveAvgPool3d):
+    """Integer quantized 3D adaptive average pooling (activations quantized with STE)."""
+
+    def __init__(
+        self,
+        output_size: Union[int, Tuple[int, int, int]],
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(output_size)
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        output = super().forward(input)
+        return self.chop(output) if self.chop is not None else output
+
+
+class IQuantizedBatchNorm1d(nn.BatchNorm1d):
+    """Integer quantized 1D Batch Normalization for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1522,9 +1719,12 @@ class IQuantizedBatchNorm2d(nn.BatchNorm2d):
         momentum: float = 0.1,
         affine: bool = True,
         track_running_stats: bool = True,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
-        super().__init__(num_features, eps, momentum, affine, track_running_stats)
+        super().__init__(
+            num_features, eps=eps, momentum=momentum,
+            affine=affine, track_running_stats=track_running_stats,
+        )
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -1532,22 +1732,82 @@ class IQuantizedBatchNorm2d(nn.BatchNorm2d):
             return super().forward(input)
 
         if self.affine:
-            self.weight.data = self.chop.dequantize(self.chop.quantize(self.weight.data))
-            self.bias.data = self.chop.dequantize(self.chop.quantize(self.bias.data))
+            self.weight.data = self.chop(self.weight.data).data
+            self.bias.data = self.chop(self.bias.data).data
 
         output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output))
+        return self.chop(output)
 
 
-class IQuantizedLayerNorm(nn.LayerNorm):
-    """Integer quantized LayerNorm for QAT."""
+class IQuantizedBatchNorm2d(nn.BatchNorm2d):
+    """Integer quantized 2D Batch Normalization for QAT using ChopiSTE."""
 
     def __init__(
         self,
-        normalized_shape: Union[int, Tuple[int, ...]],
+        num_features: int,
+        eps: float = 1e-5,
+        momentum: float = 0.1,
+        affine: bool = True,
+        track_running_stats: bool = True,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(
+            num_features, eps=eps, momentum=momentum,
+            affine=affine, track_running_stats=track_running_stats,
+        )
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.chop is None:
+            return super().forward(input)
+
+        if self.affine:
+            self.weight.data = self.chop(self.weight.data).data
+            self.bias.data = self.chop(self.bias.data).data
+
+        output = super().forward(input)
+        return self.chop(output)
+
+
+class IQuantizedBatchNorm3d(nn.BatchNorm3d):
+    """Integer quantized 3D Batch Normalization for QAT using ChopiSTE."""
+
+    def __init__(
+        self,
+        num_features: int,
+        eps: float = 1e-5,
+        momentum: float = 0.1,
+        affine: bool = True,
+        track_running_stats: bool = True,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(
+            num_features, eps=eps, momentum=momentum,
+            affine=affine, track_running_stats=track_running_stats,
+        )
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.chop is None:
+            return super().forward(input)
+
+        if self.affine:
+            self.weight.data = self.chop(self.weight.data).data
+            self.bias.data = self.chop(self.bias.data).data
+
+        output = super().forward(input)
+        return self.chop(output)
+
+
+class IQuantizedLayerNorm(nn.LayerNorm):
+    """Integer quantized Layer Normalization for QAT using ChopiSTE."""
+
+    def __init__(
+        self,
+        normalized_shape: Union[int, List[int], torch.Size],
         eps: float = 1e-5,
         elementwise_affine: bool = True,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(normalized_shape, eps=eps, elementwise_affine=elementwise_affine)
         self.chop = chop
@@ -1557,15 +1817,131 @@ class IQuantizedLayerNorm(nn.LayerNorm):
             return super().forward(input)
 
         if self.elementwise_affine:
-            self.weight.data = self.chop.dequantize(self.chop.quantize(self.weight.data))
-            self.bias.data = self.chop.dequantize(self.chop.quantize(self.bias.data))
+            self.weight.data = self.chop(self.weight.data).data
+            self.bias.data = self.chop(self.bias.data).data
 
         output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output))
+        return self.chop(output)
+
+
+class IQuantizedInstanceNorm1d(nn.InstanceNorm1d):
+    """Integer quantized 1D Instance Normalization for QAT using ChopiSTE."""
+
+    def __init__(
+        self,
+        num_features: int,
+        eps: float = 1e-5,
+        momentum: float = 0.1,
+        affine: bool = False,
+        track_running_stats: bool = False,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(
+            num_features, eps=eps, momentum=momentum,
+            affine=affine, track_running_stats=track_running_stats,
+        )
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.chop is None:
+            return super().forward(input)
+
+        if self.affine:
+            self.weight.data = self.chop(self.weight.data).data
+            self.bias.data = self.chop(self.bias.data).data
+
+        output = super().forward(input)
+        return self.chop(output)
+
+
+class IQuantizedInstanceNorm2d(nn.InstanceNorm2d):
+    """Integer quantized 2D Instance Normalization for QAT using ChopiSTE."""
+
+    def __init__(
+        self,
+        num_features: int,
+        eps: float = 1e-5,
+        momentum: float = 0.1,
+        affine: bool = False,
+        track_running_stats: bool = False,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(
+            num_features, eps=eps, momentum=momentum,
+            affine=affine, track_running_stats=track_running_stats,
+        )
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.chop is None:
+            return super().forward(input)
+
+        if self.affine:
+            self.weight.data = self.chop(self.weight.data).data
+            self.bias.data = self.chop(self.bias.data).data
+
+        output = super().forward(input)
+        return self.chop(output)
+
+
+class IQuantizedInstanceNorm3d(nn.InstanceNorm3d):
+    """Integer quantized 3D Instance Normalization for QAT using ChopiSTE."""
+
+    def __init__(
+        self,
+        num_features: int,
+        eps: float = 1e-5,
+        momentum: float = 0.1,
+        affine: bool = False,
+        track_running_stats: bool = False,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(
+            num_features, eps=eps, momentum=momentum,
+            affine=affine, track_running_stats=track_running_stats,
+        )
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.chop is None:
+            return super().forward(input)
+
+        if self.affine:
+            self.weight.data = self.chop(self.weight.data).data
+            self.bias.data = self.chop(self.bias.data).data
+
+        output = super().forward(input)
+        return self.chop(output)
+
+
+class IQuantizedGroupNorm(nn.GroupNorm):
+    """Integer quantized Group Normalization for QAT using ChopiSTE."""
+
+    def __init__(
+        self,
+        num_groups: int,
+        num_channels: int,
+        eps: float = 1e-5,
+        affine: bool = True,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(num_groups, num_channels, eps=eps, affine=affine)
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.chop is None:
+            return super().forward(input)
+
+        if self.affine:
+            self.weight.data = self.chop(self.weight.data).data
+            self.bias.data = self.chop(self.bias.data).data
+
+        output = super().forward(input)
+        return self.chop(output)
 
 
 class IQuantizedMultiheadAttention(nn.MultiheadAttention):
-    """Integer quantized MultiheadAttention for QAT."""
+    """Integer quantized Multi-head Attention for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1578,100 +1954,128 @@ class IQuantizedMultiheadAttention(nn.MultiheadAttention):
         kdim: Optional[int] = None,
         vdim: Optional[int] = None,
         batch_first: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ):
-        super().__init__(embed_dim, num_heads, dropout, bias, add_bias_kv, add_zero_attn, kdim, vdim, batch_first)
+        super().__init__(
+            embed_dim, num_heads, dropout=dropout, bias=bias,
+            add_bias_kv=add_bias_kv, add_zero_attn=add_zero_attn,
+            kdim=kdim, vdim=vdim, batch_first=batch_first,
+        )
         self.chop = chop
 
-    def forward(self, query, key, value, key_padding_mask=None, need_weights=True, attn_mask=None, average_attn_weights=True, is_causal=False):
+    def forward(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        key_padding_mask: Optional[torch.Tensor] = None,
+        need_weights: bool = True,
+        attn_mask: Optional[torch.Tensor] = None,
+        average_attn_weights: bool = True,
+        is_causal: bool = False,
+    ):
         if self.chop is None:
-            return super().forward(query, key, value, key_padding_mask, need_weights, attn_mask, average_attn_weights, is_causal=is_causal)
+            return super().forward(
+                query, key, value, key_padding_mask, need_weights,
+                attn_mask, average_attn_weights, is_causal=is_causal
+            )
 
-        # quant weights
+        # Fake-quantize projection weights with STE
         if hasattr(self, "in_proj_weight") and self.in_proj_weight is not None:
-            self.in_proj_weight.data = self.chop.dequantize(self.chop.quantize(self.in_proj_weight.data))
+            self.in_proj_weight.data = self.chop(self.in_proj_weight.data).data
         if hasattr(self, "in_proj_bias") and self.in_proj_bias is not None:
-            self.in_proj_bias.data = self.chop.dequantize(self.chop.quantize(self.in_proj_bias.data))
-        self.out_proj.weight.data = self.chop.dequantize(self.chop.quantize(self.out_proj.weight.data))
+            self.in_proj_bias.data = self.chop(self.in_proj_bias.data).data
+        self.out_proj.weight.data = self.chop(self.out_proj.weight.data).data
         if self.out_proj.bias is not None:
-            self.out_proj.bias.data = self.chop.dequantize(self.chop.quantize(self.out_proj.bias.data))
+            self.out_proj.bias.data = self.chop(self.out_proj.bias.data).data
 
-        output, attn = super().forward(query, key, value, key_padding_mask, need_weights, attn_mask, average_attn_weights, is_causal=is_causal)
+        output, attn_weights = super().forward(
+            query, key, value, key_padding_mask, need_weights,
+            attn_mask, average_attn_weights, is_causal=is_causal
+        )
         if isinstance(output, tuple):
-            return self.chop.dequantize(self.chop.quantize(output[0])), output[1]
-        return self.chop.dequantize(self.chop.quantize(output)), attn
+            return self.chop(output[0]), output[1]
+        return self.chop(output), attn_weights
 
 
-# ====================== IQuantized Activations (match your original style) ======================
+# ====================== IQuantized Activations ======================
 
 class IQuantizedDropout(nn.Dropout):
-    """Integer quantized Dropout for QAT."""
+    """Integer quantized Dropout for QAT using ChopiSTE."""
 
-    def __init__(self, p: float = 0.5, chop: Optional = None) -> None:
+    def __init__(
+        self,
+        p: float = 0.5,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
         super().__init__(p=p)
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
 class IQuantizedReLU(nn.ReLU):
-    """Integer quantized ReLU for QAT."""
+    """Integer quantized ReLU for QAT using ChopiSTE."""
 
-    def __init__(self, inplace: bool = False, chop: Optional = None) -> None:
+    def __init__(
+        self,
+        inplace: bool = False,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
         super().__init__(inplace=inplace)
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
 class IQuantizedSigmoid(nn.Sigmoid):
-    """Integer quantized Sigmoid for QAT."""
+    """Integer quantized Sigmoid for QAT using ChopiSTE."""
 
-    def __init__(self, chop: Optional = None) -> None:
+    def __init__(self, chop: Optional[ChopiSTE] = None) -> None:
         super().__init__()
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
 class IQuantizedTanh(nn.Tanh):
-    """Integer quantized Tanh for QAT."""
+    """Integer quantized Tanh for QAT using ChopiSTE."""
 
-    def __init__(self, chop: Optional = None) -> None:
+    def __init__(self, chop: Optional[ChopiSTE] = None) -> None:
         super().__init__()
         self.chop = chop
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
 class IQuantizedLeakyReLU(nn.LeakyReLU):
-    """Integer quantized LeakyReLU for QAT."""
+    """Integer quantized LeakyReLU for QAT using ChopiSTE."""
 
     def __init__(
         self,
         negative_slope: float = 0.01,
         inplace: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(negative_slope=negative_slope, inplace=inplace)
         self.chop = chop
@@ -1679,18 +2083,18 @@ class IQuantizedLeakyReLU(nn.LeakyReLU):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
 class IQuantizedSoftmax(nn.Softmax):
-    """Integer quantized Softmax for QAT."""
+    """Integer quantized Softmax for QAT using ChopiSTE."""
 
     def __init__(
         self,
         dim: int = -1,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(dim=dim)
         self.chop = chop
@@ -1698,18 +2102,18 @@ class IQuantizedSoftmax(nn.Softmax):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
 class IQuantizedGELU(nn.GELU):
-    """Integer quantized GELU for QAT."""
+    """Integer quantized GELU for QAT using ChopiSTE."""
 
     def __init__(
         self,
         approximate: str = "none",
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(approximate=approximate)
         self.chop = chop
@@ -1717,19 +2121,19 @@ class IQuantizedGELU(nn.GELU):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
 class IQuantizedELU(nn.ELU):
-    """Integer quantized ELU for QAT."""
+    """Integer quantized ELU for QAT using ChopiSTE."""
 
     def __init__(
         self,
         alpha: float = 1.0,
         inplace: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(alpha=alpha, inplace=inplace)
         self.chop = chop
@@ -1737,19 +2141,19 @@ class IQuantizedELU(nn.ELU):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
 class IQuantizedPReLU(nn.PReLU):
-    """Integer quantized PReLU for QAT."""
+    """Integer quantized PReLU for QAT using ChopiSTE."""
 
     def __init__(
         self,
         num_parameters: int = 1,
         init: float = 0.25,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(num_parameters=num_parameters, init=init)
         self.chop = chop
@@ -1757,20 +2161,34 @@ class IQuantizedPReLU(nn.PReLU):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.chop is None:
             return super().forward(input)
-        x = self.chop.dequantize(self.chop.quantize(input))
+        x = self.chop(input)
         if self.chop is not None:
-            self.weight.data = self.chop.dequantize(self.chop.quantize(self.weight.data))
+            self.weight.data = self.chop(self.weight.data).data
         x = super().forward(x)
-        return self.chop.dequantize(self.chop.quantize(x))
+        return self.chop(x)
 
 
-# Aliases
-IQuantizedAttention = IQuantizedMultiheadAttention
-IQuantizedAvgPool = IQuantizedAvgPool2d
+class IQuantizedSiLU(nn.SiLU):
+    """Integer quantized SiLU (Swish) for QAT using ChopiSTE."""
+
+    def __init__(
+        self,
+        inplace: bool = False,
+        chop: Optional[ChopiSTE] = None,
+    ) -> None:
+        super().__init__(inplace=inplace)
+        self.chop = chop
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.chop is None:
+            return super().forward(input)
+        x = self.chop(input)
+        x = super().forward(x)
+        return self.chop(x)
 
 
 class IQuantizedEmbedding(nn.Embedding):
-    """Integer quantized Embedding layer for QAT."""
+    """Integer quantized Embedding layer for QAT using ChopiSTE."""
 
     def __init__(
         self,
@@ -1781,7 +2199,7 @@ class IQuantizedEmbedding(nn.Embedding):
         norm_type: float = 2.0,
         scale_grad_by_freq: bool = False,
         sparse: bool = False,
-        chop: Optional = None,
+        chop: Optional[ChopiSTE] = None,
     ) -> None:
         super().__init__(
             num_embeddings, embedding_dim, padding_idx=padding_idx,
@@ -1794,135 +2212,14 @@ class IQuantizedEmbedding(nn.Embedding):
         if self.chop is None:
             return super().forward(input)
 
-        weight = self.chop.dequantize(self.chop.quantize(self.weight))
+        weight = self.chop(self.weight)
         output = F.embedding(
             input, weight, self.padding_idx, self.max_norm,
-            self.norm_type, self.scale_grad_by_freq, self.sparse
+            self.norm_type, self.scale_grad_by_freq, self.sparse,
         )
-        return self.chop.dequantize(self.chop.quantize(output))
+        return self.chop(output)
 
 
-class IQuantizedInstanceNorm1d(nn.InstanceNorm1d):
-    """Integer quantized 1D Instance Normalization layer for QAT."""
-
-    def __init__(
-        self,
-        num_features: int,
-        eps: float = 1e-5,
-        momentum: float = 0.1,
-        affine: bool = False,
-        track_running_stats: bool = False,
-        chop: Optional = None,
-    ) -> None:
-        super().__init__(
-            num_features, eps=eps, momentum=momentum,
-            affine=affine, track_running_stats=track_running_stats,
-        )
-        self.chop = chop
-
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        if self.chop is None:
-            return super().forward(input)
-
-        if self.affine:
-            self.weight.data = self.chop.dequantize(self.chop.quantize(self.weight.data))
-            self.bias.data = self.chop.dequantize(self.chop.quantize(self.bias.data))
-
-        output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output))
-
-
-class IQuantizedInstanceNorm2d(nn.InstanceNorm2d):
-    """Integer quantized 2D Instance Normalization layer for QAT."""
-
-    def __init__(
-        self,
-        num_features: int,
-        eps: float = 1e-5,
-        momentum: float = 0.1,
-        affine: bool = False,
-        track_running_stats: bool = False,
-        chop: Optional = None,
-    ) -> None:
-        super().__init__(
-            num_features, eps=eps, momentum=momentum,
-            affine=affine, track_running_stats=track_running_stats,
-        )
-        self.chop = chop
-
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        if self.chop is None:
-            return super().forward(input)
-
-        if self.affine:
-            self.weight.data = self.chop.dequantize(self.chop.quantize(self.weight.data))
-            self.bias.data = self.chop.dequantize(self.chop.quantize(self.bias.data))
-
-        output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output))
-
-
-class IQuantizedInstanceNorm3d(nn.InstanceNorm3d):
-    """Integer quantized 3D Instance Normalization layer for QAT."""
-
-    def __init__(
-        self,
-        num_features: int,
-        eps: float = 1e-5,
-        momentum: float = 0.1,
-        affine: bool = False,
-        track_running_stats: bool = False,
-        chop: Optional = None,
-    ) -> None:
-        super().__init__(
-            num_features, eps=eps, momentum=momentum,
-            affine=affine, track_running_stats=track_running_stats,
-        )
-        self.chop = chop
-
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        if self.chop is None:
-            return super().forward(input)
-
-        if self.affine:
-            self.weight.data = self.chop.dequantize(self.chop.quantize(self.weight.data))
-            self.bias.data = self.chop.dequantize(self.chop.quantize(self.bias.data))
-
-        output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output))
-
-
-class IQuantizedGroupNorm(nn.GroupNorm):
-    """Integer quantized Group Normalization layer for QAT."""
-
-    def __init__(
-        self,
-        num_groups: int,
-        num_channels: int,
-        eps: float = 1e-5,
-        affine: bool = True,
-        chop: Optional = None,
-    ) -> None:
-        super().__init__(num_groups, num_channels, eps=eps, affine=affine)
-        self.chop = chop
-
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        if self.chop is None:
-            return super().forward(input)
-
-        if self.affine:
-            self.weight.data = self.chop.dequantize(self.chop.quantize(self.weight.data))
-            self.bias.data = self.chop.dequantize(self.chop.quantize(self.bias.data))
-
-        output = super().forward(input)
-        return self.chop.dequantize(self.chop.quantize(output))
-
-
-
-
-
-
-
-
-
-
+# Aliases (keep for backward compatibility)
+IQuantizedAttention = IQuantizedMultiheadAttention
+IQuantizedAvgPool = IQuantizedAvgPool2d
