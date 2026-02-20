@@ -16,7 +16,19 @@ from typing import Any, Callable
 
 
 def _detect_backend(x: Any) -> str:
-    """Detect backend from input array type."""
+    """
+    Detect backend from input array type.
+
+    Parameters
+    ----------
+    x : Any
+        Input array or scalar.
+
+    Returns
+    -------
+    str
+        Backend name: 'numpy', 'torch', or 'jax'.
+    """
     module = type(x).__module__
 
     if "torch" in module:
@@ -27,7 +39,19 @@ def _detect_backend(x: Any) -> str:
 
 
 def _get_backend_module(backend: str):
-    """Return backend math module."""
+    """
+    Return backend math module.
+
+    Parameters
+    ----------
+    backend : str
+        Backend name.
+
+    Returns
+    -------
+    module
+        Python module for the backend.
+    """
     if backend == "torch":
         import torch
         return torch
@@ -48,10 +72,17 @@ def _to_bool_scalar(x):
     """
     Safely convert backend scalar tensor/array to Python bool.
 
-    Works for:
-    - numpy scalar
-    - torch scalar (CPU/GPU)
-    - jax scalar (eager mode)
+    Works for NumPy, PyTorch, JAX.
+
+    Parameters
+    ----------
+    x : scalar
+        Input scalar.
+
+    Returns
+    -------
+    bool
+        Python boolean.
     """
     if hasattr(x, "item"):
         return bool(x.item())
@@ -61,6 +92,16 @@ def _to_bool_scalar(x):
 def _all_true(cond):
     """
     Safely evaluate xp.all(...) result.
+
+    Parameters
+    ----------
+    cond : scalar
+        Backend array/scalar result of comparison.
+
+    Returns
+    -------
+    bool
+        True if all elements satisfy condition.
     """
     return _to_bool_scalar(cond)
 
@@ -71,6 +112,25 @@ def _all_true(cond):
 
 
 def _unary_math(chop, x, fn_name: str, domain_check: Callable = None):
+    """
+    Apply unary math operation with chopping.
+
+    Parameters
+    ----------
+    chop : callable
+        Chopping function.
+    x : array_like
+        Input array/tensor.
+    fn_name : str
+        Name of math function (e.g., 'sin', 'exp').
+    domain_check : callable, optional
+        Function to validate domain.
+
+    Returns
+    -------
+    array_like
+        Chopped result.
+    """
     backend = _detect_backend(x)
     
     xp = _get_backend_module(backend)
@@ -90,7 +150,28 @@ def _unary_math(chop, x, fn_name: str, domain_check: Callable = None):
 
 def _binary_math(chop, x, y, fn_name: str, domain_check=None):
     """
-    Apply backend-aware binary math operation with rounding.
+    Apply binary math operation with chopping.
+
+    Parameters
+    ----------
+    chop : callable
+        Chopping function.
+    x, y : array_like
+        Input arrays or scalars.
+    fn_name : str
+        Name of math function (e.g., 'add', 'power', 'matmul').
+    domain_check : callable, optional
+        Function to validate domain.
+
+    Returns
+    -------
+    array_like
+        Chopped result.
+
+    Raises
+    ------
+    ValueError
+        If `matmul` inputs are scalar or domain check fails.
     """
 
     backend = _detect_backend(x)
@@ -117,6 +198,25 @@ def _binary_math(chop, x, y, fn_name: str, domain_check=None):
 
 
 def _reduction_math(chop, x, fn_name: str, **kwargs):
+    """
+    Apply reduction math operation with chopping.
+
+    Parameters
+    ----------
+    chop : callable
+        Chopping function.
+    x : array_like
+        Input array/tensor.
+    fn_name : str
+        Name of reduction function (e.g., 'sum', 'mean').
+    kwargs : dict
+        Additional keyword arguments (axis, etc.)
+
+    Returns
+    -------
+    array_like
+        Chopped result.
+    """
     backend = _detect_backend(x)
     
     xp = _get_backend_module(backend)
@@ -132,26 +232,31 @@ def _reduction_math(chop, x, fn_name: str, **kwargs):
 
 
 def _check_positive(xp, x):
+    """Check that all elements are positive."""
     if not _all_true(xp.all(x > 0)):
         raise ValueError("Input must be positive.")
 
 
 def _check_nonnegative(xp, x):
+    """Check that all elements are non-negative."""
     if not _all_true(xp.all(x >= 0)):
         raise ValueError("Input must be non-negative.")
 
 
 def _check_abs_le_one(xp, x):
+    """Check that all elements are in [-1, 1]."""
     if not _all_true(xp.all(xp.abs(x) <= 1)):
         raise ValueError("Input must be in [-1, 1].")
 
 
 def _check_abs_lt_one(xp, x):
+    """Check that all elements are in (-1, 1)."""
     if not _all_true(xp.all(xp.abs(x) < 1)):
         raise ValueError("Input must be in (-1, 1).")
 
 
 def _check_nonzero(xp, x, y=None):
+    """Check that all elements are non-zero (or divisor y)."""
     target = y if y is not None else x
     if not _all_true(xp.all(target != 0)):
         raise ValueError("Divisor must not be zero.")

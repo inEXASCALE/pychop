@@ -3,7 +3,7 @@ Mathematical functions
 
 ``Pychop`` provides two ways to implement mathematical functions in reduced precision. 
 
-Mathematical functions II
+Mathematical functions I
 ------------------------------------------------------------------------
 
 The `pychop.math_func` module provides a suite of backend-aware mathematical functions that operate on floating-point numbers or arrays with custom precision chopping. These functions apply a provided `chop` callable to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32).  
