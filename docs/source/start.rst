@@ -1,21 +1,12 @@
 Quick start
 =====================================================
 
-The main function of the ``pychop`` is the method ``chop``, which is loaded by 
+The main function of the ``pychop`` is the method ``Chop``, which is loaded by 
 
 .. code:: python
 
-    from pychop import chop
+    from pychop import Chop
 
-
-
-The other two dominant modules in ``pychop`` are  ``pychop.quant`` and ``pychop.fixed_point``, one can load them various
-
-
-.. code:: python
-
-    from pychop import quant
-    from pychop import fpoint
 
 
     
@@ -36,7 +27,7 @@ The other two dominant modules in ``pychop`` are  ``pychop.quant`` and ``pychop.
     .. code-block:: python
 
         import pychop
-        from pychop import LightChop
+        from pychop import Chop
         import numpy as np
         from time import time
 
@@ -44,7 +35,7 @@ The other two dominant modules in ``pychop`` are  ``pychop.quant`` and ``pychop.
         np.random.seed(0)
         X = np.random.randn(5000, 5000) 
 
-        ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
+        ch = Chop(exp_bits=5, sig_bits=10, rmode=3) # half precision
 
         st = time()
         X_q = ch(X)
@@ -60,13 +51,13 @@ The other two dominant modules in ``pychop`` are  ``pychop.quant`` and ``pychop.
     .. code-block:: python
 
         import pychop
-        from pychop import LightChop
+        from pychop import Chop
         import numpy as np
         from time import time
 
         X = np.random.randn(5000, 5000) 
 
-        ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
+        ch = Chop(exp_bits=5, sig_bits=10, rmode=3) # half precision
 
         st = time()
         X_q = ch(X)
