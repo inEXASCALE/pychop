@@ -1,13 +1,13 @@
 import numpy as np
-from pychop import LightChop  # Use LightChop for faster emulation
+from pychop import Chop  # Use Chop for faster emulation
 # Optional: from pychop import Chop  # If you need full features
 
 class CPFloat:
     """
     A wrapper for scalars that maintains chopped precision after arithmetic ops.
-    Uses LightChop (or Chop) for rounding—results stay in the target precision.
+    Uses Chop (or Chop) for rounding—results stay in the target precision.
     - value: Internal storage (Python float, backed by fp64 for safety).
-    - chopper: The LightChop (or Chop) instance for rounding.
+    - chopper: The Chop (or Chop) instance for rounding.
     """
     def __init__(self, value, chopper):
         self.chopper = chopper

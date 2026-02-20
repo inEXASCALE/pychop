@@ -1,14 +1,13 @@
 import torch
-# from .lightchop import LightChop
 import torch.nn as nn
 from typing import Optional, Union, Tuple, Any, List
 import torch.nn.functional as F
-from .lightchop import LightChop
 
 import torch
 import copy
 from typing import Optional
 from torch.autograd import Function
+from .chop import Chop
 from .integer import Chopi
 from .fixed_point import Chopf
 
@@ -16,11 +15,11 @@ from .fixed_point import Chopf
 
 
 
-class ChopSTE(LightChop):
-    """LightChop with built-in Straight-Through Estimator (STE)
+class ChopSTE(Chop):
+    """Chop with built-in Straight-Through Estimator (STE)
     for floating-point quantization-aware training (QAT).
 
-    This class inherits directly from pychop.LightChop and supports
+    This class inherits directly from pychop.Chop and supports
     **exactly the same parameters** (exp_bits, sig_bits, rmode, subnormal,
     chunk_size, etc.).
 
@@ -44,7 +43,7 @@ class ChopSTE(LightChop):
     Notes
     -----
     - During training (grad enabled): quantization is wrapped with STE.
-    - During inference / no-grad: falls back to native fast LightChop.
+    - During inference / no-grad: falls back to native fast Chop.
     - Compatible with all your Quantized* layers (Conv, Linear, ReLU, etc.).
     - No changes needed to any Quantized layer code.
 
@@ -57,7 +56,7 @@ class ChopSTE(LightChop):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        # Save original LightChop.__call__ to avoid recursion in STE
+        # Save original Chop.__call__ to avoid recursion in STE
         self._quantize_fn = super().__call__
 
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
@@ -140,13 +139,13 @@ class ChopiSTE(Chopi):
 class FakeQuantizeSTE(Function):
     """Internal Straight-Through Estimator (STE) for QAT.
 
-    Forward: performs real low-precision quantization via LightChop.
+    Forward: performs real low-precision quantization via Chop.
     Backward: gradient flows unchanged (identity) — this is what enables
               true quantization-aware training.
     """
 
     @staticmethod
-    def forward(ctx: Any, input: torch.Tensor, chop: LightChop) -> torch.Tensor:
+    def forward(ctx: Any, input: torch.Tensor, chop: Chop) -> torch.Tensor:
         ctx.save_for_backward(input)
         # Use the saved original quantization function (bypasses override)
         return chop._quantize_fn(input)
@@ -261,7 +260,7 @@ class QuantizedLinear(nn.Linear):
         Size of each output sample.
     bias : bool, default=True
         If set to False, the layer will not learn an additive bias.
-    chop : LightChop or None, default=None
+    chop : Chop or None, default=None
         pychop quantizer. If None, falls back to standard Linear.
     """
 

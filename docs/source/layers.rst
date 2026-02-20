@@ -1,222 +1,356 @@
-.. _layers:
+.. _pychop.layers:
 
 Quantized layers module
 =======================
 
-This module provides custom PyTorch neural network layers with quantized computations, designed for low-precision simulations. These layers extend `torch.nn.Module` and utilize the `FloatPrecisionSimulator` for quantization.
+.. py:module:: pychop.layers
 
-Classes
--------
+This module provides **drop-in quantized layer replacements** for PyTorch models
+to support both floating-point and integer **quantization-aware training (QAT)**.
 
-.. class:: QuantizedLinear(in_features, out_features, exp_bits, sig_bits, rmode=1)
+All classes follow the same API as their original :mod:`torch.nn` counterparts.
+When a ``chop`` quantizer (with STE) is provided, weights and activations are
+fake-quantized during the forward pass while gradients flow through unchanged
+(Straight-Through Estimator).
 
-   Fully connected layer with quantized weights, bias, and inputs.
+Three STE-enabled quantizers are provided:
 
-   :param in_features: Size of each input sample.
-   :type in_features: int
-   :param out_features: Size of each output sample.
-   :type out_features: int
-   :param exp_bits: Number of exponent bits for quantization.
-   :type exp_bits: int
-   :param sig_bits: Number of mantissa bits for quantization.
-   :type sig_bits: int
-   :param rmode: Rounding mode for quantization (default: 1).
-   :type rmode: int
+* ``ChopSTE`` — floating-point (exponent + significand)
+* ``ChopfSTE`` — fixed-point (integer + fractional bits)
+* ``ChopiSTE`` — integer (uniform or symmetric)
 
-   **Example:**
+.. contents:: Table of Contents
+   :depth: 2
+   :local:
 
-   .. code-block:: python
+STE Quantizers (Core)
+---------------------
 
-      layer = QuantizedLinear(10, 5, exp_bits=5, sig_bits=10, rmode=1)
-      x = torch.randn(2, 10)
-      y = layer(x)  # Shape: [2, 5]
+.. autoclass:: ChopSTE
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-.. class:: QuantizedMultiheadAttention(embed_dim, num_heads, exp_bits, sig_bits, dropout=0.0, rmode=1)
+.. autoclass:: ChopfSTE
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-   Multi-head attention layer with quantized projections and outputs.
+.. autoclass:: ChopiSTE
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-   :param embed_dim: Total dimension of the model.
-   :type embed_dim: int
-   :param num_heads: Number of parallel attention heads.
-   :type num_heads: int
-   :param exp_bits: Number of exponent bits for quantization.
-   :type exp_bits: int
-   :param sig_bits: Number of mantissa bits for quantization.
-   :type sig_bits: int
-   :param dropout: Dropout probability (default: 0.0).
-   :type dropout: float
-   :param rmode: Rounding mode for quantization (default: 1).
-   :type rmode: int
+.. autoclass:: FakeQuantizeSTE
+   :members:
 
-   **Example:**
+.. autoclass:: FakeFQuantizeSTE
+   :members:
 
-   .. code-block:: python
+.. autoclass:: FakeIQuantizeSTE
+   :members:
 
-      attn = QuantizedMultiheadAttention(512, 8, exp_bits=5, sig_bits=10)
-      x = torch.randn(2, 10, 512)
-      y, weights = attn(x, x, x)  # y: [2, 10, 512], weights: attention weights
+Utility Functions
+-----------------
 
-.. class:: QuantizedLinearNorm(normalized_shape, exp_bits, sig_bits, eps=1e-5, rmode=1)
+.. autofunction:: post_quantization
 
-   Layer normalization with quantized inputs, weights, and biases.
+Floating-Point Quantized Layers (QAT)
+=====================================
 
-   :param normalized_shape: Shape to normalize over (int or tuple).
-   :type normalized_shape: int or tuple
-   :param exp_bits: Number of exponent bits for quantization.
-   :type exp_bits: int
-   :param sig_bits: Number of mantissa bits for quantization.
-   :type sig_bits: int
-   :param eps: Small value added for numerical stability (default: 1e-5).
-   :type eps: float
-   :param rmode: Rounding mode for quantization (default: 1).
-   :type rmode: int
+These layers use ``ChopSTE`` (or ``Chop``) for **floating-point QAT**.
 
-   **Example:**
+.. autoclass:: QuantizedLinear
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-   .. code-block:: python
+.. autoclass:: QuantizedConv1d
+   :members:
 
-      norm = QuantizedLinearNorm(512, exp_bits=5, sig_bits=10, rmode="towards_zero")
-      x = torch.randn(2, 10, 512)
-      y = norm(x)  # Shape: [2, 10, 512]
+.. autoclass:: QuantizedConv2d
+   :members:
 
-.. class:: QuantizedConv2d(in_channels, out_channels, kernel_size, exp_bits, sig_bits, stride=1, padding=0, rmode=1)
+.. autoclass:: QuantizedConv3d
+   :members:
 
-   2D convolution layer with quantized weights, bias, and inputs.
+.. autoclass:: QuantizedConvTranspose1d
+   :members:
 
-   :param in_channels: Number of input channels.
-   :type in_channels: int
-   :param out_channels: Number of output channels.
-   :type out_channels: int
-   :param kernel_size: Size of the convolution kernel (int or tuple).
-   :type kernel_size: int or tuple
-   :param exp_bits: Number of exponent bits for quantization.
-   :type exp_bits: int
-   :param sig_bits: Number of mantissa bits for quantization.
-   :type sig_bits: int
-   :param stride: Stride of the convolution (default: 1).
-   :type stride: int or tuple
-   :param padding: Padding added to inputs (default: 0).
-   :type padding: int or tuple
-   :param rmode: Rounding mode for quantization (default: 1).
-   :type rmode: int
+.. autoclass:: QuantizedConvTranspose2d
+   :members:
 
-   **Example:**
+.. autoclass:: QuantizedConvTranspose3d
+   :members:
 
-   .. code-block:: python
+.. autoclass:: QuantizedRNN
+   :members:
 
-      conv = QuantizedConv2d(3, 16, 3, exp_bits=5, sig_bits=10)
-      x = torch.randn(2, 3, 32, 32)
-      y = conv(x)  # Shape: [2, 16, 30, 30]
+.. autoclass:: QuantizedLSTM
+   :members:
 
-.. class:: QuantizedRNN(input_size, hidden_size, exp_bits, sig_bits, num_layers=1, bias=True, nonlinearity="tanh", rmode=1)
+.. autoclass:: QuantizedGRU
+   :members:
 
-   RNN layer with quantized weights and hidden states.
+.. autoclass:: QuantizedMaxPool1d
+   :members:
 
-   :param input_size: Size of input features.
-   :type input_size: int
-   :param hidden_size: Size of hidden state.
-   :type hidden_size: int
-   :param exp_bits: Number of exponent bits for quantization.
-   :type exp_bits: int
-   :param sig_bits: Number of mantissa bits for quantization.
-   :type sig_bits: int
-   :param num_layers: Number of recurrent layers (default: 1).
-   :type num_layers: int
-   :param bias: If True, adds bias terms (default: True).
-   :type bias: bool
-   :param nonlinearity: Activation function ("tanh" or "relu") (default: "tanh").
-   :type nonlinearity: str
-   :param rmode: Rounding mode for quantization (default: 1).
-   :type rmode: int
+.. autoclass:: QuantizedMaxPool2d
+   :members:
 
-   **Example:**
+.. autoclass:: QuantizedMaxPool3d
+   :members:
 
-   .. code-block:: python
+.. autoclass:: QuantizedAvgPool1d
+   :members:
 
-      rnn = QuantizedRNN(10, 20, exp_bits=5, sig_bits=10)
-      x = torch.randn(2, 5, 10)
-      y, h = rnn(x)  # y: [2, 5, 20], h: final hidden state
+.. autoclass:: QuantizedAvgPool2d
+   :members:
 
-.. class:: QuantizedLSTM(input_size, hidden_size, exp_bits, sig_bits, num_layers=1, bias=True, rmode=1)
+.. autoclass:: QuantizedAvgPool3d
+   :members:
 
-   LSTM layer with quantized weights and states.
+.. autoclass:: QuantizedAdaptiveAvgPool2d
+   :members:
 
-   :param input_size: Size of input features.
-   :type input_size: int
-   :param hidden_size: Size of hidden state.
-   :type hidden_size: int
-   :param exp_bits: Number of exponent bits for quantization.
-   :type exp_bits: int
-   :param sig_bits: Number of mantissa bits for quantization.
-   :type sig_bits: int
-   :param num_layers: Number of recurrent layers (default: 1).
-   :type num_layers: int
-   :param bias: If True, adds bias terms (default: True).
-   :type bias: bool
-   :param rmode: Rounding mode for quantization (default: 1).
-   :type rmode: int
+.. autoclass:: QuantizedBatchNorm1d
+   :members:
 
-   **Example:**
+.. autoclass:: QuantizedBatchNorm2d
+   :members:
 
-   .. code-block:: python
+.. autoclass:: QuantizedBatchNorm3d
+   :members:
 
-      lstm = QuantizedLSTM(10, 20, exp_bits=5, sig_bits=10)
-      x = torch.randn(2, 5, 10)
-      y, (h, c) = lstm(x)  # y: [2, 5, 20], h/c: final hidden/cell states
+.. autoclass:: QuantizedLayerNorm
+   :members:
 
-.. class:: QuantizedGRU(input_size, hidden_size, exp_bits, sig_bits, num_layers=1, bias=True, rmode=1)
+.. autoclass:: QuantizedInstanceNorm1d
+   :members:
 
-   GRU layer with quantized weights and hidden states.
+.. autoclass:: QuantizedInstanceNorm2d
+   :members:
 
-   :param input_size: Size of input features.
-   :type input_size: int
-   :param hidden_size: Size of hidden state.
-   :type hidden_size: int
-   :param exp_bits: Number of exponent bits for quantization.
-   :type exp_bits: int
-   :param sig_bits: Number of mantissa bits for quantization.
-   :type sig_bits: int
-   :param num_layers: Number of recurrent layers (default: 1).
-   :type num_layers: int
-   :param bias: If True, adds bias terms (default: True).
-   :type bias: bool
-   :param rmode: Rounding mode for quantization (default: 1).
-   :type rmode: int
+.. autoclass:: QuantizedInstanceNorm3d
+   :members:
 
-   **Example:**
+.. autoclass:: QuantizedGroupNorm
+   :members:
 
-   .. code-block:: python
+.. autoclass:: QuantizedMultiheadAttention
+   :members:
 
-      gru = QuantizedGRU(10, 20, exp_bits=5, sig_bits=10)
-      x = torch.randn(2, 5, 10)
-      y, h = gru(x)  # y: [2, 5, 20], h: final hidden state
+.. autoclass:: QuantizedEmbedding
+   :members:
 
-.. class:: QuantizedBatchNorm2d(num_features, exp_bits, sig_bits, eps=1e-5, momentum=0.1, rmode=1)
+**Convenience aliases**
 
-   2D batch normalization with quantized inputs and parameters.
+.. autodata:: QuantizedAttention
 
-   :param num_features: Number of features (channels).
-   :type num_features: int
-   :param exp_bits: Number of exponent bits for quantization.
-   :type exp_bits: int
-   :param sig_bits: Number of mantissa bits for quantization.
-   :type sig_bits: int
-   :param eps: Small value added for numerical stability (default: 1e-5).
-   :type eps: float
-   :param momentum: Momentum for running mean/variance (default: 0.1).
-   :type momentum: float
-   :param rmode: Rounding mode for quantization (default: 1).
-   :type rmode: int
+.. autodata:: QuantizedAvgPool
 
-   **Example:**
+Activation & Regularization Layers (Floating-Point)
+---------------------------------------------------
 
-   .. code-block:: python
+.. autoclass:: QuantizedReLU
+   :members:
 
-      bn = QuantizedBatchNorm2d(3, exp_bits=5, sig_bits=10)
-      x = torch.randn(2, 3, 32, 32)
-      y = bn(x)  # Shape: [2, 3, 32, 32]
+.. autoclass:: QuantizedLeakyReLU
+   :members:
 
-Notes
------
+.. autoclass:: QuantizedSigmoid
+   :members:
 
-- These layers are designed for low-precision inference and training, potentially affecting numerical precision and convergence.
+.. autoclass:: QuantizedTanh
+   :members:
+
+.. autoclass:: QuantizedGELU
+   :members:
+
+.. autoclass:: QuantizedELU
+   :members:
+
+.. autoclass:: QuantizedSiLU
+   :members:
+
+.. autoclass:: QuantizedPReLU
+   :members:
+
+.. autoclass:: QuantizedSoftmax
+   :members:
+
+.. autoclass:: QuantizedDropout
+   :members:
+
+Integer Quantized Layers (QAT)
+==============================
+
+These layers use ``ChopiSTE`` for **integer QAT** (uniform or symmetric).
+
+.. autoclass:: IQuantizedLinear
+   :members:
+
+.. autoclass:: IQuantizedConv1d
+   :members:
+
+.. autoclass:: IQuantizedConv2d
+   :members:
+
+.. autoclass:: IQuantizedConv3d
+   :members:
+
+.. autoclass:: IQuantizedConvTranspose1d
+   :members:
+
+.. autoclass:: IQuantizedConvTranspose2d
+   :members:
+
+.. autoclass:: IQuantizedConvTranspose3d
+   :members:
+
+.. autoclass:: IQuantizedRNN
+   :members:
+
+.. autoclass:: IQuantizedLSTM
+   :members:
+
+.. autoclass:: IQuantizedGRU
+   :members:
+
+.. autoclass:: IQuantizedMaxPool1d
+   :members:
+
+.. autoclass:: IQuantizedMaxPool2d
+   :members:
+
+.. autoclass:: IQuantizedMaxPool3d
+   :members:
+
+.. autoclass:: IQuantizedAvgPool1d
+   :members:
+
+.. autoclass:: IQuantizedAvgPool2d
+   :members:
+
+.. autoclass:: IQuantizedAvgPool3d
+   :members:
+
+.. autoclass:: IQuantizedAdaptiveAvgPool1d
+   :members:
+
+.. autoclass:: IQuantizedAdaptiveAvgPool2d
+   :members:
+
+.. autoclass:: IQuantizedAdaptiveAvgPool3d
+   :members:
+
+.. autoclass:: IQuantizedBatchNorm1d
+   :members:
+
+.. autoclass:: IQuantizedBatchNorm2d
+   :members:
+
+.. autoclass:: IQuantizedBatchNorm3d
+   :members:
+
+.. autoclass:: IQuantizedLayerNorm
+   :members:
+
+.. autoclass:: IQuantizedInstanceNorm1d
+   :members:
+
+.. autoclass:: IQuantizedInstanceNorm2d
+   :members:
+
+.. autoclass:: IQuantizedInstanceNorm3d
+   :members:
+
+.. autoclass:: IQuantizedGroupNorm
+   :members:
+
+.. autoclass:: IQuantizedMultiheadAttention
+   :members:
+
+.. autoclass:: IQuantizedEmbedding
+   :members:
+
+Integer Activation & Regularization Layers
+------------------------------------------
+
+.. autoclass:: IQuantizedReLU
+   :members:
+
+.. autoclass:: IQuantizedLeakyReLU
+   :members:
+
+.. autoclass:: IQuantizedSigmoid
+   :members:
+
+.. autoclass:: IQuantizedTanh
+   :members:
+
+.. autoclass:: IQuantizedGELU
+   :members:
+
+.. autoclass:: IQuantizedELU
+   :members:
+
+.. autoclass:: IQuantizedSiLU
+   :members:
+
+.. autoclass:: IQuantizedPReLU
+   :members:
+
+.. autoclass:: IQuantizedSoftmax
+   :members:
+
+.. autoclass:: IQuantizedDropout
+   :members:
+
+**Convenience aliases**
+
+.. autodata:: IQuantizedAttention
+
+.. autodata:: IQuantizedAvgPool
+
+Usage Example
+-------------
+
+.. code-block:: python
+
+    from pychop.layers import (
+        ChopSTE, ChopfSTE, ChopiSTE,
+        QuantizedConv2d, QuantizedReLU,
+        IQuantizedLinear, IQuantizedReLU
+    )
+
+    # Floating-point QAT
+    chop_fp = ChopSTE(exp_bits=5, sig_bits=10, rmode=3)
+
+    # Fixed-point QAT
+    chop_fixed = ChopfSTE(ibits=8, fbits=8, rmode=1)
+
+    # Integer QAT
+    chop_int = ChopiSTE(bits=8, symmetric=True)
+
+    class MyQuantizedNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.conv1 = QuantizedConv2d(3, 64, 3, chop=chop_fp)
+            self.relu  = QuantizedReLU(chop=chop_fp)
+            self.fc    = IQuantizedLinear(512, 10, chop=chop_int)
+
+        def forward(self, x):
+            x = self.relu(self.conv1(x))
+            x = x.view(x.size(0), -1)
+            return self.fc(x)
+
+Post-Training Quantization (PTQ)
+--------------------------------
+
+.. code-block:: python
+
+    from pychop.layers import post_quantization, ChopSTE
+
+    chop = ChopSTE(exp_bits=8, sig_bits=23)   # or any other chop
+    quantized_model = post_quantization(model, chop, eval_mode=True, verbose=True)

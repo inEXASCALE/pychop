@@ -1,19 +1,19 @@
 import numpy as np
-from pychop import LightChop  # Or: from pychop import Chop
+from pychop import Chop  # Or: from pychop import Chop
 
 class CPArray(np.ndarray):
     """
     A NumPy array subclass that maintains chopped precision after arithmetic ops.
     - Inherits from np.ndarray for full compatibility.
-    - Uses LightChop for rounding arrays.
+    - Uses Chop for rounding arrays.
     - Operations return CPArray instances (chopped post-op).
     """
     def __new__(cls, input_array, chopper=None):
         if chopper is None:
-            raise ValueError("Must provide a chopper (LightChop or Chop instance)")
+            raise ValueError("Must provide a chopper (Chop or Chop instance)")
         # Chop the base array FIRST (pure ndarray) to avoid subclass recursion
         base_input = np.asarray(input_array)  # Strip any subclass
-        chopped_base = chopper(base_input)    # LightChop on pure -> pure chopped ndarray
+        chopped_base = chopper(base_input)    # Chop on pure -> pure chopped ndarray
         # Now view the pre-chopped base as CPArray (no re-chop)
         obj = chopped_base.view(cls)
         obj.chopper = chopper
@@ -38,7 +38,7 @@ class CPArray(np.ndarray):
         result = getattr(ufunc, method)(*full_inputs, **kwargs)  # Pure computation
 
         # Chop the pure result
-        chopped_result = self.chopper(result)  # LightChop on pure -> pure chopped
+        chopped_result = self.chopper(result)  # Chop on pure -> pure chopped
 
         # Return as CPArray (views pre-chopped; no recursion)
         if chopped_result.ndim == 0:

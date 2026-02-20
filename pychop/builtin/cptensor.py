@@ -1,22 +1,22 @@
 import torch
 import pychop
 # pychop.backend('torch')  # Switch to PyTorch backend (once)
-from pychop import LightChop  # Or: from pychop import Chop
+from pychop import Chop  # Or: from pychop import Chop
 
 class CPTensor(torch.Tensor):
     """
     A PyTorch tensor subclass that maintains chopped precision after arithmetic ops.
     - Inherits from torch.Tensor for full compatibility.
-    - Uses LightChop for rounding tensors.
+    - Uses Chop for rounding tensors.
     - Operations return CPTensor instances (chopped post-op).
     """
     def __new__(cls, input_tensor, chopper=None):
         if chopper is None:
-            raise ValueError("Must provide a chopper (LightChop or Chop instance)")
+            raise ValueError("Must provide a chopper (Chop or Chop instance)")
         # Ensure input is a pure tensor
         base_input = torch.as_tensor(input_tensor)  # Strip any subclass
         # Chop the base tensor FIRST (pure tensor) to avoid recursion
-        chopped_base = chopper(base_input)  # LightChop on pure → pure chopped tensor
+        chopped_base = chopper(base_input)  # Chop on pure → pure chopped tensor
         # Now view the pre-chopped base as CPTensor (no re-chop)
         obj = chopped_base.as_subclass(cls)
         obj.chopper = chopper  # Per-instance storage
@@ -75,7 +75,7 @@ class CPTensor(torch.Tensor):
             return result
 
         # Chop the pure result
-        chopped_result = chopper(result)  # LightChop on pure → pure chopped
+        chopped_result = chopper(result)  # Chop on pure → pure chopped
 
         # Return as CPTensor (set chopper on new instance)
         new_instance = chopped_result.as_subclass(CPTensor)

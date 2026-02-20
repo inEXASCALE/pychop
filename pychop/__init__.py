@@ -1,11 +1,13 @@
+from .chop import Chop
+from .integer import Chopi
+from .fixed_point import Chopf
+
 from .simulate import Simulate
 
 from .float_params import float_params
-from .fixed_point import Chopf
-from .integer import Chopi
-from .chop import Chop
 from .bitchop import Bitchop
-from .lightchop import LightChop
+from .faultchop import FaultChop
+
 from .layers import ChopSTE, ChopfSTE, ChopiSTE
 
 __version__ = '0.4.4'  

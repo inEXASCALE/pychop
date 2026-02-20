@@ -15,10 +15,10 @@ A floating point number systems can be represented by
 
 
 
-Chop: soft error simulator for floating point arithmetic
+``FaultChop``: soft error simulator for floating point arithmetic
 ----------------------------------------------------------
 
-``pychop`` built-in method ``chop`` supports the following precision:
+``pychop`` built-in method ``FaultChop`` supports the following precision:
 
 
 
@@ -64,9 +64,9 @@ Second, define parameter ``customs`` instead of ``prec``,
 
 .. code:: python
 
-    from pychop import chop
+    from pychop import FaultChop
     x = np.random.rand(10000, 10000) # use x = torch.rand(size=(10000, 10000)) for Torch backend
-    nc = chop(customs=prec, rmode=3) 
+    nc = FaultChop(customs=prec, rmode=3) 
     y = nc(x)
     print(y[0, :5])
 
@@ -74,7 +74,7 @@ To print out the unit-roundoff information, simply set ``verbose=1``, use
 
 .. code:: python
     
-    pyq_f = chop('h', verbose=1)
+    pyq_f = FaultChop('h', verbose=1)
 
 The result is:
 
@@ -99,10 +99,10 @@ One can depoy a direct setting to floating point arithmetic:
 Note that if emin is not set, then IEEE 754 assumption is used which means emin = 1 - emax
 
 
-LightChop: fast transparent precision emulation for floating point arithmetic
--------------------------------------------------------------------------------
+``Chop``: fast transparent precision emulation for floating point arithmetic and training neural networks
+--------------------------------------------------------------------------------------------------------------------------------
 
-The `LightChop` class enables quantization of floating-point numbers into a custom floating-point format similar to IEEE 754, defined by a specified number of exponent and mantissa bits. This document outlines the usage and examples of this class across three frameworks: PyTorch, NumPy, and JAX. Each implementation supports six rounding modes: 
+The ``Chop`` class enables quantization of floating-point numbers into a custom floating-point format similar to IEEE 754, defined by a specified number of exponent and mantissa bits. This document outlines the usage and examples of this class across three frameworks: PyTorch, NumPy, and JAX. Each implementation supports six rounding modes: 
 
 .. code-block:: 
 
@@ -114,12 +114,12 @@ The `LightChop` class enables quantization of floating-point numbers into a cust
     - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
     - 6 or "stoc_equal": Stochastic rounding with 50% probability.
 
-This guide offers a practical introduction to the `LightChop` classes, with code examples formatted for clarity and illustrative outputs reflecting the FP16-like behavior
+This guide offers a practical introduction to the `Chop` classes, with code examples formatted for clarity and illustrative outputs reflecting the FP16-like behavior
 
 
 
 
-The `LightChop` converts floating-point values into a custom floating-point representation with:
+The `Chop` converts floating-point values into a custom floating-point representation with:
 - **Exponent Bits**: Determines the range of representable values.
 - **Mantissa Bits**: Determines the precision of the fractional part.
 - **Format**: For FP16-like settings (5 exponent bits, 10 mantissa bits), the range is approximately \([-65504, 65504]\) with a precision of about \(2^{-10} = 0.0009765625\) for normal numbers.
@@ -152,7 +152,7 @@ Quantize a tensor by calling the quantization method with the input tensor and a
 .. code-block:: python
 
     # Initialize with 5 exponent bits and 10 mantissa bits (FP16-like)
-    sim = LightChop(exp_bits=5, sig_bits=10)
+    sim = Chop(exp_bits=5, sig_bits=10)
     # Input tensor
     values = torch.tensor([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
     # Quantize with nearest rounding
@@ -177,7 +177,7 @@ Apply the quantization method to a NumPy array, optionally specifying a rounding
 .. code-block:: python
 
     # Initialize with 5 exponent bits and 10 mantissa bits, half precision
-    ch = LightChop(exp_bits=5, sig_bits=10, rmode="nearest")
+    ch = Chop(exp_bits=5, sig_bits=10, rmode="nearest")
     # Input array
     values = np.array([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
     # Quantize with nearest rounding
@@ -202,7 +202,7 @@ Quantize a JAX array using the quantization method, providing the array, an opti
 .. code-block:: python
 
     # Initialize with 5 exponent bits and 10 mantissa bits, half precision
-    ch = LightChop(exp_bits=5, sig_bits=10, rmode="nearest")
+    ch = Chop(exp_bits=5, sig_bits=10, rmode="nearest")
     # Input array
     values = jnp.array([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
     # PRNG key for stochastic modes

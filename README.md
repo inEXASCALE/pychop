@@ -88,10 +88,10 @@ The supported floating point arithmetic formats include:
 ``pychop`` support arbitrarily built-in reduced-precision types for scalar, array, and tensor. See here for detail [doc](https://pychop.readthedocs.io/en/latest/builtin.html). A simple example for scalar is as follows:
 
 ```python
-from pychop import LightChop
+from pychop import Chop
 from pychop.builtin import CPFloat
 
-half = LightChop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
+half = Chop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
 
 a = CPFloat(1.234567, half)
 b = CPFloat(0.987654, half)
@@ -120,7 +120,7 @@ Rounding the values with specified precision format:
 
 ```Python
 import pychop
-from pychop import LightChop
+from pychop import Chop
 import numpy as np
 np.random.seed(0)
 
@@ -129,19 +129,19 @@ pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
 # One can also specify 'auto', the pychop will automatically detect the types,
 # but speed will be degraded. 
  
-ch = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
+ch = Chop(exp_bits=5, sig_bits=10, rmode=3) # half precision
 X_q = ch(X)
 print(X_q[:10, 0])
 ```
 
 If one is not seeking optimized performance and more emulation supports, one can use the following example. 
 
-``pychop`` also provides same functionalities just like Higham's chop [1] that supports soft error simulation (by setting ``flip=True``), but with relatively faster speed:
+``pychop`` also provides same functionalities just like Higham's chop [1] that supports soft error simulation (by setting ``flip=True``), but with relatively degraded speed:
 
 ```Python
-from pychop import Chop
+from pychop import FaultChop
 
-ch = Chop('h') # Standard IEEE 754 half precision
+ch = FaultChop('h') # Standard IEEE 754 half precision
 X_q = ch(X) # Rounding values
 ```
 
@@ -162,30 +162,20 @@ print(X_q[:10, 0])
 ```
 
 
+To enable quantization aware training, a sequential neural network can be built with derived quantied layer (seamlessly integrated with Straight-Through Estimator):
 
-Set quantized layer (seamlessly integrated with Straight-Through Estimator):
-
-```Python
-import torch
-from pychop.layers import QuantizedLayer, 
-layer = QuantizedLayer(exp_bits=5, sig_bits=10, rmode=1) # half precision, round to nearest ties to even
-input_tensor = torch.randn(3, 4)
-output = layer(input_tensor)
-```
-
-A sequential neural network can be built with:
 ```Python
 import torch.nn as nn
 from pychop.layers import *
 
 class MLP(nn.Module):
-    def __init__(self):
-        super(MLP, self).__init__(exp_bits=5, sig_bits=10, rmode=1)
+    def __init__(self, chop=None):
+        super(MLP, self).__init__()
         self.flatten = nn.Flatten()
-        self.fc1 = QuantizedLinear(256, 256, exp_bits, sig_bits, rmode=rmode)
+        self.fc1 = QuantizedLinear(256, 256, chop=chop)
         self.relu1 = nn.ReLU()
         self.dropout = nn.Dropout(0.2)
-        self.fc2 = QuantizedLinear(256, 10, exp_bits, sig_bits, rmode=rmode)
+        self.fc2 = QuantizedLinear(256, 10, chop=chop)
         # 5 exponent bits, 10 explicit significant bits , round to nearest ties to even
 
     def forward(self, x):
@@ -197,31 +187,10 @@ class MLP(nn.Module):
         return x
 ```
 
+To enable quantization-aware training, one need to pass floating-point chopper ``ChopSTE`` or fixed-point chopper ``ChopfSTE`` to the parameter ``chop``, for details of example. we refer to [example_CNN_ft.py](examples/example_CNN_ft.py) and [example_CNN_fp.py](examples/example_CNN_fp.py)
 
-Alternatively, one can seek a less strict simulation:
 
-```Python
-import torch.nn as nn
-
-class MLP(nn.Module):
-    def __init__(self):
-        super(MLP, self).__init__()
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(256, 256)
-        self.relu1 = nn.ReLU()
-        self.dropout = nn.Dropout(0.2)
-        self.fc2 = nn.Linear(256, 10)
-        self.quant = QuantizedLayer(exp_bits=5, sig_bits=10, rmode=1) 
-
-    def forward(self, x):
-        x = self.flatten(x)
-        x = self.quant(self.fc1(x))
-        x = self.relu1(x)
-        x = self.dropout(x)
-        x = self.quant(self.fc2(x))
-        return x
-```
-
+For integer quantization, please see [example_CNN_int.py](examples/example_CNN_int.py).
 
 #### (II). Fixed point quantization
 
@@ -251,7 +220,7 @@ from pychop import Chopi
 pychop.backend('numpy')
 
 X = np.array([[0.1, -0.2], [0.3, 0.4]])
-ch = Chopi(num_bits=8, symmetric=False)
+ch = Chopi(bits=8, symmetric=False)
 X_q = ch.quantize(X) # Convert to integers
 X_dq = ch.dequantize(X_q) # Convert back to floating points
 ```
@@ -269,7 +238,7 @@ To use ``Pychop`` in your MATLAB environment, similarly, simply load the Pychop 
 
 ```MATLAB
 pc = py.importlib.import_module('pychop');
-ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
+ch = pc.Chop(exp_bits=5, sig_bits=10, rmode=1)
 X = rand(100, 100);
 X_q = ch(X);
 ```
@@ -278,7 +247,7 @@ Or more specifically, use
 ```MATLAB
 np = py.importlib.import_module('numpy');
 pc = py.importlib.import_module('pychop');
-ch = pc.LightChop(exp_bits=5, sig_bits=10, rmode=1)
+ch = pc.Chop(exp_bits=5, sig_bits=10, rmode=1)
 X = np.random.randn(int32(100), int32(100));
 X_q = ch(X);
 ```
