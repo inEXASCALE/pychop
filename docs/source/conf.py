@@ -1,14 +1,12 @@
 import sys
 import os
-import sphinx_rtd_theme
-
 
 sys.path.insert(0, os.path.abspath('../..'))
 
 project = 'pychop'
-copyright = '2024, InEXASCALE computing'
+copyright = '2026, InEXASCALE computing'
 author = 'InEXASCALE computing'
-release = '0.0.1'
+release = '0.4.4'
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -16,21 +14,22 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx_rtd_theme',
 ]
+
 templates_path = ['_templates']
 source_suffix = '.rst'
-exclude_patterns = []
 locale_dirs = ['locale/']
 gettext_compact = False
-
 exclude_patterns = []
 
 pygments_style = 'lovelace'
+pygments_dark_style = "monokai"
 
-html_theme = "sphinx_rtd_theme" # html_theme = 'alabaster'
+html_theme = "furo" 
+
 html_theme_options = {
-    'logo_only': False,
-    'navigation_depth': 5,
+    "sidebar_hide_name": False, 
+    "navigation_with_keys": True,
 }
+
 html_static_path = []
