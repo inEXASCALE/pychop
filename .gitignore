@@ -17,3 +17,4 @@ exps/additional_cp/resnet18_2/qat_models/
 exps/*.pth
 exps/*.npz
 pychop.egg-info/
+examples/data/
