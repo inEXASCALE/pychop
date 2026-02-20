@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from pychop.layers import *
-from pychop import ChopSTE, LightChop
+from pychop import Chopf, ChopfSTE
 
 class StandardCNN(nn.Module):
     def __init__(self):
@@ -99,7 +99,7 @@ def train_and_evaluate(model, train_loader, test_loader, epochs=2, device='cuda'
 
 def test_layers():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    chop = LightChop(exp_bits=5, sig_bits=10, rmode=3) # half precision
+    chop = Chopf(ibits=8, fbits=8)
     # Test Conv1d
     conv1d = nn.Conv1d(3, 6, 3).to(device)
     qconv1d = QuantizedConv1d(3, 6, 3, chop=chop).to(device)
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     test_layers()
     
     print("\nTraining Quantized CNN:")
-    chop = ChopSTE(exp_bits=5, sig_bits=10, rmode=3) # half precision
+    chop = ChopfSTE(ibits=8, fbits=8) # half precision
     quantized_model = QuantizedCNN(chop=chop)
     quantized_acc = train_and_evaluate(quantized_model, train_loader, test_loader, device=device)
 

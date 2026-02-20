@@ -349,7 +349,6 @@ class LightChopSTE(nn.Module):
             else:
                 sig_q = torch.where(subnormal_mask, torch.round(sub_scaled), sig_q)
         
-        # 其余模式保持原样（无随机）
         elif self.rmode == 7:  # Nearest, ties to zero
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
@@ -400,7 +399,7 @@ class LightChopSTE(nn.Module):
         result = torch.where(nan_mask, x, result)
         result = torch.where(zero_mask, x, result)
         
-        # === 修复：溢出映射到 ±Inf ===
+        # === overflow map to ±Inf ===
         inf_val = sign * torch.full_like(result, float('inf'))
         result = torch.where(overflow_mask, inf_val, result)
         

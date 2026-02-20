@@ -3,13 +3,192 @@ import torch
 import torch.nn as nn
 from typing import Optional, Union, Tuple, Any, List
 import torch.nn.functional as F
-from .tch.lightchop import LightChopSTE
+from .lightchop import LightChop
 
 import torch
 import copy
 from typing import Optional
 from torch.autograd import Function
-from pychop import Chopi
+from .integer import Chopi
+from .fixed_point import Chopf
+
+
+
+
+
+class ChopSTE(LightChop):
+    """LightChop with built-in Straight-Through Estimator (STE)
+    for floating-point quantization-aware training (QAT).
+
+    This class inherits directly from pychop.LightChop and supports
+    **exactly the same parameters** (exp_bits, sig_bits, rmode, subnormal,
+    chunk_size, etc.).
+
+    Parameters
+    ----------
+    exp_bits : int
+        Number of exponent bits.
+    sig_bits : int
+        Number of significand bits (including implicit bit).
+    rmode : int, default=1
+        Rounding mode (0=round to nearest even, 1=to nearest away, ...).
+    subnormal : bool, default=True
+        Whether to support subnormal numbers.
+    chunk_size : int, default=800
+        Chunk size for large tensors (performance tuning).
+    random_state : int, default=42
+        Seed for stochastic rounding.
+    verbose : int, default=0
+        Verbosity level.
+
+    Notes
+    -----
+    - During training (grad enabled): quantization is wrapped with STE.
+    - During inference / no-grad: falls back to native fast LightChop.
+    - Compatible with all your Quantized* layers (Conv, Linear, ReLU, etc.).
+    - No changes needed to any Quantized layer code.
+
+    Example
+    -------
+    >>> chop_conv = ChopSTE(exp_bits=5, sig_bits=10, rmode=3)
+    >>> chop_fc   = ChopSTE(exp_bits=8, sig_bits=23, rmode=3)
+    >>> self.conv1 = QuantizedConv2d(1, 16, 3, chop=chop_conv)
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # Save original LightChop.__call__ to avoid recursion in STE
+        self._quantize_fn = super().__call__
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        """Main quantization entry point with automatic STE."""
+        if x.requires_grad and torch.is_grad_enabled():
+            return FakeQuantizeSTE.apply(x, self)
+        # Fast path: inference or no gradient
+        return self._quantize_fn(x)
+
+    def quantize(self, x: torch.Tensor) -> torch.Tensor:
+        """Alias for backward compatibility with old activation code style."""
+        return self(x)
+
+
+class ChopfSTE(Chopf):
+    """Fixed-point quantization wrapper with built-in Straight-Through Estimator (STE)
+    for quantization-aware training (QAT).
+
+    This class inherits directly from Chopf and supports **exactly the same
+    constructor parameters and behavior**.
+
+    Parameters
+    ----------
+    ibits : int, default=4
+        Bitwidth of the integer part (including sign bit if signed).
+    fbits : int, default=4
+        Bitwidth of the fractional part.
+    rmode : int, default=1
+        Rounding mode (0=round to nearest ties-to-odd, 1=ties-to-even, ..., 6=stochastic 50%).
+
+    Notes
+    -----
+    - During training (when `requires_grad=True` and gradients are enabled): uses STE.
+    - During inference / no-grad: falls back to native fast fixed-point quantization (zero STE overhead).
+    - Fully compatible with all your `Quantized*` layers via the `chop=` parameter.
+    - Backend auto-detection (torch/jax/numpy) works exactly as in original Chopf.
+    - You only need to import and use `ChopfSTE` — no changes to any existing layer code.
+
+    Example
+    -------
+    >>> chop_fixed = ChopfSTE(ibits=8, fbits=8, rmode=1)   # e.g. Q8.8 fixed-point
+    >>> self.conv1 = QuantizedConv2d(1, 16, 3, chop=chop_fixed)
+    >>> self.relu  = QuantizedReLU(inplace=True, chop=chop_fixed)
+    """
+
+    def __init__(self, ibits: int = 4, fbits: int = 4, rmode: int = 1) -> None:
+        super().__init__(ibits=ibits, fbits=fbits, rmode=rmode)
+        # Save original quantize method to bypass STE recursion
+        self._quantize_fn = super().quantize
+
+    def __call__(self, X) -> Any:
+        """Direct call interface with automatic STE support."""
+        if torch.is_tensor(X) and X.requires_grad and torch.is_grad_enabled():
+            return FakeFQuantizeSTE.apply(X, self)
+        # Fast path (inference, no-grad, or non-torch input)
+        return self._quantize_fn(X)
+
+    def quantize(self, X) -> Any:
+        """Explicit quantize method (for backward compatibility with old code style)."""
+        return self(X)
+
+
+class ChopiSTE(Chopi):
+    """Chopi with built-in Straight-Through Estimator (STE) for QAT.
+
+    Use this class instead of plain Chopi during training.
+    """
+
+    def __init__(self, bits: int = 8, symmetric: bool = False, **kwargs) -> None:
+        super().__init__(bits=bits, symmetric=symmetric, **kwargs)
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply fake-quantization with STE."""
+        if x is None or x.numel() == 0:
+            return x
+        return FakeIQuantizeSTE.apply(x, self)
+
+
+
+class FakeQuantizeSTE(Function):
+    """Internal Straight-Through Estimator (STE) for QAT.
+
+    Forward: performs real low-precision quantization via LightChop.
+    Backward: gradient flows unchanged (identity) — this is what enables
+              true quantization-aware training.
+    """
+
+    @staticmethod
+    def forward(ctx: Any, input: torch.Tensor, chop: LightChop) -> torch.Tensor:
+        ctx.save_for_backward(input)
+        # Use the saved original quantization function (bypasses override)
+        return chop._quantize_fn(input)
+
+    @staticmethod
+    def backward(ctx: Any, grad_output: torch.Tensor):
+        # STE: pretend quantization never happened for gradients
+        return grad_output, None  # None for the 'chop' argument
+
+
+class FakeFQuantizeSTE(Function):
+    """Straight-Through Estimator (STE) for fixed-point quantization (ChopfSTE).
+
+    Forward:  performs real fixed-point quantization via the original Chopf backend.
+    Backward: passes gradient unchanged (identity) — enables true fixed-point QAT.
+    """
+
+    @staticmethod
+    def forward(ctx: Any, input: torch.Tensor, chop: 'ChopfSTE') -> torch.Tensor:
+        ctx.save_for_backward(input)
+        # Call the saved original quantization function (avoids recursion)
+        return chop._quantize_fn(input)
+
+    @staticmethod
+    def backward(ctx: Any, grad_output: torch.Tensor):
+        # STE: gradient flows straight through as if no quantization happened
+        return grad_output, None
+
+class FakeIQuantizeSTE(Function):
+    """Straight-Through Estimator for integer fake-quantization with Chopi."""
+
+    @staticmethod
+    def forward(ctx, input: torch.Tensor, chop: Chopi) -> torch.Tensor:
+        q = chop.quantize(input)
+        dq = chop.dequantize(q)
+        ctx.save_for_backward(input)  # optional, for debugging
+        return dq
+
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor):
+        # STE: gradient flows through unchanged
+        return grad_output, None
 
 
 
@@ -1125,42 +1304,8 @@ class QuantizedPReLU(nn.PReLU):
 # Integer quantization
 # ===================================================================
 
-# chop=None 时完全退化为原生 nn.* 层
 
-# ====================== ChopiSTE (必须放在所有 IQuantized 类之前) ======================
-class FakeQuantizeSTE(Function):
-    """Straight-Through Estimator for integer fake-quantization with Chopi."""
-
-    @staticmethod
-    def forward(ctx, input: torch.Tensor, chop: Chopi) -> torch.Tensor:
-        q = chop.quantize(input)
-        dq = chop.dequantize(q)
-        ctx.save_for_backward(input)  # optional, for debugging
-        return dq
-
-    @staticmethod
-    def backward(ctx, grad_output: torch.Tensor):
-        # STE: gradient flows through unchanged
-        return grad_output, None
-
-
-class ChopiSTE(Chopi):
-    """Chopi with built-in Straight-Through Estimator (STE) for QAT.
-
-    Use this class instead of plain Chopi during training.
-    """
-
-    def __init__(self, bits: int = 8, symmetric: bool = False, **kwargs) -> None:
-        super().__init__(bits=bits, symmetric=symmetric, **kwargs)
-
-    def __call__(self, x: torch.Tensor) -> torch.Tensor:
-        """Apply fake-quantization with STE."""
-        if x is None or x.numel() == 0:
-            return x
-        return FakeQuantizeSTE.apply(x, self)
-
-
-# ====================== IQuantized Layers (all updated with STE + sklearn-style docstrings) ======================
+# ====================== IQuantized Layers ======================
 
 class IQuantizedLinear(nn.Linear):
     """Integer quantized version of :class:`torch.nn.Linear` for QAT using ChopiSTE.

@@ -2,12 +2,11 @@ from .simulate import Simulate
 
 from .float_params import float_params
 from .fixed_point import Chopf
-from .integer import Chopi, ChopiSTE
+from .integer import Chopi
 from .chop import Chop
 from .bitchop import Bitchop
 from .lightchop import LightChop
-from .tch import LightChopSTE as LightChopSTE
-
+from .layers import ChopSTE, ChopfSTE, ChopiSTE
 
 __version__ = '0.4.4'  
 

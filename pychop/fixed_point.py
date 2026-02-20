@@ -73,40 +73,50 @@ class Chopf:
 
         self._impl = impl
         self._current_backend = backend
-        
         return impl
 
+    def quantize(self, X):
+        """
+        Quantize input to fixed-point format.
+        Automatically initializes the backend on first call (fixes the common
+        "backend not yet initialized" error in layers).
+        """
+        if self._impl is None:
+            # 第一次调用时强制初始化
+            env_backend = os.environ.get("chop_backend", "auto")
+            if env_backend == "auto":
+                target_backend = detect_array_type(X)
+            else:
+                target_backend = env_backend
+                if target_backend not in {"torch", "jax", "numpy"}:
+                    raise ValueError(
+                        f"Invalid chop_backend environment value: {target_backend}. "
+                        "Must be 'torch', 'jax', or 'numpy'."
+                    )
+
+            # Convert input to the target backend type
+            if target_backend == "torch":
+                X = to_torch_tensor(X)
+            elif target_backend == "jax":
+                X = to_jax_array(X)
+            else:  # numpy
+                X = to_numpy_array(X)
+
+            # Create the backend implementation
+            self._get_impl(target_backend)
+
+        return self._impl.quantize(X)
+
+
     def __call__(self, X):
-        env_backend = os.environ.get("chop_backend", "auto")
-
-        if env_backend == "auto":
-            target_backend = detect_array_type(X)
-        else:
-            
-            target_backend = env_backend
-            if target_backend not in {"torch", "jax", "numpy"}:
-                raise ValueError(
-                    f"Invalid chop_backend environment value: {target_backend}. "
-                    "Must be 'torch', 'jax', or 'numpy'."
-                )
-
-        # Convert input to the target backend type
-        if target_backend == "torch":
-            X = to_torch_tensor(X)
-        elif target_backend == "jax":
-            X = to_jax_array(X)
-        else:  # numpy
-            X = to_numpy_array(X)
-
-        # Get (or create) the matching implementation
-        impl = self._get_impl(target_backend)
-
-        return impl(X)
+        """Direct call interface (keeps backward compatibility)."""
+        return self.quantize(X)
 
     def __getattr__(self, name):
         if self._impl is None:
             raise RuntimeError(
                 "Chopf backend not yet initialized. "
-                "Call the instance with an array/tensor first to determine/create the backend implementation."
+                "Call .quantize() or the Chopf instance first "
+                "to determine/create the backend implementation."
             )
         return getattr(self._impl, name)
