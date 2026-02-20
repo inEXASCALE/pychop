@@ -148,15 +148,17 @@ X_q = ch(X) # Rounding values
 One can also customize the precision via:
 ```Python
 from pychop import Customs
+from pychop import FaultChop
+
 pychop.backend('numpy', 1)
 ct1 = Customs(exp_bits=5, sig_bits=10) # half precision (5 exponent bits, 10+(1) significand bits, (1) is implicit bits)
 
-ch = Chop(customs=ct1, rmode=3) # Round towards minus infinity 
+ch = FaultChop(customs=ct1, rmode=3) # Round towards minus infinity 
 X_q = ch(X)
 print(X_q[:10, 0])
 
 ct2 = Customs(emax=15, t=11)
-ch = Chop(customs=ct2, rmode=3)
+ch = FaultChop(customs=ct2, rmode=3)
 X_q = ch(X)
 print(X_q[:10, 0])
 ```
