@@ -82,7 +82,6 @@ class Chopf:
         "backend not yet initialized" error in layers).
         """
         if self._impl is None:
-            # 第一次调用时强制初始化
             env_backend = os.environ.get("chop_backend", "auto")
             if env_backend == "auto":
                 target_backend = detect_array_type(X)
