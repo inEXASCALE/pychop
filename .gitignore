@@ -18,3 +18,8 @@ exps/*.pth
 exps/*.npz
 pychop.egg-info/
 examples/data/
+pychop/__pycache__/
+pychop/np/__pycache__/
+pychop/jx/__pycache__/
+pychop/tch/__pycache__/
+
