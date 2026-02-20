@@ -19,10 +19,6 @@ Three STE-enabled quantizers are provided:
 * ``ChopfSTE`` — fixed-point (integer + fractional bits)
 * ``ChopiSTE`` — integer (uniform or symmetric)
 
-.. contents:: Table of Contents
-   :depth: 2
-   :local:
-
 STE Quantizers (Core)
 ---------------------
 

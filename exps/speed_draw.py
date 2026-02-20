@@ -18,7 +18,7 @@ csv_files = {
     'pychop_runtimes_avg_th2_gpu.csv': 'FaultChop (Python, GPU, PyTorch backend)',
 }
 
-base_path = 'results/'
+base_path = 'results_backup/'
 
 dataframes = {method: pd.read_csv(base_path + file) for file, method in csv_files.items()}
 
