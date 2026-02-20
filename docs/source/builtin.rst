@@ -14,10 +14,6 @@ desired format after every arithmetic operation**:
 All three work with any ``LightChop`` (or ``Chop``) instance and keep the
 result **inside the low-precision type**.
 
-.. contents:: Contents
-   :local:
-   :backlinks: none
-
 
 Quick import
 ============
