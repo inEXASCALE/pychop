@@ -9,14 +9,14 @@
       
 With the increasing availability of lower-precision floating-point arithmetic beyond IEEE 64-bit/32-bit precision, both in hardware and software simulation, reduced-precision formats such as 16-bit half precision have gained significant attention in scientific computing and machine learning domains. These formats offer higher computational throughput, reduced data transfer overhead, and lower energy consumption.
 
-Inspired by MATLAB’s chop function by Nick Higham,  ``pychop`` is a Python library designed for efficient quantization, enabling the conversion of single- or double-precision numbers into low-bitwidth representations. It allows users to define custom floating-point formats with a specified number of exponent and significand bits as well as fixed-point and integer quantization, offering fine-grained control over precision and range. The library supports multiple rounding modes, optional denormal number handling, and runs efficiently on both CPU and GPU devices. This makes it particularly useful for research, experimentation, and optimization in areas like machine learning, numerical analysis, and hardware design, where reduced precision can provide computational advantages. 
+Inspired by MATLAB’s chop function by Nick Higham,  ``Pychop`` is a Python library designed for efficient quantization, enabling the conversion of single- or double-precision numbers into low-bitwidth representations. It allows users to define custom floating-point formats with a specified number of exponent and significand bits as well as fixed-point and integer quantization, offering fine-grained control over precision and range. The library supports multiple rounding modes, optional denormal number handling, and runs efficiently on both CPU and GPU devices. This makes it particularly useful for research, experimentation, and optimization in areas like machine learning, numerical analysis, and hardware design, where reduced precision can provide computational advantages. 
 
-``pychop`` stands out for its versatility, efficiency, and ease of integration with NumPy, PyTorch, and JAX. Its key strengths—customizability, hardware independence, GPU support, and comprehensive rounding options—make it a valuable tool for both practical applications and theoretical exploration in numerical computing. By emulating low-precision formats within a high-precision environment (single or double), ``pychop`` allows users to analyze quantization effects without requiring specialized hardware. The library supports both deterministic and stochastic rounding strategies and is optimized for vectorized operations with NumPy arrays, PyTorch tensors, and JAX arrays.
+``Pychop`` stands out for its versatility, efficiency, and ease of integration with NumPy, PyTorch, and JAX. Its key strengths—customizability, hardware independence, GPU support, and comprehensive rounding options—make it a valuable tool for both practical applications and theoretical exploration in numerical computing. By emulating low-precision formats within a high-precision environment (single or double), ``Pychop`` allows users to analyze quantization effects without requiring specialized hardware. The library supports both deterministic and stochastic rounding strategies and is optimized for vectorized operations with NumPy arrays, PyTorch tensors, and JAX arrays.
 
 
 ## Install
 
-The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies: python > 3.8, numpy >=1.7.3, pandas >=2.0, torch, jax. 
+The proper running environment of ``Pychop``  should by Python 3, which relies on the following dependencies: python > 3.8, numpy >=1.7.3, pandas >=2.0, torch, jax. 
 
 To install the current current release via PIP manager use:
 
@@ -56,7 +56,7 @@ mamba search pychop --channel conda-forge
 ```
 
 ## Features
-The ``pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
+The ``Pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
 
 * Customizable Precision
 * Multiple Rounding Modes
@@ -85,7 +85,7 @@ The supported floating point arithmetic formats include:
 
 
 
-``pychop`` support arbitrarily built-in reduced-precision types for scalar, array, and tensor. See here for detail [doc](https://pychop.readthedocs.io/en/latest/builtin.html). A simple example for scalar is as follows:
+``Pychop`` support arbitrarily built-in reduced-precision types for scalar, array, and tensor. See here for detail [doc](https://pychop.readthedocs.io/en/latest/builtin.html). A simple example for scalar is as follows:
 
 ```python
 from pychop import Chop
@@ -108,7 +108,7 @@ print(e)                     # CPFloat(4.37438, prec=half)
 ```
 
 ### Examples
-We will go through the main functionality of ``pychop``; for details refer to the documentation. 
+We will go through the main functionality of ``Pychop``; for details refer to the documentation. 
 
 #### (I). Floating point quantization
 Users can specify the number of exponent (exp_bits) and significand (sig_bits) bits, enabling precise control over the trade-off between range and precision. 
@@ -116,7 +116,7 @@ For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (
 
 Rounding the values with specified precision format:
 
-``pychop`` supports faster low-precision floating point quantization and also enables GPU emulation (simply move the input to GPU device), with different rounding functions:
+``Pychop`` supports faster low-precision floating point quantization and also enables GPU emulation (simply move the input to GPU device), with different rounding functions:
 
 ```Python
 import pychop
@@ -136,7 +136,7 @@ print(X_q[:10, 0])
 
 If one is not seeking optimized performance and more emulation supports, one can use the following example. 
 
-``pychop`` also provides same functionalities just like Higham's chop [1] that supports soft error simulation (by setting ``flip=True``), but with relatively degraded speed:
+``Pychop`` also provides same functionalities just like Higham's chop [1] that supports soft error simulation (by setting ``flip=True``), but with relatively degraded speed:
 
 ```Python
 from pychop import FaultChop
@@ -213,7 +213,7 @@ The code example can be found on the [guidance1](https://github.com/chenxinye/py
 
 Integer quantization is another important feature of pychop. It intention is to convert the floating point number into a low bit-width integer, which speeds up the computations in certain computing hardware. It performs quantization with user-defined bitwidths. The following example illustrates the usage of the method.
 
-The integer arithmetic emulation of ``pychop`` is implemented by the interface Chopi. It can be used in many circumstances, and offers flexible options for users, such as symmetric or unsymmetric quantization and the number of bits to use. The usage is illustrated as below:
+The integer arithmetic emulation of ``Pychop`` is implemented by the interface Chopi. It can be used in many circumstances, and offers flexible options for users, such as symmetric or unsymmetric quantization and the number of bits to use. The usage is illustrated as below:
 
 
 ```Python
@@ -281,7 +281,7 @@ expressed are those of the authors only and do not necessarily reflect those of 
 
 ## Citations
 
-If you use ``pychop`` in your research or simulations, cite:
+If you use ``Pychop`` in your research or simulations, cite:
 
 ```bibtex
 @misc{carson2025,
