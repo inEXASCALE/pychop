@@ -9,7 +9,6 @@ Backend is inferred from input array type (NumPy, PyTorch, or JAX).
 """
 
 from typing import Any, Callable
-import os
 
 # ---------------------------------------------------------------------
 # Backend detection

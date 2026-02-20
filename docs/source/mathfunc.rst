@@ -1,5 +1,140 @@
-Mathematical functions
+Mathematical functions 
 ========================================
+
+``Pychop`` provides two ways to implement mathematical functions in reduced precision. 
+
+Mathematical functions 1
+------------------------------------------------------------------------
+
+The `pychop.math_func` module provides a suite of backend-aware mathematical functions that operate on floating-point numbers or arrays with custom precision chopping. These functions apply a provided `chop` callable to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32).  
+
+Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type of the input array/tensor. Functions are categorized for clarity.
+
+.. note::
+   - All functions apply the `chop` callable before and after computation.
+   - Backend detection is automatic:
+     - **NumPy**: `np.ndarray`
+     - **PyTorch**: `torch.Tensor`
+     - **JAX**: `jax.Array`
+   - Inputs must satisfy domain constraints (e.g., positive for log, non-zero for reciprocal).
+   - `matmul` requires inputs to be at least 1-dimensional; scalars are not allowed.
+
+Trigonometric functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: sin(x, chop)
+
+   Compute sine of `x` with chopping.
+
+   :param x: Real-valued input.
+   :param chop: Callable that applies precision chopping.
+   :return: Chopped sine of `x`.
+   :rtype: Same type as `x` (NumPy, PyTorch, or JAX)
+
+.. function:: cos(x, chop)
+.. function:: tan(x, chop)
+.. function:: arcsin(x, chop)
+   Input must be in [-1, 1].
+.. function:: arccos(x, chop)
+   Input must be in [-1, 1].
+.. function:: arctan(x, chop)
+
+Hyperbolic functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: sinh(x, chop)
+.. function:: cosh(x, chop)
+.. function:: tanh(x, chop)
+.. function:: arcsinh(x, chop)
+.. function:: arccosh(x, chop)
+   Input must be >= 1.
+.. function:: arctanh(x, chop)
+   Input must be in (-1, 1).
+
+Exponential and logarithmic functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: exp(x, chop)
+.. function:: expm1(x, chop)
+.. function:: log(x, chop)
+   Input must be positive.
+.. function:: log10(x, chop)
+   Input must be positive.
+.. function:: log2(x, chop)
+   Input must be positive.
+.. function:: log1p(x, chop)
+   Input must be > -1.
+
+Power and root functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: sqrt(x, chop)
+   Input must be non-negative.
+.. function:: cbrt(x, chop)
+.. function:: square(x, chop)
+.. function:: power(x, y, chop)
+   Compute x raised to the power y.
+
+Arithmetic functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: add(x, y, chop)
+.. function:: subtract(x, y, chop)
+.. function:: multiply(x, y, chop)
+.. function:: divide(x, y, chop)
+   Divisor must be non-zero.
+.. function:: floor_divide(x, y, chop)
+   Divisor must be non-zero.
+.. function:: mod(x, y, chop)
+   Divisor must be non-zero.
+
+Linear algebra functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: dot(x, y, chop)
+.. function:: matmul(x, y, chop)
+   Inputs must be at least 1-dimensional; scalars are not allowed.
+
+Reduction and aggregation functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: sum(x, chop, axis=None)
+.. function:: prod(x, chop, axis=None)
+.. function:: mean(x, chop, axis=None)
+.. function:: std(x, chop, axis=None)
+.. function:: var(x, chop, axis=None)
+.. function:: cumsum(x, chop, axis=None)
+.. function:: cumprod(x, chop, axis=None)
+
+Rounding functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: floor(x, chop)
+.. function:: ceil(x, chop)
+.. function:: round(x, chop)
+.. function:: sign(x, chop)
+
+Comparison functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: maximum(x, y, chop)
+.. function:: minimum(x, y, chop)
+
+Miscellaneous functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. function:: frexp(x, chop)
+   Returns tuple of (chopped mantissa, exponent).
+.. function:: hypot(x, y, chop)
+.. function:: diff(x, n=1, chop)
+   Compute n-th order difference.
+.. function:: reciprocal(x, chop)
+   Input must be non-zero.
+
+
+
+Mathematical functions II
+------------------------------------------------------------------------
 
 The `chop` class provides a suite of mathematical functions that operate on floating-point numbers with custom precision chopping. These functions apply the chopping mechanism (via `chop_wrapper`) to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32). Implementations are available for NumPy, PyTorch, and JAX, with slight variations noted below. Functions are categorized for clarity.
 
@@ -10,8 +145,9 @@ The `chop` class provides a suite of mathematical functions that operate on floa
    - **JAX**: Uses `jax.numpy` (`jnp`) operations, operates on `jax.Array`, requires a random key for chopping, and is JIT-compatible.
    - Examples assume a `chop` instance with half-precision (`prec='h'`) unless stated otherwise.
 
+
 Trigonometric functions
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: sin(x)
 
@@ -100,7 +236,7 @@ Trigonometric functions
    :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
 
 Hyperbolic functions
---------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: sinh(x)
 
@@ -159,7 +295,7 @@ Hyperbolic functions
    :raises ValueError: If any element of `x` is not in (-1, 1).
 
 Exponential and logarithmic functions
--------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: exp(x)
 
@@ -220,7 +356,7 @@ Exponential and logarithmic functions
    :raises ValueError: If any element of `x` is <= -1.
 
 Power and root functions
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: sqrt(x)
 
@@ -242,7 +378,7 @@ Power and root functions
    :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
 
 Miscellaneous functions
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: abs(x)
 
@@ -273,7 +409,7 @@ Miscellaneous functions
    :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
 
 Additional mathematical functions
----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: frexp(x)
 
