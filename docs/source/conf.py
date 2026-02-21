@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'pychop'
 copyright = '2026, InEXASCALE computing'
 author = 'InEXASCALE computing'
-release = '0.4.4'
+release = '0.4.5'
 
 extensions = [
     'sphinx.ext.autodoc',
