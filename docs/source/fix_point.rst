@@ -27,10 +27,9 @@ The fixed point representation for $x$ is given by
 
 .. _fixed_point_simulator:
 
-Fixed-point simulator classes
-=============================
 
-The `FixedPointSimulator` class enables the quantization of floating-point numbers into a fixed-point Qm.n format, where `m` is the number of integer bits (including the sign bit) and `n` is the number of fractional bits. This document describes the usage and provides examples for implementations in PyTorch, NumPy, and JAX, each supporting six rounding modes: `nearest`, `up`, `down`, `towards_zero`, `stochastic_equal`, and `stochastic_proportional`.
+
+The `Chopf` class enables the quantization of floating-point numbers into a fixed-point Qm.n format, where `m` is the number of integer bits (including the sign bit) and `n` is the number of fractional bits. This document describes the usage and provides examples for implementations in PyTorch, NumPy, and JAX, each supporting six rounding modes: `nearest`, `up`, `down`, `towards_zero`, `stochastic_equal`, and `stochastic_proportional`.
 
 Overview
 --------
@@ -47,8 +46,8 @@ Usage
 Common Parameters
 ~~~~~~~~~~~~~~~~~
 
-- **integer_bits**: Specifies the number of bits for the integer part, including the sign bit.
-- **fractional_bits**: Defines the number of bits for the fractional part.
+- **ibits**: Specifies the number of bits for the integer part, including the sign bit.
+- **fbits**: Defines the number of bits for the fractional part.
 - **rmode**: Selects the rounding method, defaulting to "nearest".
 
 PyTorch Version
@@ -69,7 +68,7 @@ Quantize a tensor of floating-point values by invoking the quantization method, 
 .. code-block:: python
 
     # Initialize with Q4.4 format
-    sim = FixedPointSimulator(integer_bits=4, fractional_bits=4)
+    sim = Chopf(ibits=4, fbits=4)
     # Input tensor
     values = torch.tensor([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
     # Quantize with nearest rounding
@@ -94,7 +93,7 @@ Apply the quantization method to a NumPy array, with an optional rounding mode p
 .. code-block:: python
 
     # Initialize with Q4.4 format
-    sim = FixedPointSimulator(integer_bits=4, fractional_bits=4)
+    sim = Chopf(ibits=4, fbits=4)
     # Input array
     values = np.array([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
     # Quantize with nearest rounding
@@ -119,7 +118,7 @@ Quantize a JAX array using the quantization method, specifying a rounding mode a
 .. code-block:: python
 
     # Initialize with Q4.4 format
-    sim = FPRound(integer_bits=4, fractional_bits=4)
+    sim = FPRound(ibits=4, fbits=4)
     # Input array
     values = jnp.array([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
     # PRNG key for stochastic modes
