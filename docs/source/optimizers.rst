@@ -3,7 +3,7 @@
 Quantized optimizers module
 ===========================
 
-This module provides custom PyTorch optimizers with quantized momentum and accumulator states, designed for low-precision training simulations. These optimizers extend `torch.optim.Optimizer` and utilize the `FloatPrecisionSimulator` for quantization.
+This module provides custom PyTorch optimizers with quantized momentum and accumulator states, designed for low-precision training simulations. These optimizers extend `torch.optim.Optimizer` and utilize the `Chop` or `Chopf` for quantization.
 
 Classes
 -------
@@ -139,6 +139,5 @@ Classes
 Notes
 -----
 
-- All optimizers rely on the `FloatPrecisionSimulator` for quantization, which must be imported from its respective module.
-- Supported rounding modes include: 1, "up", "down", 4, 5, 6.
+- All optimizers rely on the `Chop/Chopf` for quantization, which must be imported from its respective module.
 - These optimizers are designed for low-precision training and may exhibit different convergence behavior compared to their full-precision counterparts.
