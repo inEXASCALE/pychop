@@ -192,7 +192,7 @@ def run_experiment_and_save():
         "tf32": (8, 10),
         "fp32": (8, 23),
     }
-    rounding_modes = [1, 2, 3, 4]
+    rounding_modes = [1, 2, 3, 4, 5, 6]
     datasets = ["MNIST", "FashionMNIST", "Caltech101", "OxfordIIITPet"]
 
     headers = ["Dataset", "Format", "Exp_Bits", "Sig_Bits", "Rounding_Mode", "Accuracy", "Weight_MSE", "Activation_SQNR_dB"]
