@@ -8,6 +8,7 @@
 [![Download Status](https://img.shields.io/pypi/dm/pychop.svg?label=PyPI%20downloads)](https://pypi.org/project/pychop)
 [![Documentation Status](https://readthedocs.org/projects/pychop/badge/?version=latest)](https://pychop.readthedocs.io/en/latest/?badge=latest)
 [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/pychop.svg)](https://anaconda.org/conda-forge/pychop)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/pychop/badges/license.svg)](https://anaconda.org/conda-forge/pychop)
 </div>
       
 With the increasing availability of lower-precision floating-point arithmetic beyond IEEE 64-bit/32-bit precision, both in hardware and software simulation, reduced-precision formats such as 16-bit half precision have gained significant attention in scientific computing and machine learning domains. These formats offer higher computational throughput, reduced data transfer overhead, and lower energy consumption.
