@@ -3,12 +3,13 @@
 
 # Pychop: efficient reduced-precision quantization library 
 
-[![All platforms](https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/pychop-feedstock?branchName=main)]([https://anaconda.org/conda-forge/pychop](https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=26671&branchName=main)) [![Codecov](https://github.com/inEXASCALE/pychop/actions/workflows/codecov.yml/badge.svg)](https://github.com/inEXASCALE/pychop/actions/workflows/codecov.yml) [![!pypi](https://img.shields.io/pypi/v/pychop?color=greem)](https://pypi.org/project/pychop/) [![Conda Version](https://img.shields.io/conda/vn/conda-forge/pychop.svg)](https://anaconda.org/conda-forge/pychop)
+[![All platforms](https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/pychop-feedstock?branchName=main)]([https://anaconda.org/conda-forge/pychop](https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=26671&branchName=main))
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/pychop/badges/license.svg)](https://anaconda.org/conda-forge/pychop)
+[![Codecov](https://github.com/inEXASCALE/pychop/actions/workflows/codecov.yml/badge.svg)](https://github.com/inEXASCALE/pychop/actions/workflows/codecov.yml) [![!pypi](https://img.shields.io/pypi/v/pychop?color=greem)](https://pypi.org/project/pychop/) [![Conda Version](https://img.shields.io/conda/vn/conda-forge/pychop.svg)](https://anaconda.org/conda-forge/pychop)
 [![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.python.org/pypi/pychop/)
 [![Download Status](https://img.shields.io/pypi/dm/pychop.svg?label=PyPI%20downloads)](https://pypi.org/project/pychop)
 [![Documentation Status](https://readthedocs.org/projects/pychop/badge/?version=latest)](https://pychop.readthedocs.io/en/latest/?badge=latest)
 [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/pychop.svg)](https://anaconda.org/conda-forge/pychop)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/pychop/badges/license.svg)](https://anaconda.org/conda-forge/pychop)
 </div>
       
 With the increasing availability of lower-precision floating-point arithmetic beyond IEEE 64-bit/32-bit precision, both in hardware and software simulation, reduced-precision formats such as 16-bit half precision have gained significant attention in scientific computing and machine learning domains. These formats offer higher computational throughput, reduced data transfer overhead, and lower energy consumption.
