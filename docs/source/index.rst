@@ -1,11 +1,9 @@
 Welcome to Pychop's documentation!
 ==================================
 
-Using low precesion can gain extra speedup while resulting in less storage and energy cost. 
-The intention of pychop, motivated by software ``chop`` in Matlab developed by Nick higham, 
-is to simulate the low precision formats based on single and double precisions, 
-which is pravalent on modern machine.  ``Pychop`` is a Python package for simulaing low precision 
-and quantization in modern machine, it supports NumPy, Torch,  or JAX backend. 
+Using low precision can achieve extra speedup while reducing storage and energy costs. The intention of ``Pychop``, motivated by the software ``chop`` in Matlab developed by Nick Higham, is to simulate the low precision formats based on single and double precisions, which are prevalent on modern machines. ``Pychop`` is a Python package for simulating low precision and quantization in modern machines. It supports NumPy, Torch, or JAX backend.
+
+
 
 
 ``Pychop`` mainly contains three modules for quantization simulation:
