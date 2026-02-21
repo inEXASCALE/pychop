@@ -12,7 +12,7 @@ Using low precision can achieve extra speedup while reducing storage and energy 
 * ``Chopi``: for integer quantization
 * ``Chopf``: for fixed point quantization
 
-.. image:: ../imgs/pychop_log.png
+.. image:: ../imgs/pychop_logo.png
    :alt: Pychop Log
    :width: 600px
 
