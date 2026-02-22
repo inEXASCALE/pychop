@@ -224,7 +224,7 @@ def run_experiment_and_save():
         for fmt_name, (exp, sig) in float_types.items():
             for rm in rounding_modes:
                 # PDF per configuration
-                pdf_filename = f"class_images/{dataset}_{fmt_name}_{rm}_visualizations.pdf"
+                pdf_filename = f"class_images/{dataset}_{fmt_name}_{rm}_visualizations.jpg"
                 
                 print(f"Running: {fmt_name} (R{rm})...", end="")
                 

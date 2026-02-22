@@ -230,7 +230,7 @@ def run_and_save_results(dataset, float_type_dict, rounding_modes, epochs_dict):
             # Fresh ResNet18 model for each config
             model = ResNet18(input_channels, num_classes).to(device)
 
-            chop = LightChop(exp_bits=exp, sig_bits=sig, rmode=rd)
+            chop = Chop(exp_bits=exp, sig_bits=sig, rmode=rd)
             replace_for_qat(model, chop, quant_act=True)  
 
             acc = train_qat(model, trainloader, testloader,
@@ -242,7 +242,7 @@ def run_and_save_results(dataset, float_type_dict, rounding_modes, epochs_dict):
 
             # Visualization
             vis_images, vis_preds, vis_gt, vis_probs = collect_first_20_samples(model, testloader)
-            pdf_filename = f"qat_class_images/{dataset}_{key}_{rd}_visualizations.pdf"
+            pdf_filename = f"qat_class_images/{dataset}_{key}_{rd}_visualizationsChop"
             with PdfPages(pdf_filename) as pdf:
                 visualize_images(vis_images, vis_preds, vis_gt, vis_probs,
                                  dataset_name=f"{dataset}_{key}_{rd}", pdf=pdf)
@@ -270,7 +270,7 @@ if __name__ == "__main__":
     torch.manual_seed(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    from pychop import LightChop  # Ensure pychop is imported
+    from pychop import Chop  # Ensure pychop is imported
 
 
     float_type = {

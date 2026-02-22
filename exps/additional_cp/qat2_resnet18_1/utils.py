@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torchvision.models import resnet18, ResNet18_Weights
 import os
 
-from pychop.tch.lightchop import LightChopSTE
-from pychop import LightChop
+from pychop import ChopSTE
+from pychop import Chop
 
 torch.manual_seed(42)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,9 +44,9 @@ class ResNet18(nn.Module):
         return self.backbone(x)
 
 
-# ==================== QAT Modules (using LightChopSTE) ====================
+# ==================== QAT Modules (using ChopSTE) ====================
 class QATConv2d(nn.Module):
-    def __init__(self, original_conv: nn.Conv2d, chop: LightChop, quant_act: bool = True):
+    def __init__(self, original_conv: nn.Conv2d, chop: Chop, quant_act: bool = True):
         super().__init__()
         self.weight = nn.Parameter(original_conv.weight.data.clone())
         self.bias = nn.Parameter(original_conv.bias.data.clone()) if original_conv.bias is not None else None
@@ -55,7 +55,7 @@ class QATConv2d(nn.Module):
         self.dilation = original_conv.dilation
         self.groups = original_conv.groups
 
-        self.weight_quant = LightChopSTE(
+        self.weight_quant = ChopSTE(
             exp_bits=chop.exp_bits,
             sig_bits=chop.sig_bits,
             rmode=chop.rmode,
@@ -63,7 +63,7 @@ class QATConv2d(nn.Module):
         )
 
         # Activation quantization (can be disabled per-layer)
-        self.act_quant = LightChopSTE(
+        self.act_quant = ChopSTE(
             exp_bits=chop.exp_bits,
             sig_bits=chop.sig_bits,
             rmode=chop.rmode,
@@ -79,19 +79,19 @@ class QATConv2d(nn.Module):
 
 
 class QATLinear(nn.Module):
-    def __init__(self, original_linear: nn.Linear, chop: LightChop, quant_act: bool = True):
+    def __init__(self, original_linear: nn.Linear, chop: Chop, quant_act: bool = True):
         super().__init__()
         self.weight = nn.Parameter(original_linear.weight.data.clone())
         self.bias = nn.Parameter(original_linear.bias.data.clone()) if original_linear.bias is not None else None
 
-        self.weight_quant = LightChopSTE(
+        self.weight_quant = ChopSTE(
             exp_bits=chop.exp_bits,
             sig_bits=chop.sig_bits,
             rmode=chop.rmode,
             subnormal=True
         )
 
-        self.act_quant = LightChopSTE(
+        self.act_quant = ChopSTE(
             exp_bits=chop.exp_bits,
             sig_bits=chop.sig_bits,
             rmode=chop.rmode,
@@ -106,7 +106,7 @@ class QATLinear(nn.Module):
         return F.linear(x, w_quant, b_quant)
 
 
-def replace_for_qat(model: nn.Module, chop: LightChop, quant_act: bool = False):
+def replace_for_qat(model: nn.Module, chop: Chop, quant_act: bool = False):
     """
     Recursively replace Conv2d and Linear layers with QAT versions.
     By default quant_act=False (only quantize weights).

@@ -84,6 +84,8 @@ plt.tight_layout()
 plt.savefig('results/runtime_ratio_comparison_subplots_b.pdf', 
             format='pdf', 
             bbox_inches='tight')
-
+plt.savefig('results/runtime_ratio_comparison_subplots_b.jpg', 
+            format='jpg', 
+            bbox_inches='tight')
 # Close the figure to free memory
 plt.close()

@@ -19,7 +19,7 @@ Three STE-enabled quantizers are provided:
 * ``ChopfSTE`` — fixed-point (integer + fractional bits)
 * ``ChopiSTE`` — integer (uniform or symmetric)
 
-STE Quantizers (Core)
+STE quantizers (core)
 ---------------------
 
 .. autoclass:: ChopSTE
@@ -51,7 +51,7 @@ Utility Functions
 
 .. autofunction:: post_quantization
 
-Floating-Point / Fixed-point Quantized Layers
+Floating-point / Fixed-point quantized layers
 =====================================
 
 These layers use ``ChopSTE`` (or ``Chop``) for **floating-point QAT**.
@@ -178,7 +178,7 @@ Activation & Regularization Layers (Floating-Point)
 .. autoclass:: QuantizedDropout
    :members:
 
-Integer Quantized Layers
+Integer quantized layers
 ==============================
 
 These layers use ``ChopiSTE`` for **integer QAT** (uniform or symmetric).
@@ -270,7 +270,7 @@ These layers use ``ChopiSTE`` for **integer QAT** (uniform or symmetric).
 .. autoclass:: IQuantizedEmbedding
    :members:
 
-Integer Activation & Regularization Layers
+Integer activation & regularization layers
 ------------------------------------------
 
 .. autoclass:: IQuantizedReLU
@@ -341,7 +341,7 @@ Usage Example
             x = x.view(x.size(0), -1)
             return self.fc(x)
 
-Post-Training Quantization (PTQ)
+Post-training quantization (PTQ)
 --------------------------------
 
 .. code-block:: python
