@@ -11,7 +11,7 @@ desired format after every arithmetic operation**:
 * :class:`pychop.builtin.CPTensor` – :class:`torch.Tensor` subclass
 * :class:`pychop.builtin.CPArray`  – :class:`numpy.ndarray` subclass
 
-All three work with any ``LightChop`` (or ``Chop``) instance and keep the
+All three work with any ``Chop`` (or ``FaultChop``) instance and keep the
 result **inside the low-precision type**.
 
 
@@ -20,7 +20,7 @@ Quick import
 
 .. code-block:: python
 
-   from pychop import LightChop
+   from pychop import Chop
    from pychop.builtin import CPFloat, CPTensor, CPArray
 
    pychop.backend('torch') # if using NumPy or JAX, switch to them correspondingly before the deployment
@@ -31,10 +31,10 @@ Common set-up
 .. code-block:: python
 
    # Half-precision (IEEE-754 binary16) – subnormals enabled
-   half = LightChop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
+   half = Chop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
 
    # Under-flow-free half (tiny numbers become zero)
-   ufhalf = LightChop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
+   ufhalf = Chop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
 
 
 Scalar – :class:`CPFloat`
@@ -139,12 +139,12 @@ NumPy – :class:`CPArray`
 Under-flow-free (UF) formats
 ============================
 
-Just create a ``LightChop`` with ``subnormal=False`` and pass it to any of the
+Just create a ``Chop`` with ``subnormal=False`` and pass it to any of the
 three types:
 
 .. code-block:: python
 
-   uf = LightChop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
+   uf = Chop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
 
    tiny = CPFloat(1e-40, uf)          # becomes 0.0 (flushed)
    print(tiny)                        # CPFloat(0.0, prec=uf)
