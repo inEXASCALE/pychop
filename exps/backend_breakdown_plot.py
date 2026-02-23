@@ -25,7 +25,7 @@ y_scales = {"time": "log", "throughput": "log"}
 backend_types = ["cpu", "gpu"]
 backend_labels = {
     "numpy": "NumPy",
-    "torch_cpu": "GPU, PyTorch",
+    "torch_cpu": "CPU, PyTorch",
     "jax_eager": "GPU, JAX",
     "jax_jit": "GPU, JAX (JIT)",
     "torch_gpu": "GPU, PyTorch"
@@ -103,4 +103,4 @@ for op in operations:
             plt.savefig(f"figures/{op}_{safe_mode}_{metric}.png")
             plt.close()
 
-print("\nCompleted! Plots are saved in the 'results/' folder.")
+print("\nCompleted! Plots are saved in the 'figures/' folder.")
