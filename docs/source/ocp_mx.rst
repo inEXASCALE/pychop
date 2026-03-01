@@ -8,7 +8,7 @@ Microscaling (MX) Formats
 Overview
 --------
 
-Microscaling (MX) formats are a revolutionary approach to low-precision arithmetic that uses
+`Microscaling (MX) formats <https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf>`_  are a revolutionary approach to low-precision arithmetic that uses
 **block-level shared exponents** to achieve extreme compression while maintaining reasonable
 accuracy. Developed by the Open Compute Project (OCP), MX formats are particularly effective
 for deep learning workloads.
