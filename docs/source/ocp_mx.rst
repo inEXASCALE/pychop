@@ -1123,14 +1123,6 @@ Standards and Papers
    
    IEEE Std 754-2019
 
-Related Libraries
-~~~~~~~~~~~~~~~~~
-
-- **QPyTorch**: PyTorch-specific low-precision simulation
-- **gfloat**: Generic floating-point type library (research-oriented)
-- **ml_dtypes**: JAX/NumPy low-precision types (performance-oriented)
-- **Microsoft MX PyTorch Emulation**: Official MX format implementation
-
 
 See Also
 --------
