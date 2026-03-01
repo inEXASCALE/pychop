@@ -12,7 +12,7 @@ from .layers import ChopSTE, ChopfSTE, ChopiSTE
 from .math_func import *
 
 
-__version__ = '0.4.5'  
+__version__ = '0.4.6'  
 
 import os
 os.environ['chop_backend'] = 'auto'
