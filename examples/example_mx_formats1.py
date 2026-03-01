@@ -5,10 +5,7 @@ This demonstrates the full flexibility of custom microscaling formats.
 """
 
 import numpy as np
-from pychop.mx_formats import (
-    MXTensor, MXFloat, create_mx_spec,
-    compare_mx_formats, mx_quantize
-)
+from pychop.mx_formats import MXTensor
 
 
 def explore_exp_sig_tradeoff():

@@ -266,7 +266,6 @@ def _check_nonzero(xp, x, y=None):
 # Trigonometric
 # ---------------------------------------------------------------------
 
-
 def sin(x, chop): return _unary_math(chop, x, "sin")
 def cos(x, chop): return _unary_math(chop, x, "cos")
 def tan(x, chop): return _unary_math(chop, x, "tan")
