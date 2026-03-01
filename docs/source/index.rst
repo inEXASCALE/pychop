@@ -101,6 +101,7 @@ To give a shot, one may print information of various precision formats:
    mathfunc.rst
    integer.rst
    fix_point.rst
+   ocp_mx.rst
    layers.rst
    optimizers.rst
    matlab.rst
