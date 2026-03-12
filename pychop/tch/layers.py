@@ -12,10 +12,6 @@ from ..integer import Chopi
 from ..fixed_point import Chopf
 
 
-
-
-
-
 class ChopSTE(Chop):
     """Chop with built-in Straight-Through Estimator (STE)
     for floating-point quantization-aware training (QAT).

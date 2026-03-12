@@ -31,7 +31,6 @@ import jax.numpy as jnp
 from flax import linen as nn
 from typing import Optional, Any, Callable, Tuple, Union
 
-# Import quantizers from parent module
 from ..chop import Chop
 from ..integer import Chopi
 from ..fixed_point import Chopf

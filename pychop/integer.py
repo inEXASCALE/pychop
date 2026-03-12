@@ -1,6 +1,5 @@
-import os, torch
+import os
 from typing import Optional
-from torch.autograd import Function
 from .utils import *
 
 class Chopi:
