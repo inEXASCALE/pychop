@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/xinye/pychop_major_revision/pychop/examples/example_CNN_ft.py", line 14, in <module>
+    from pychop import ChopSTE, LightChop
+ImportError: cannot import name 'LightChop' from 'pychop' (/home/xinye/.local/lib/python3.12/site-packages/pychop/__init__.py)

@@ -1,4 +1,8 @@
+# pychop/layers.py - Frontend wrapper for multi-backend quantized layers
+# pychop/layers.py - Frontend wrapper for multi-backend quantized layers
 import os
+from typing import Optional, Any
+
 
 def _get_backend():
     """Get current backend from environment variable."""
