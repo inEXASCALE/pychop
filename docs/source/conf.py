@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'pychop'
 copyright = '2026, InEXASCALE computing'
 author = 'InEXASCALE computing'
-release = '0.4.5'
+release = '0.4.7'
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -31,5 +31,6 @@ html_theme_options = {
     "sidebar_hide_name": False, 
     "navigation_with_keys": True,
 }
+
 
 html_static_path = []
