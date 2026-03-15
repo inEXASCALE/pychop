@@ -2,7 +2,6 @@
 import unittest
 import numpy as np
 import sys
-# appending a path
 sys.path.append('../')
 
 import pychop
@@ -17,7 +16,7 @@ import jax
 from jax import config
 
 config.update("jax_enable_x64", True)
-pychop.backend('numpy') # print information, NumPy is the default option.
+pychop.backend('numpy') # verbose=1 -> print information, NumPy is the default option.
 
 
 X_np = loadmat("tests/verified_data.mat")
@@ -920,7 +919,7 @@ class TestClassix(unittest.TestCase):
         full_c = np.array([1.234567, 2.345678, 3.456789]) + np.array([0.987654, 1.098765, 1.234567])
         print(f"Full prec c[0]: {full_c[0]:.6f}")
         print(f"Chopped c[0]: {arr_c[0]:.6f}")
-        print(f"Half eps: {2**(-10):.2e}")  # ~9.77e-4
+        print(f"Half eps: {2**(-10):.2e}")  
 
 
     def test_cptensor(self):
