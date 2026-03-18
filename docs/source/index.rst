@@ -52,6 +52,12 @@ To ensure consistency with MATLAB's chop software, ``Pychop`` closely follows it
 Built on PyTorch, the class integrates seamlessly with existing PyTorch workflows, including neural network training pipelines and custom numerical algorithms. The input value can be any array-like object, automatically converted to a tensor, enhancing usability.
 
 
+.. image:: ../imgs/pychop_app.png
+   :alt: Pychop Applications
+   :width: 600px
+
+
+
 Installation guide
 --------------------
 ``Pychop`` has the following dependencies for its functionality:
