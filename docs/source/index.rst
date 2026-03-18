@@ -54,7 +54,7 @@ Built on PyTorch, the class integrates seamlessly with existing PyTorch workflow
 
 .. image:: ../imgs/pychop_app.png
    :alt: Pychop Applications
-   :width: 600px
+   :width: 720px
 
 
 
