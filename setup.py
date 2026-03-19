@@ -2,7 +2,6 @@ import platform
 import setuptools
 from setuptools.command.build_ext import build_ext
 
-
 def get_version(fname: str) -> str:
     """Read the __version__ string from __init__.py."""
     with open(fname) as f:

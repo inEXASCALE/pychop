@@ -19,6 +19,9 @@ exps/*.npz
 pychop.egg-info/
 examples/data/
 pychop/__pycache__/
+pychop/examples/qat_compare/data/*
+pychop/examples/qat_compare/*.pkl
+pychop/examples/qat_compare/*.pth
 pychop/np/__pycache__/
 pychop/jx/__pycache__/
 pychop/tch/__pycache__/

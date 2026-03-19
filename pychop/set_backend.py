@@ -1,7 +1,7 @@
 import os
 
 
-def backend(lib='numpy', verbose=0):
+def backend(lib='auto', verbose=0):
     """
     Parameters
     ----------
