@@ -12,9 +12,8 @@ class CPJaxArray:
     - Registered as a JAX pytree node for jit/grad compatibility.
 
     Note on JAX transformations:
-    - jit:  Works if Chop.__call__ is compatible with JAX tracing.
-    - vmap: Requires Chop.__call__ to support batched tracers.
-            If Chop uses pure-Python scalar ops internally, vmap will fail.
+    - jit:  Supported via jax.pure_callback (chop runs on host, not XLA-compiled).
+    - vmap: Supported via jax.pure_callback with vectorized=True.
     - grad: Chop rounding is non-differentiable; use straight-through
             estimators or custom_vjp if gradients are needed.
     """
@@ -22,20 +21,43 @@ class CPJaxArray:
     def __init__(self, input_array, chopper=None):
         if chopper is None:
             raise ValueError("Must provide a chopper (Chop instance)")
-        base_input = jnp.asarray(input_array)           # Strip any wrapper
-        self._data = chopper(base_input)                 # Chop on pure -> pure chopped
+        base_input = jnp.asarray(input_array)
+        self._data = self._safe_chop(chopper, base_input)
         self.chopper = chopper
+
+    @staticmethod
+    def _safe_chop(chopper, data):
+        """
+        Apply chopper in a jit-safe way.
+        - If data is a JAX Tracer (inside jit/vmap/scan): use pure_callback
+          to run chop on host. This avoids Chop mutating self.rng_key with
+          a tracer, which would permanently corrupt Chop's internal state.
+        - Otherwise: call chopper directly (fastest path).
+        """
+        if isinstance(data, jax.core.Tracer):
+            return jax.pure_callback(
+                chopper,
+                jax.ShapeDtypeStruct(data.shape, data.dtype),
+                data,
+            )
+        return chopper(data)
 
     @classmethod
     def _wrap(cls, data, chopper):
         """
         Internal: wrap pre-chopped data without re-chopping.
-        Used by pytree unflatten and internal paths where data is already chopped.
+        Used by pytree unflatten and slicing.
         """
         obj = object.__new__(cls)
         obj._data = data
         obj.chopper = chopper
         return obj
+
+    @classmethod
+    def _from_result(cls, data, chopper):
+        """Chop a computation result and wrap as CPJaxArray."""
+        chopped = cls._safe_chop(chopper, data)
+        return cls._wrap(chopped, chopper)
 
     # ── Delegated properties ────────────────────────────────────────
     @property
@@ -64,14 +86,13 @@ class CPJaxArray:
         else:
             b = jnp.asarray(other)
         result = op(a, b)
-        # Must chop the result -> go through __init__
-        return CPJaxArray(result, self.chopper)
+        return self._from_result(result, self.chopper)
 
     def _rbinop(self, other, op):
         a = jnp.asarray(other)
         b = self._data
         result = op(a, b)
-        return CPJaxArray(result, self.chopper)
+        return self._from_result(result, self.chopper)
 
     # ── Arithmetic ops ──────────────────────────────────────────────
     def __add__(self, other):       return self._binop(other, jnp.add)
@@ -91,10 +112,10 @@ class CPJaxArray:
 
     # ── Unary ops ───────────────────────────────────────────────────
     def __neg__(self):
-        return CPJaxArray(-self._data, self.chopper)
+        return self._from_result(-self._data, self.chopper)
 
     def __abs__(self):
-        return CPJaxArray(jnp.abs(self._data), self.chopper)
+        return self._from_result(jnp.abs(self._data), self.chopper)
 
     # ── Matrix multiplication ───────────────────────────────────────
     def __matmul__(self, other):
@@ -106,12 +127,11 @@ class CPJaxArray:
         else:
             b = jnp.asarray(other)
         result = jnp.matmul(a, b)
-        return CPJaxArray(result, self.chopper)
+        return self._from_result(result, self.chopper)
 
     def __rmatmul__(self, other):
-        return CPJaxArray(
-            jnp.matmul(jnp.asarray(other), self._data), self.chopper
-        )
+        result = jnp.matmul(jnp.asarray(other), self._data)
+        return self._from_result(result, self.chopper)
 
     # ── Comparison ops (return plain bool arrays, no chopping) ──────
     def __eq__(self, other):
@@ -142,8 +162,8 @@ class CPJaxArray:
     def __getitem__(self, key):
         result = self._data[key]
         if result.ndim == 0:
-            return result.item()          # Scalar fallback (same as CPArray)
-        return CPJaxArray._wrap(result, self.chopper)  # Slice is already chopped
+            return result.item()
+        return CPJaxArray._wrap(result, self.chopper)
 
     # ── Utility ─────────────────────────────────────────────────────
     def to_regular(self):
@@ -164,9 +184,6 @@ class CPJaxArray:
 
 
 # ── JAX pytree registration ────────────────────────────────────────
-# _data  -> dynamic leaf  (traced / differentiated by JAX)
-# chopper -> static aux   (not traced; changes trigger recompilation)
-
 def _cpjaxarray_flatten(x):
     children = (x._data,)
     aux_data = (x.chopper,)
