@@ -11,7 +11,7 @@ Quantization: FP16 (5 exp bits, 10 sig bits) with QAT
 """
 
 import os
-os.environ["chop_backend"] = "jax"  # Set JAX backend
+os.environ["chop_backend"] = "jax" 
 
 import jax
 import jax.numpy as jnp
@@ -24,8 +24,6 @@ import numpy as np
 import time
 import pickle
 
-# Import PyChop
-import pychop
 from pychop.jx.layers import (
     ChopSTE,
     QuantizedConv2d,

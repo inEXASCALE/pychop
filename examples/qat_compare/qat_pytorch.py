@@ -22,8 +22,8 @@ import numpy as np
 import pychop
 pychop.backend('torch')
 
-from pychop import ChopSTE  # 从根目录导入 ChopSTE
-from pychop.layers import (  # 从 pychop.layers 导入层
+from pychop import ChopSTE  
+from pychop.layers import ( 
     QuantizedConv2d,
     QuantizedLinear,
     QuantizedReLU,
