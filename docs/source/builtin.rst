@@ -48,7 +48,9 @@ Scalar – :class:`CPFloat`
 **Example**
 
 .. code-block:: python
-
+   half = Chop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
+   ufhalf = Chop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
+   
    a = CPFloat(1.234567, half)
    b = CPFloat(0.987654, half)
 
@@ -76,6 +78,11 @@ PyTorch – :class:`CPTensor`
 .. code-block:: python
 
    import torch
+   from pychop.builtin import CPTensor
+
+   pychop.backend('torch')  # Switch to JAX backend
+   half = Chop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
+   ufhalf = Chop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
 
    x = CPTensor(torch.tensor([1.1, 2.2, 3.3]), half)
    y = CPTensor(torch.tensor([0.5, 1.5, 2.5]), half)
@@ -97,10 +104,10 @@ PyTorch – :class:`CPTensor`
 
    # GPU works out-of-the-box
    if torch.cuda.is_available():
-       A = A.to('cuda')
-       B = B.to('cuda')
-       C = A @ B
-       print(C.device)          # cuda:0
+      A = A.to('cuda')
+      B = B.to('cuda')
+      C = A @ B
+      print(C.device)          # cuda:0
 
 
 NumPy – :class:`CPArray`
@@ -117,6 +124,8 @@ NumPy – :class:`CPArray`
 
    import numpy as np
 
+   half = Chop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
+   ufhalf = Chop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
    p = CPArray(np.array([10.0, 20.0, 30.0]), half)
    q = CPArray(np.array([1.0, 2.0, 3.0]), half)
 
@@ -134,6 +143,48 @@ NumPy – :class:`CPArray`
    N = CPArray(np.random.rand(4, 2), half)
    P = M @ N
    print(P.shape)               # (3, 2)
+
+
+
+NumPy – :class:`CPJaxArray`
+========================
+
+.. autoclass:: pychop.builtin.CPJaxArray
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+**Example**
+
+.. code-block:: python
+
+   from pychop.builtin import CPJaxArray
+
+   pychop.backend('jax')  # Switch to JAX backend
+   half = Chop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
+   ufhalf = Chop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
+
+   x = CPJaxArray(jnp.array([1.1, 2.2, 3.3]), half)
+   y = CPJaxArray(jnp.array([0.5, 1.5, 2.5]), half)
+   print(x)                     # CPJaxArray([1.1, 2.2, 3.3], prec=half)
+   z = x + y
+   print(z)                     # CPJaxArray([1.6, 3.7, 5.8], prec=half)
+   # broadcasting with a plain array
+   reg = jnp.array([10.0, 20.0, 30.0])
+   w = x * reg
+   print(w)                     # CPJaxArray([11.0, 44.0, 99.0], prec=half)
+   # matrix multiplication
+
+   gpu_devices = jax.devices('gpu')
+   if gpu_devices:
+      with jax.default_device(gpu_devices[0]):
+                     
+         A = CPJaxArray(jax.random.normal(jax.random.PRNGKey(0), (4, 3)), half)
+         B = CPJaxArray(jax.random.normal(jax.random.PRNGKey(1), (3, 5)), half)
+         C = A @ B
+         print(C.shape)               # (4, 5)
+         # GPU works out-of-the-box (JAX auto-dispatches)
+         print(C.to_regular().devices())  # {CpuDevice()} or {CudaDevice()}
 
 
 Under-flow-free (UF) formats
