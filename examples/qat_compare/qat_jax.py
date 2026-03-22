@@ -11,7 +11,9 @@ Quantization: FP16 (5 exp bits, 10 sig bits) with QAT
 """
 
 import os
-os.environ["chop_backend"] = "jax" 
+import pychop
+# os.environ["chop_backend"] = "jax" 
+pychop.backend('jax')
 
 import jax
 import jax.numpy as jnp

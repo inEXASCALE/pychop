@@ -772,18 +772,12 @@ class LightChop_:
         """
         x = jnp.asarray(x)
         
-        # Split key only once per call
-        key, subkey = jax.random.split(self.rng_key)
-        self.rng_key = key
-        
-        # Generate noise tensor for stochastic modes (unused for deterministic modes, but cheap)
-        # We generate it every time to keep the API clean, but JAX's lazy evaluation 
-        # might optimize it out if rmode is static and deterministic.
         if self.rmode in [5, 6]:
+            subkey = jax.random.fold_in(self.rng_key, 0)
             noise = jax.random.uniform(subkey, shape=x.shape)
         else:
-            noise = jnp.zeros_like(x) # Dummy placeholder
-            
+            noise = jnp.zeros_like(x)
+                
         sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
         
         return self._quantize_core(
