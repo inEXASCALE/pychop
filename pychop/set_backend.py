@@ -1,57 +1,81 @@
 import os
 
+# 支持的 backend 列表
+_VALID_BACKENDS = ('numpy', 'jax', 'torch', 'auto')
+
 
 def backend(lib='auto', verbose=0):
     """
+    Set the compute backend for pychop.
+
     Parameters
     ----------
-    lib : str,
-        The backend library.    
-    
+    lib : str
+        The backend library. One of 'numpy', 'jax', 'torch', or 'auto'.
+        'auto' detects the backend from the input array type at runtime.
+
     verbose : int | bool
         Whether or not to print the information.
 
+    Raises
+    ------
+    ValueError
+        If `lib` is not a supported backend name.
+
+    Examples
+    --------
+    >>> import pychop
+    >>> pychop.backend('jax')
+    >>> pychop.backend('numpy')
+    >>> pychop.backend('torch')
+    >>> pychop.backend('auto')   # detect from input array type
     """
+    if lib not in _VALID_BACKENDS:
+        raise ValueError(
+            f"Unsupported backend '{lib}'. "
+            f"Must be one of: {_VALID_BACKENDS}"
+        )
+
     os.environ['chop_backend'] = lib
 
     if lib == 'numpy':
         try:
-            global numpy
-            import numpy 
-            if verbose: print('Load NumPy backend.')
+            import numpy  # noqa: F401 — verify it's importable
+            if verbose:
+                print('Load NumPy backend.')
         except ImportError as e:
-            print(e, 'Fail to load NumPy backend.')
+            raise ImportError('NumPy is not installed.') from e
 
     elif lib == 'jax':
         try:
-            global jax
-            import jax
-            if verbose: print('Load JAX backend.')
+            import jax  # noqa: F401 — verify it's importable
+            if verbose:
+                print('Load JAX backend.')
         except ImportError as e:
-            print(e, 'Load NumPy backend.')
-            backend('numpy')
-    else:
+            print(f'JAX is not installed ({e}). Falling back to NumPy backend.')
+            os.environ['chop_backend'] = 'numpy'
+
+    elif lib == 'torch':
         try:
-            global torch
-            global FQuantizedLayer
-            global IntQuantizedLayer
-            global QuantizedLayer
-            
-            import torch
-            if verbose: print('Load Torch backend.')
-                
+            import torch  
+            if verbose:
+                print('Load Torch backend.')
         except ImportError as e:
-            print(e, 'Try load NumPy backend.')
-            backend('numpy')
+            print(f'PyTorch is not installed ({e}). Falling back to NumPy backend.')
+            os.environ['chop_backend'] = 'numpy'
+
+    elif lib == 'auto':
+        if verbose:
+            print('Backend set to auto: will be detected from input array type at runtime.')
 
 
-if os.environ['chop_backend'] == "jax":
-    global jax
+def get_backend():
+    """
+    Return the currently active backend name.
 
-elif os.environ['chop_backend'] == "torch":
-    global torch
-    global LightChop
-    global FQuantizedLayer
-    global IntQuantizedLayer
-    global QuantizedLayer
-    
+    Returns
+    -------
+    str
+        One of 'numpy', 'jax', 'torch', or 'auto'.
+    """
+    return os.environ.get('chop_backend', 'auto')
