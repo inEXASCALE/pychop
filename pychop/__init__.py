@@ -15,7 +15,9 @@ from .math_func import *
 __version__ = '0.5.0'  
 
 import os
-os.environ['chop_backend'] = 'auto'
+if 'chop_backend' not in os.environ:
+    os.environ['chop_backend'] = 'auto'
+    
 from .set_backend import backend
 
 
