@@ -1,6 +1,5 @@
 import os
 
-# 支持的 backend 列表
 _VALID_BACKENDS = ('numpy', 'jax', 'torch', 'auto')
 
 
