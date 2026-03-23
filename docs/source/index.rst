@@ -107,6 +107,7 @@ To give a shot, one may print information of various precision formats:
    mathfunc.rst
    integer.rst
    fix_point.rst
+   bfp_formats.rst
    ocp_mx.rst
    layers.rst
    optimizers.rst
