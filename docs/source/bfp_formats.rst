@@ -8,9 +8,6 @@ Block Floating Point (BFP) is a quantization format where a group of numbers sha
 a common exponent (scale factor), but each number has its own mantissa. This provides
 a good balance between compression efficiency and hardware simplicity.
 
-.. contents:: Table of Contents
-   :local:
-   :depth: 2
 
 Overview
 ========
@@ -1154,15 +1151,6 @@ References
 - `Pychop GitHub <https://github.com/inEXASCALE/pychop>`_
 - `OCP MX Specification <https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf>`_
 - `Intel Flexpoint Paper <https://arxiv.org/abs/1711.02213>`_
-
-See Also
-========
-
-- :ref:`mx_formats` - Microscaling formats with block-level scaling
-- :ref:`quantization_aware_training` - QAT techniques and best practices
-- :ref:`model_compression` - Overview of compression techniques
-- :ref:`backends` - Backend selection and configuration
-
 
 .. note::
    For the latest updates and examples, see the `Pychop GitHub repository <https://github.com/inEXASCALE/pychop>`_.
