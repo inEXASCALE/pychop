@@ -24,6 +24,7 @@ Usage:
     >>> X_q = bfp_quantize(X, format='bfp8')
 
 Author: Xinye Chen
+
 """
 
 import os
@@ -377,9 +378,7 @@ def print_bfp_format_table():
     print("="*90)
 
 
-# ============================================================================
-# Export public API
-# ============================================================================
+
 
 __all__ = [
     'BFPSpec',

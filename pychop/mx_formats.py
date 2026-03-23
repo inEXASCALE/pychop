@@ -36,6 +36,7 @@ Usage:
     >>> X_q = mx_quantize(X, format='mxfp8_e4m3')
 
 Author: Xinye Chen
+
 """
 
 import os
@@ -330,9 +331,7 @@ def print_mx_format_table():
     print("="*100)
 
 
-# ============================================================================
-# Export public API
-# ============================================================================
+
 
 __all__ = [
     'MXSpec',
