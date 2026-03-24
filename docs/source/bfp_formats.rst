@@ -1,7 +1,7 @@
 .. _bfp_formats:
 
 ====================================
-Block Floating Point (BFP) Formats
+Block Floating Point Formats
 ====================================
 
 Block Floating Point (BFP) is a quantization format where a group of numbers shares
