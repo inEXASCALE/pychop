@@ -1,6 +1,6 @@
 .. _mx_formats:
 
-Microscaling (MX) formats
+Microscaling formats
 ==========================
 
 .. currentmodule:: pychop.mx_formats
