@@ -171,10 +171,8 @@ Pychop supports all OCP standard MX formats:
      - Integer-like
 
 Quick Start
-===========
-
-Basic Usage
 -----------
+
 
 NumPy Backend
 ~~~~~~~~~~~~~
@@ -635,7 +633,7 @@ Example: Fine-tune Transformer with MX quantization:
            print(f"Loss: {loss.item():.4f}")
 
 JAX Backend
-===========
+------------
 
 For JAX/Flax training, use the ``jx`` submodule:
 
