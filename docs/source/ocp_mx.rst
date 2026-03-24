@@ -69,7 +69,7 @@ This design offers significantly better dynamic range than Block Floating Point 
    - **Use BFP** when you need maximum simplicity for edge devices
 
 Key Features
-============
+---------------- 
 
 ✅ **OCP Standard Compliance**
    - Full support for MXFP8, MXFP6, MXFP4, and MXINT8 formats
@@ -90,7 +90,7 @@ Key Features
    - Configurable block sizes
 
 MX Format Specification
-========================
+-------------------------------- 
 
 Structure
 ---------
@@ -254,10 +254,8 @@ JAX Backend (with Custom VJP)
    print(f"Gradient norm: {jnp.linalg.norm(grads):.2e}")
 
 API Reference
-=============
+---------------- 
 
-Core Functions
---------------
 
 mx_quantize
 ~~~~~~~~~~~
@@ -473,7 +471,7 @@ print_mx_format_table
       print_mx_format_table()
 
 PyTorch Backend (QAT)
-=====================
+-------------------------------- 
 
 For **Quantization-Aware Training** in PyTorch, use the ``tch`` submodule:
 
@@ -704,10 +702,7 @@ Quantized Dense Layer (Flax)
    output = model.apply(variables, x)
 
 Advanced Usage
-==============
-
-Custom Format Creation
-----------------------
+---------------- 
 
 Create custom MX formats for specific use cases:
 
@@ -774,10 +769,11 @@ Choose block size based on data characteristics:
    X_q = mx_quantize(X_varying, format='mxfp8_e4m3', block_size=16)
 
 Performance Tips
-================
+-----------------
+
 
 Memory Reduction
-----------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 **MXFP8 E4M3** provides ~2× memory reduction vs FP16:
 
@@ -848,10 +844,10 @@ For Quantization-Aware Training:
    layer = MXLinear(768, 3072, weight_format='mxfp6_e3m2', act_format='mxfp8_e4m3')
 
 Troubleshooting
-===============
+---------------- 
 
 Common Issues
--------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 **Q: Getting NaN or Inf after quantization?**
 
