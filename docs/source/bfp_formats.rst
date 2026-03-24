@@ -192,22 +192,6 @@ Intel Flexpoint Compatible
      - 1.97x
      - Intel compatible
 
-Installation
-============
-
-BFP formats are included in Pychop. Ensure you have the required dependencies:
-
-.. code-block:: bash
-
-   # Basic installation (NumPy backend)
-   pip install pychop
-
-   # For PyTorch backend (recommended for training)
-   pip install pychop torch
-
-   # For JAX backend
-   pip install pychop jax jaxlib flax
-
 Quick Start
 ===========
 
