@@ -71,20 +71,20 @@ This design offers significantly better dynamic range than Block Floating Point 
 Key Features
 ---------------- 
 
-✅ **OCP Standard Compliance**
+ **OCP Standard Compliance**
    - Full support for MXFP8, MXFP6, MXFP4, and MXINT8 formats
    - Compatible with OCP Microscaling Formats v1.0 spec
 
-✅ **Multi-Backend Support**
+ **Multi-Backend Support**
    - **NumPy**: Pure numerical computation (inference, analysis)
    - **PyTorch**: Straight-Through Estimator (STE) for QAT
    - **JAX**: Custom VJP for differentiation
 
-✅ **Automatic Backend Detection**
+ **Automatic Backend Detection**
    - Automatically detects input type (numpy.ndarray, torch.Tensor, jax.Array)
    - No manual backend switching needed
 
-✅ **Flexible Quantization**
+ **Flexible Quantization**
    - Predefined OCP formats
    - Custom format creation (exp_bits, sig_bits)
    - Configurable block sizes
@@ -905,10 +905,10 @@ A: Explicitly set backend:
    X_q = mx_quantize(X, format='mxfp8_e4m3')
 
 References
-==========
+-----------------------------
 
 Standards and Specifications
------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. **OCP Microscaling Formats (MX) v1.0 Specification**
    
@@ -922,7 +922,7 @@ Standards and Specifications
    - https://ieeexplore.ieee.org/document/8766229
 
 Research Papers
----------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. **Microscaling Data Formats for Deep Learning** (Rouhani et al., 2023)
    
@@ -942,19 +942,19 @@ Research Papers
 
 
 Summary
-=======
+--------
 
 MX formats in Pychop provide:
 
-✅ **OCP Standard Compliance** - Full support for all MX formats
+ **OCP Standard Compliance** - Full support for all MX formats
 
-✅ **Multi-Backend** - NumPy, PyTorch (STE), JAX (custom VJP)
+ **Multi-Backend** - NumPy, PyTorch (STE), JAX (custom VJP)
 
-✅ **Easy to Use** - Automatic backend detection, simple API
+ **Easy to Use** - Automatic backend detection, simple API
 
-✅ **Production Ready** - QAT support, model conversion, LLM fine-tuning
+ **Production Ready** - QAT support, model conversion, LLM fine-tuning
 
-✅ **Flexible** - Predefined + custom formats, configurable blocks
+ **Flexible** - Predefined + custom formats, configurable blocks
 
 **Get Started:**
 
@@ -972,12 +972,3 @@ MX formats in Pychop provide:
    from pychop.tch.mx_formats import MXLinear
    layer = MXLinear(768, 3072, weight_format='mxfp8_e4m3')
 
-**Next Steps:**
-
-- Try different formats: :py:func:`compare_mx_formats`
-- Convert your model: :py:func:`pychop.tch.mx_formats.convert_linear_to_mx`
-- Train with QAT: :py:class:`pychop.tch.mx_formats.MXLinear`
-- Compare with BFP: :ref:`bfp_formats`
-
-.. note::
-   For questions or issues, visit: https://github.com/inEXASCALE/pychop
