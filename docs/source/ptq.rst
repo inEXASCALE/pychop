@@ -4,10 +4,6 @@
 Post-Training Quantization
 ========================================
 
-.. contents:: Table of Contents
-   :depth: 3
-   :local:
-
 Overview
 --------------------------
 
