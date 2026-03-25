@@ -66,6 +66,8 @@ from .mx_formats import (
     print_mx_format_table,
 )
 
+from . import ptq
+
 @dataclass
 class Customs:
     emax: Optional[int] = None # the maximum value of the exponent.

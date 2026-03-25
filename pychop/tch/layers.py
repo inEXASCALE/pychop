@@ -187,22 +187,35 @@ class FakeIQuantizeSTE(Function):
         return grad_output, None
 
 
-
-def post_quantization(model: torch.nn.Module, chop, eval_mode: bool = True, verbose: bool = False) -> torch.nn.Module:
+def post_quantization(
+    model: torch.nn.Module,
+    chop,
+    eval_mode: bool = True,
+    verbose: bool = False
+) -> torch.nn.Module:
     """
     Perform post-training quantization (PTQ) on a copy of a PyTorch model.
-    Only weights and biases are quantized; BatchNorm running stats and other buffers are preserved.
-    For best results, fuse Conv+BN layers before calling this function (e.g., model.fuse_model()).
-
-    Args:
-        model (torch.nn.Module): Original PyTorch model (remains unmodified).
-        chop: Object with a `quantize(tensor)` method (simulated quantization).
-        eval_mode (bool): If True, set the copied model to evaluation mode. Default: True.
-        verbose (bool): If True, print parameter names and quantized values. Default: False.
-
-    Returns:
-        torch.nn.Module: A new quantized copy of the model.
+    
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Original PyTorch model (remains unmodified).
+    chop : Chop, Chopf, or Chopi
+        Quantizer instance.
+    eval_mode : bool, default=True
+        If True, set the copied model to evaluation mode.
+    verbose : bool, default=False
+        If True, print parameter names and shapes.
+    
+    Returns
+    -------
+    torch.nn.Module
+        A new quantized copy of the model (weight-only quantization).
     """
+    from pychop.integer import Chopi
+    from pychop.fixed_point import Chopf
+    from pychop.chop import Chop
+    
     # Deep copy the model to avoid modifying the original
     quantized_model = copy.deepcopy(model)
 
@@ -221,7 +234,17 @@ def post_quantization(model: torch.nn.Module, chop, eval_mode: bool = True, verb
 
         # Only quantize weights and biases
         if 'weight' in key or 'bias' in key:
-            quantized_tensor = chop.quantize(tensor)
+            # Use fake quantization (quantize + dequantize) to keep float dtype
+            if isinstance(chop, Chopi):
+                # Integer quantization: quantize then dequantize
+                q = chop.quantize(tensor)
+                quantized_tensor = chop.dequantize(q)
+            elif hasattr(chop, 'quantize'):
+                # Chopf or custom quantizer
+                quantized_tensor = chop.quantize(tensor)
+            else:
+                # Chop (floating-point): direct call
+                quantized_tensor = chop(tensor)
         else:
             quantized_tensor = tensor  # keep buffers unchanged
 
@@ -234,7 +257,7 @@ def post_quantization(model: torch.nn.Module, chop, eval_mode: bool = True, verb
 
         # Verbose output
         if verbose and ('weight' in key or 'bias' in key):
-            print(f"[Quantized] {key}: {quantized_tensor}")
+            print(f"[Quantized] {key}: {quantized_tensor.shape}")
 
     # Load the quantized state dict back into the model
     quantized_model.load_state_dict(state_dict)

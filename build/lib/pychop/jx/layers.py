@@ -446,7 +446,7 @@ def post_quantization(model, chop, eval_mode: bool = True, verbose: bool = False
         return quantized_params
   
 
-  # ===================================================================
+# ===================================================================
 # Mixed-Precision Post-Training Quantization for JAX/Flax
 # ===================================================================
 def mixed_post_quantization(
@@ -488,7 +488,7 @@ def mixed_post_quantization(
     """
     import jax
     import jax.numpy as jnp
-    from jax import tree_util  # 使用 tree_util
+    from jax import tree_util  
     from flax.core import freeze, unfreeze
     
     # Get model variables
@@ -629,7 +629,6 @@ def static_post_quantization(
         batch_stats = variables.get('batch_stats', None)
     
     # Step 1: Quantize weights
-    # 使用 tree_util.tree_map
     q_params = tree_util.tree_map(
         lambda x: chop(x) if isinstance(x, jnp.ndarray) else x, 
         params
@@ -714,7 +713,6 @@ def dynamic_post_quantization(
         batch_stats = variables.get('batch_stats', None)
     
     # Step 1: Quantize weights
-    # 使用 tree_util.tree_map
     q_params = tree_util.tree_map(
         lambda x: chop(x) if isinstance(x, jnp.ndarray) else x,
         params
