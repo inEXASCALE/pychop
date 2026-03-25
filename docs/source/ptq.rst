@@ -28,42 +28,6 @@ without retraining. PTQ is ideal for quick deployment and model compression with
 PTQ Methods Comparison
 --------------------------
 
-
-.. list-table:: Quantization Components by PTQ Method
-   :widths: 20 20 20 20 20
-   :header-rows: 1
-
-   * - **Component**
-     - **Basic PTQ**
-     - **Static PTQ**
-     - **Dynamic PTQ**
-     - **Mixed PTQ**
-   * - **Conv/Linear Weights**
-     - ✅ Quantized
-     - ✅ Quantized
-     - ✅ Quantized
-     - ✅ Quantized (custom precision)
-   * - **Biases**
-     - ✅ Quantized
-     - ✅ Quantized
-     - ✅ Quantized
-     - ✅ Quantized (custom precision)
-   * - **Activations (ReLU/GELU)**
-     - ⚫ Original precision
-     - ✅ Quantized (calibrated)
-     - ✅ Quantized (per-batch)
-     - ✅ Quantized (custom precision)
-   * - **BatchNorm Stats (mean/var)**
-     - ⚫ Preserved (FP32)
-     - ⚫ Preserved (FP32)
-     - ⚫ Preserved (FP32)
-     - ⚫ Preserved (FP32)
-   * - **LayerNorm (scale/bias)**
-     - ⚫ Original precision
-     - ✅ Quantized
-     - ✅ Quantized
-     - ✅ Quantized (custom precision)
-
 **Legend:**
 
 - ✅ Quantized = Converted to specified precision (INT8, FP16, custom)
