@@ -110,6 +110,7 @@ To give a shot, one may print information of various precision formats:
    bfp_formats.rst
    ocp_mx.rst
    layers.rst
+   ptq.rst
    optimizers.rst
    matlab.rst
    license
