@@ -449,7 +449,6 @@ def post_quantization(model, chop, eval_mode: bool = True, verbose: bool = False
   # ===================================================================
 # Mixed-Precision Post-Training Quantization for JAX/Flax
 # ===================================================================
-
 def mixed_post_quantization(model, weight_chop, activation_chop,
                             calibration_data=None, dynamic: bool = True,
                             eval_mode: bool = True, verbose: bool = False):
@@ -486,15 +485,6 @@ def mixed_post_quantization(model, weight_chop, activation_chop,
     ------
     ValueError
         If ``dynamic=False`` and ``calibration_data`` is ``None``.
-
-    Examples
-    --------
-    W8A8 dynamic:
-
-    >>> w_chop = Chop(exp_bits=4, sig_bits=3)
-    >>> a_chop = Chop(exp_bits=4, sig_bits=3)
-    >>> result = mixed_post_quantization(model, w_chop, a_chop)
-    >>> out = result['mixed_apply']({'params': result['params']}, x)
     """
     import jax.numpy as jnp
     import jax.tree_util as tree_util
@@ -561,26 +551,50 @@ def mixed_post_quantization(model, weight_chop, activation_chop,
         for batch in calibration_data:
             inputs = batch[0] if isinstance(batch, (list, tuple)) else batch
             inputs = jnp.asarray(inputs)
+
+            # Build full variables dict
             variables = {"params": params}
             if batch_stats is not None:
                 variables["batch_stats"] = batch_stats
+
+            # Determine mutable collections
+            mutable_collections = ["intermediates"]
+            if batch_stats is not None:
+                mutable_collections.append("batch_stats")
+
             try:
-                _, state = apply_fn(
+                output = apply_fn(
                     variables, inputs,
                     capture_intermediates=True,
-                    mutable=["intermediates"],
-                    train=False,
+                    mutable=mutable_collections,
+                    training=False,
                 )
+                if isinstance(output, tuple) and len(output) == 2:
+                    _, state = output
+                else:
+                    state = {}
             except TypeError:
-                if verbose:
-                    print(
-                        "[Mixed PTQ] Warning: capture_intermediates not supported. "
-                        "Falling back to dynamic activation quantization."
+                # Try without training kwarg
+                try:
+                    output = apply_fn(
+                        variables, inputs,
+                        capture_intermediates=True,
+                        mutable=mutable_collections,
                     )
-                dynamic = True
-                break
+                    if isinstance(output, tuple) and len(output) == 2:
+                        _, state = output
+                    else:
+                        state = {}
+                except TypeError:
+                    if verbose:
+                        print(
+                            "[Mixed PTQ] Warning: capture_intermediates not supported. "
+                            "Falling back to dynamic activation quantization."
+                        )
+                    dynamic = True
+                    break
 
-            if "intermediates" in state:
+            if isinstance(state, dict) and "intermediates" in state:
                 for path, value in tree_util.tree_leaves_with_path(
                     state["intermediates"]
                 ):
@@ -618,6 +632,9 @@ def mixed_post_quantization(model, weight_chop, activation_chop,
         if apply_fn is None:
             return x
         output = apply_fn(variables, x, **kwargs)
+        # Handle (output, state) tuple from mutable apply
+        if isinstance(output, tuple):
+            output = output[0]
         return tree_util.tree_map(_quantize_leaf, output)
 
     result = {"params": params, "mixed_apply": mixed_apply}
@@ -631,7 +648,6 @@ def mixed_post_quantization(model, weight_chop, activation_chop,
 # ===================================================================
 # Static Post-Training Quantization for JAX/Flax (with calibration)
 # ===================================================================
-
 def static_post_quantization(model, chop, calibration_data,
                              eval_mode: bool = True, verbose: bool = False):
     """Static PTQ for JAX/Flax with activation calibration.
@@ -687,28 +703,52 @@ def static_post_quantization(model, chop, calibration_data,
             inputs = batch[0] if isinstance(batch, (list, tuple)) else batch
             inputs = jnp.asarray(inputs)
 
+            # Build the full variables dict
             variables = {"params": params}
             if batch_stats is not None:
                 variables["batch_stats"] = batch_stats
 
+            # Determine which collections are mutable
+            mutable_collections = ["intermediates"]
+            if batch_stats is not None:
+                mutable_collections.append("batch_stats")
+
             try:
-                output, state = apply_fn(
+                output = apply_fn(
                     variables,
                     inputs,
                     capture_intermediates=True,
-                    mutable=["intermediates"],
-                    train=False,
+                    mutable=mutable_collections,
+                    training=False,
                 )
+                # apply returns (output, state_dict) when mutable is specified
+                if isinstance(output, tuple) and len(output) == 2:
+                    output, state = output
+                else:
+                    state = {}
             except TypeError:
-                # Model doesn't support capture_intermediates
-                if verbose:
-                    print(
-                        "[Static PTQ] Warning: model does not support "
-                        "capture_intermediates. Only weights will be quantized."
+                # Model may not accept 'training' kwarg, try without
+                try:
+                    output = apply_fn(
+                        variables,
+                        inputs,
+                        capture_intermediates=True,
+                        mutable=mutable_collections,
                     )
-                break
+                    if isinstance(output, tuple) and len(output) == 2:
+                        output, state = output
+                    else:
+                        state = {}
+                except TypeError:
+                    # Model doesn't support capture_intermediates at all
+                    if verbose:
+                        print(
+                            "[Static PTQ] Warning: model does not support "
+                            "capture_intermediates. Only weights will be quantized."
+                        )
+                    break
 
-            if "intermediates" in state:
+            if isinstance(state, dict) and "intermediates" in state:
                 for path, value in tree_util.tree_leaves_with_path(
                     state["intermediates"]
                 ):
@@ -746,6 +786,8 @@ def static_post_quantization(model, chop, calibration_data,
     def quantized_apply(variables, x, **kwargs):
         """Run model with static activation quantization."""
         out = apply_fn(variables, x, **kwargs) if apply_fn else x
+        if isinstance(out, tuple):
+            out = out[0]
         if isinstance(out, jnp.ndarray):
             out = _quantize(out)
         return out
