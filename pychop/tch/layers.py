@@ -245,7 +245,6 @@ def post_quantization(model: torch.nn.Module, chop, eval_mode: bool = True, verb
 # ===================================================================
 # Mixed-Precision Post-Training Quantization (separate W/A quantizers)
 # ===================================================================
-
 def mixed_post_quantization(
     model: torch.nn.Module,
     weight_chop,
@@ -256,205 +255,148 @@ def mixed_post_quantization(
     verbose: bool = False,
 ) -> torch.nn.Module:
     """
-    Mixed-precision post-training quantization (e.g. W8A8, W4A16).
-
-    Uses **separate quantizers** for weights and activations, enabling
-    configurations like W8A8 (8-bit weights + 8-bit activations),
-    W4A8 (4-bit weights + 8-bit activations), etc.
-
-    Args:
-        model (torch.nn.Module): Original model (remains unmodified).
-        weight_chop: Quantizer for weights/biases (``.quantize(tensor)``).
-            Pass ``None`` to skip weight quantization (i.e. FP weights).
-        activation_chop: Quantizer for activations (``.quantize(tensor)``).
-            Pass ``None`` to skip activation quantization (i.e. FP activations).
-        calibration_data: Iterable of input batches for static activation
-            calibration.  Required when ``dynamic=False``.  Ignored when
-            ``dynamic=True``.  Each element may be a tensor or a
-            ``(input, label)`` tuple.
-        dynamic (bool): If ``True`` (default), activations are quantized
-            on-the-fly at every inference step (no calibration needed).
-            If ``False``, use ``calibration_data`` to collect per-layer
-            min/max and clamp+quantize at inference (static mode).
-        eval_mode (bool): Set model to eval mode. Default True.
-        verbose (bool): Print details. Default False.
-
-    Returns:
-        torch.nn.Module: A deep-copied model with mixed-precision quantization.
-
-    Raises:
-        ValueError: If ``dynamic=False`` and ``calibration_data`` is None.
-
-    Examples
-    --------
-    W8A8 (8-bit weights, 8-bit activations, dynamic):
-
-    >>> from pychop import Chop
-    >>> w_chop = Chop(exp_bits=4, sig_bits=3)   # ~8-bit float for weights
-    >>> a_chop = Chop(exp_bits=4, sig_bits=3)   # ~8-bit float for activations
-    >>> q_model = mixed_post_quantization(model, w_chop, a_chop)
-
-    W4A8 (4-bit weights, 8-bit activations, dynamic):
-
-    >>> w_chop = Chop(exp_bits=2, sig_bits=1)   # ~4-bit
-    >>> a_chop = Chop(exp_bits=4, sig_bits=3)   # ~8-bit
-    >>> q_model = mixed_post_quantization(model, w_chop, a_chop)
-
-    W8A8 static with calibration:
-
-    >>> q_model = mixed_post_quantization(
-    ...     model, w_chop, a_chop,
-    ...     calibration_data=cal_loader, dynamic=False, verbose=True
-    ... )
-
-    Weight-only (equivalent to post_quantization):
-
-    >>> q_model = mixed_post_quantization(model, w_chop, None)
+    Mixed-precision post-training quantization for PyTorch models.
+    
+    Allows independent quantizers for weights and activations (e.g., W8A8, W4A8, W-only).
+    
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The PyTorch model to quantize.
+    weight_chop : Chop, Chopf, Chopi, or None
+        Quantizer for weights. If None, weights remain in FP32.
+    activation_chop : Chop, Chopf, Chopi, or None
+        Quantizer for activations. If None, activations remain in FP32.
+    calibration_data : DataLoader or iterable, optional
+        Required for static activation quantization (dynamic=False).
+    dynamic : bool, default=True
+        If True, use dynamic activation quantization.
+        If False, use static quantization (requires calibration_data).
+    eval_mode : bool, default=True
+        Whether to set the model to eval mode.
+    verbose : bool, default=False
+        Whether to print quantization info.
+    
+    Returns
+    -------
+    torch.nn.Module
+        Quantized model with mixed-precision configuration.
     """
-    if not dynamic and calibration_data is None and activation_chop is not None:
+    import copy
+    from pychop import Chopi
+    
+    # Step 1: Deep copy model
+    q_model = copy.deepcopy(model)
+    
+    if eval_mode:
+        q_model.eval()
+    
+    # Step 2: Quantize weights (if weight_chop provided)
+    if weight_chop is not None:
+        with torch.no_grad():
+            for name, param in q_model.named_parameters():
+                if param.requires_grad:
+                    param.data = weight_chop(param.data)
+                    if verbose:
+                        print(f"[Mixed PTQ] W-quantized: {name}  shape={param.shape}")
+    
+    if verbose:
+        print(f"[Mixed PTQ] Weight quantizer : {weight_chop.__class__.__name__ if weight_chop else 'None'}")
+        print(f"[Mixed PTQ] Activation quantizer: {activation_chop.__class__.__name__ if activation_chop else 'None'}")
+        print(f"[Mixed PTQ] Activation mode  : {'dynamic' if dynamic else 'static'}")
+    
+    # Step 3: Handle activation quantization
+    if activation_chop is None:
+        # No activation quantization
+        return q_model
+    
+    # Check calibration data requirement
+    if not dynamic and calibration_data is None:
         raise ValueError(
             "calibration_data is required for static activation quantization "
-            "(dynamic=False). Either provide calibration_data or set dynamic=True."
+            "(dynamic=False with activation_chop != None)"
         )
-
-    # ---- 1. Weight / bias quantization --------------------------------------
-    quantized_model = copy.deepcopy(model)
-    if eval_mode:
-        quantized_model.eval()
-
-    device = next(model.parameters()).device
-
-    if weight_chop is not None:
-        state_dict = quantized_model.state_dict()
-        for key in state_dict.keys():
-            tensor = state_dict[key].to(device)
-            if "weight" in key or "bias" in key:
-                quantized_tensor = weight_chop.quantize(tensor)
-                if quantized_tensor.shape != tensor.shape:
-                    raise ValueError(
-                        f"Shape mismatch for {key}: "
-                        f"{tensor.shape} vs {quantized_tensor.shape}"
-                    )
-                state_dict[key] = quantized_tensor
-                if verbose:
-                    print(f"[Mixed PTQ] W-quantized: {key}  shape={tensor.shape}")
-            else:
-                state_dict[key] = tensor
-        quantized_model.load_state_dict(state_dict)
-
-    if verbose:
-        w_tag = type(weight_chop).__name__ if weight_chop else "None (FP)"
-        a_tag = type(activation_chop).__name__ if activation_chop else "None (FP)"
-        print(f"[Mixed PTQ] Weight quantizer : {w_tag}")
-        print(f"[Mixed PTQ] Activation quantizer: {a_tag}")
-        print(f"[Mixed PTQ] Activation mode  : {'dynamic' if dynamic else 'static'}")
-
-    # ---- 2. Activation quantization -----------------------------------------
-    if activation_chop is None:
-        # No activation quantization → done
-        return quantized_model
-
-    _TARGET_TYPES = (
-        nn.Linear,
-        nn.Conv1d, nn.Conv2d, nn.Conv3d,
-        nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d,
-        nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d,
-        nn.LayerNorm, nn.GroupNorm,
-        nn.InstanceNorm1d, nn.InstanceNorm2d, nn.InstanceNorm3d,
-        nn.ReLU, nn.GELU, nn.SiLU, nn.ELU, nn.LeakyReLU,
-        nn.Sigmoid, nn.Tanh, nn.Softmax,
-    )
-
+    
+    target_layers = (torch.nn.Conv2d, torch.nn.Linear, torch.nn.ReLU,
+                     torch.nn.BatchNorm2d, torch.nn.BatchNorm1d, torch.nn.GELU)
+    
     if dynamic:
-        # ---- 2a. Dynamic: quantize activations on-the-fly -------------------
-        def _dynamic_hook(_module, _input, output):
-            is_tuple = isinstance(output, tuple)
-            out = output[0] if is_tuple else output
-            if isinstance(out, torch.Tensor):
-                out = activation_chop.quantize(out)
-                return (out,) + output[1:] if is_tuple else out
-            return output
-
+        # Dynamic activation quantization
         hook_count = 0
-        for name, module in quantized_model.named_modules():
-            if isinstance(module, _TARGET_TYPES):
-                module.register_forward_hook(_dynamic_hook)
+        for name, module in q_model.named_modules():
+            if isinstance(module, target_layers):
+                def act_hook(module, input, output):
+                    if isinstance(activation_chop, Chopi):
+                        # 量化后反量化
+                        q = activation_chop.quantize(output)
+                        return activation_chop.dequantize(q)
+                    return activation_chop(output)
+                
+                module.register_forward_hook(act_hook)
                 hook_count += 1
                 if verbose:
-                    print(f"[Mixed PTQ] Dynamic hook: {name} ({type(module).__name__})")
-
+                    print(f"[Mixed PTQ] Dynamic hook: {name} ({module.__class__.__name__})")
+        
         if verbose:
             print(f"[Mixed PTQ] Total dynamic hooks: {hook_count}")
-
+    
     else:
-        # ---- 2b. Static: calibrate then clamp+quantize ----------------------
-        activation_stats: dict = {}
-        cal_hooks: list = []
-
-        def _make_cal_hook(mid):
-            def _hook(_module, _input, output):
-                out = output[0] if isinstance(output, tuple) else output
-                if not isinstance(out, torch.Tensor):
+        # Static activation quantization
+        stats = {}
+        handles = []
+        
+        # Collect statistics
+        def make_stats_hook(name):
+            def hook(module, input, output):
+                if output is None:
                     return
-                cur_min = out.detach().min()
-                cur_max = out.detach().max()
-                if mid in activation_stats:
-                    activation_stats[mid]["min"] = torch.min(
-                        activation_stats[mid]["min"], cur_min
-                    )
-                    activation_stats[mid]["max"] = torch.max(
-                        activation_stats[mid]["max"], cur_max
-                    )
+                output_data = output.detach()
+                if name not in stats:
+                    stats[name] = [output_data.min().item(), output_data.max().item()]
                 else:
-                    activation_stats[mid] = {"min": cur_min, "max": cur_max}
-            return _hook
-
-        for name, module in quantized_model.named_modules():
-            if isinstance(module, _TARGET_TYPES):
-                h = module.register_forward_hook(_make_cal_hook(id(module)))
-                cal_hooks.append(h)
-
-        quantized_model.to(device)
+                    stats[name][0] = min(stats[name][0], output_data.min().item())
+                    stats[name][1] = max(stats[name][1], output_data.max().item())
+            return hook
+        
+        for name, module in q_model.named_modules():
+            if isinstance(module, target_layers):
+                handle = module.register_forward_hook(make_stats_hook(name))
+                handles.append(handle)
+        
+        # Calibration pass
         with torch.no_grad():
             for batch in calibration_data:
-                inputs = batch[0] if isinstance(batch, (list, tuple)) else batch
-                if isinstance(inputs, torch.Tensor):
-                    inputs = inputs.to(device)
-                quantized_model(inputs)
-
-        for h in cal_hooks:
-            h.remove()
-
+                if isinstance(batch, (tuple, list)):
+                    inputs = batch[0]
+                else:
+                    inputs = batch
+                q_model(inputs)
+        
+        # Remove calibration hooks
+        for handle in handles:
+            handle.remove()
+        
         if verbose:
-            for name, module in quantized_model.named_modules():
-                if id(module) in activation_stats:
-                    s = activation_stats[id(module)]
-                    print(
-                        f"[Mixed PTQ] Calibrated {name}: "
-                        f"min={s['min'].item():.6f}, max={s['max'].item():.6f}"
-                    )
-
-        def _make_static_hook(mid):
-            def _hook(_module, _input, output):
-                is_tuple = isinstance(output, tuple)
-                out = output[0] if is_tuple else output
-                if not isinstance(out, torch.Tensor):
-                    return output
-                if mid in activation_stats:
-                    out = out.clamp(
-                        activation_stats[mid]["min"],
-                        activation_stats[mid]["max"],
-                    )
-                out = activation_chop.quantize(out)
-                return (out,) + output[1:] if is_tuple else out
-            return _hook
-
-        for _name, module in quantized_model.named_modules():
-            if id(module) in activation_stats:
-                module.register_forward_hook(_make_static_hook(id(module)))
-
-    return quantized_model
-
+            for name, (min_val, max_val) in stats.items():
+                print(f"[Mixed PTQ] Calibrated {name}: min={min_val:.6f}, max={max_val:.6f}")
+        
+        # Register static quantization hooks
+        for name, module in q_model.named_modules():
+            if name in stats:
+                min_val, max_val = stats[name]
+                
+                def make_static_hook(min_v, max_v):
+                    def act_hook(module, input, output):
+                        if isinstance(activation_chop, Chopi):
+                            # 量化后反量化
+                            q = activation_chop.quantize(output)
+                            return activation_chop.dequantize(q)
+                        return activation_chop(torch.clamp(output, min_v, max_v))
+                    return act_hook
+                
+                module.register_forward_hook(make_static_hook(min_val, max_val))
+    
+    return q_model
 
 # ===================================================================
 # Static Post-Training Quantization (with activation calibration)
@@ -468,135 +410,115 @@ def static_post_quantization(
     verbose: bool = False,
 ) -> torch.nn.Module:
     """
-    Static post-training quantization (PTQ) with activation calibration.
-
-    Quantizes weights/biases offline AND quantizes activations using min/max
-    statistics collected from a calibration dataset. After calibration,
-    activation clamp ranges are fixed for all future inference.
-
-    Args:
-        model (torch.nn.Module): Original model (remains unmodified).
-        chop: Quantizer with a ``quantize(tensor)`` method.
-        calibration_data: Iterable of input tensors / batches for calibration.
-            For tuple/list items only the first element is used as input.
-        eval_mode (bool): Set model to eval mode. Default True.
-        verbose (bool): Print calibration details. Default False.
-
-    Returns:
-        torch.nn.Module: Deep-copied model with quantized weights and permanent
-        activation-quantization hooks whose clamp ranges come from calibration.
+    Static post-training quantization for PyTorch models.
+    
+    Quantizes both weights and activations. Activation ranges are calibrated
+    using the provided calibration data.
+    
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The PyTorch model to quantize.
+    chop : Chop, Chopf, or Chopi
+        Quantizer for both weights and activations.
+    calibration_data : DataLoader or iterable
+        Calibration dataset for collecting activation statistics.
+    eval_mode : bool, default=True
+        Whether to set the model to eval mode.
+    verbose : bool, default=False
+        Whether to print quantization info.
+    
+    Returns
+    -------
+    torch.nn.Module
+        Quantized model with activation hooks registered.
     """
-    # ---- 1. Weight quantization (same logic as post_quantization) -----------
-    quantized_model = copy.deepcopy(model)
+    import copy
+    
+    # Step 1: Deep copy model to avoid modifying original
+    q_model = copy.deepcopy(model)
+    
     if eval_mode:
-        quantized_model.eval()
-
-    device = next(model.parameters()).device
-    state_dict = quantized_model.state_dict()
-
-    for key in state_dict.keys():
-        tensor = state_dict[key].to(device)
-        if "weight" in key or "bias" in key:
-            quantized_tensor = chop.quantize(tensor)
-        else:
-            quantized_tensor = tensor
-
-        if quantized_tensor.shape != tensor.shape:
-            raise ValueError(
-                f"Shape mismatch for {key}: {tensor.shape} vs {quantized_tensor.shape}"
-            )
-        state_dict[key] = quantized_tensor
-        if verbose and ("weight" in key or "bias" in key):
-            print(f"[Static PTQ] Quantized weight: {key}  shape={tensor.shape}")
-
-    quantized_model.load_state_dict(state_dict)
-
-    # ---- 2. Calibration: collect per-layer activation min / max -------------
-    _TARGET_TYPES = (
-        nn.Linear,
-        nn.Conv1d, nn.Conv2d, nn.Conv3d,
-        nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d,
-        nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d,
-        nn.LayerNorm, nn.GroupNorm,
-        nn.InstanceNorm1d, nn.InstanceNorm2d, nn.InstanceNorm3d,
-        nn.ReLU, nn.GELU, nn.SiLU, nn.ELU, nn.LeakyReLU,
-        nn.Sigmoid, nn.Tanh, nn.Softmax,
-    )
-
-    activation_stats: dict = {}          # id(module) -> {min, max}
-    calibration_hooks: list = []
-
-    def _make_calibration_hook(mid, mname):
-        def _hook(_module, _input, output):
-            out = output[0] if isinstance(output, tuple) else output
-            if not isinstance(out, torch.Tensor):
+        q_model.eval()
+    
+    # Step 2: Quantize weights
+    with torch.no_grad():
+        for name, param in q_model.named_parameters():
+            if param.requires_grad:  # Only quantize trainable parameters
+                param.data = chop(param.data)
+                if verbose:
+                    print(f"[Static PTQ] Quantized weight: {name}  shape={param.shape}")
+    
+    # Step 3: Collect activation statistics
+    stats = {}  # {module_name: (min_val, max_val)}
+    
+    # Register temporary hooks to collect statistics
+    handles = []
+    
+    def make_stats_hook(name):
+        def hook(module, input, output):
+            if output is None:
                 return
-            cur_min = out.detach().min()
-            cur_max = out.detach().max()
-            if mid in activation_stats:
-                activation_stats[mid]["min"] = torch.min(
-                    activation_stats[mid]["min"], cur_min
-                )
-                activation_stats[mid]["max"] = torch.max(
-                    activation_stats[mid]["max"], cur_max
-                )
+            
+            output_data = output.detach()
+            if name not in stats:
+                stats[name] = [output_data.min().item(), output_data.max().item()]
             else:
-                activation_stats[mid] = {"min": cur_min, "max": cur_max}
-        return _hook
-
-    for name, module in quantized_model.named_modules():
-        if isinstance(module, _TARGET_TYPES):
-            h = module.register_forward_hook(
-                _make_calibration_hook(id(module), name)
-            )
-            calibration_hooks.append(h)
+                stats[name][0] = min(stats[name][0], output_data.min().item())
+                stats[name][1] = max(stats[name][1], output_data.max().item())
+        return hook
+    
+    # Register hooks on key layers
+    target_layers = (torch.nn.Conv2d, torch.nn.Linear, torch.nn.ReLU, 
+                     torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)
+    
+    for name, module in q_model.named_modules():
+        if isinstance(module, target_layers):
+            handle = module.register_forward_hook(make_stats_hook(name))
+            handles.append(handle)
             if verbose:
-                print(
-                    f"[Static PTQ] Calibration hook on: {name} "
-                    f"({type(module).__name__})"
-                )
-
-    quantized_model.to(device)
+                print(f"[Static PTQ] Calibration hook on: {name} ({module.__class__.__name__})")
+    
+    # Run calibration
     with torch.no_grad():
         for batch in calibration_data:
-            inputs = batch[0] if isinstance(batch, (list, tuple)) else batch
-            if isinstance(inputs, torch.Tensor):
-                inputs = inputs.to(device)
-            quantized_model(inputs)
-
-    for h in calibration_hooks:
-        h.remove()
-
+            if isinstance(batch, (tuple, list)):
+                inputs = batch[0]
+            else:
+                inputs = batch
+            
+            q_model(inputs)
+    
+    # Remove calibration hooks
+    for handle in handles:
+        handle.remove()
+    
     if verbose:
-        for name, module in quantized_model.named_modules():
-            if id(module) in activation_stats:
-                s = activation_stats[id(module)]
-                print(
-                    f"[Static PTQ] Stats  {name}: "
-                    f"min={s['min'].item():.6f}, max={s['max'].item():.6f}"
-                )
-
-    # ---- 3. Permanent hooks: clamp + quantize activations -------------------
-    def _make_quantize_hook(mid):
-        def _hook(_module, _input, output):
-            is_tuple = isinstance(output, tuple)
-            out = output[0] if is_tuple else output
-            if not isinstance(out, torch.Tensor):
-                return output
-            if mid in activation_stats:
-                out = out.clamp(
-                    activation_stats[mid]["min"],
-                    activation_stats[mid]["max"],
-                )
-            out = chop.quantize(out)
-            return (out,) + output[1:] if is_tuple else out
-        return _hook
-
-    for _name, module in quantized_model.named_modules():
-        if id(module) in activation_stats:
-            module.register_forward_hook(_make_quantize_hook(id(module)))
-
-    return quantized_model
+        for name, (min_val, max_val) in stats.items():
+            print(f"[Static PTQ] Stats  {name}: min={min_val:.6f}, max={max_val:.6f}")
+    
+    # Step 4: Register quantization hooks
+    from pychop import Chopi
+    
+    for name, module in q_model.named_modules():
+        if name in stats:
+            min_val, max_val = stats[name]
+            
+            def make_quant_hook(min_v, max_v):
+                def static_hook(module, input, output):
+                    if isinstance(chop, Chopi):
+                        # 量化后立即反量化，保持浮点类型
+                        q = chop.quantize(output)
+                        dq = chop.dequantize(q)
+                        return dq
+                    else:
+                        # Chop or Chopf: clamp then quantize
+                        return chop(torch.clamp(output, min_v, max_v))
+                return static_hook
+            
+            module.register_forward_hook(make_quant_hook(min_val, max_val))
+    
+    return q_model
 
 
 # ===================================================================
@@ -610,81 +532,71 @@ def dynamic_post_quantization(
     verbose: bool = False,
 ) -> torch.nn.Module:
     """
-    Dynamic post-training quantization (PTQ).
-
-    Quantizes weights/biases offline (once) and quantizes activations
-    dynamically at every inference step — no calibration data required.
-
-    Args:
-        model (torch.nn.Module): Original model (remains unmodified).
-        chop: Quantizer with a ``quantize(tensor)`` method.
-        eval_mode (bool): Set model to eval mode. Default True.
-        verbose (bool): Print details. Default False.
-
-    Returns:
-        torch.nn.Module: Deep-copied model with quantized weights and
-        dynamic activation-quantization hooks.
+    Dynamic post-training quantization for PyTorch models.
+    
+    Quantizes weights and activations. Activation ranges are computed
+    dynamically per inference (no calibration needed).
+    
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The PyTorch model to quantize.
+    chop : Chop, Chopf, or Chopi
+        Quantizer for both weights and activations.
+    eval_mode : bool, default=True
+        Whether to set the model to eval mode.
+    verbose : bool, default=False
+        Whether to print quantization info.
+    
+    Returns
+    -------
+    torch.nn.Module
+        Quantized model with dynamic activation hooks registered.
     """
-    # ---- 1. Weight quantization ---------------------------------------------
-    quantized_model = copy.deepcopy(model)
+    import copy
+    
+    # Step 1: Deep copy model
+    q_model = copy.deepcopy(model)
+    
     if eval_mode:
-        quantized_model.eval()
-
-    device = next(model.parameters()).device
-    state_dict = quantized_model.state_dict()
-
-    for key in state_dict.keys():
-        tensor = state_dict[key].to(device)
-        if "weight" in key or "bias" in key:
-            quantized_tensor = chop.quantize(tensor)
-        else:
-            quantized_tensor = tensor
-
-        if quantized_tensor.shape != tensor.shape:
-            raise ValueError(
-                f"Shape mismatch for {key}: {tensor.shape} vs {quantized_tensor.shape}"
-            )
-        state_dict[key] = quantized_tensor
-        if verbose and ("weight" in key or "bias" in key):
-            print(f"[Dynamic PTQ] Quantized weight: {key}  shape={tensor.shape}")
-
-    quantized_model.load_state_dict(state_dict)
-
-    # ---- 2. Dynamic activation hooks ----------------------------------------
-    _TARGET_TYPES = (
-        nn.Linear,
-        nn.Conv1d, nn.Conv2d, nn.Conv3d,
-        nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d,
-        nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d,
-        nn.LayerNorm, nn.GroupNorm,
-        nn.InstanceNorm1d, nn.InstanceNorm2d, nn.InstanceNorm3d,
-        nn.ReLU, nn.GELU, nn.SiLU, nn.ELU, nn.LeakyReLU,
-        nn.Sigmoid, nn.Tanh, nn.Softmax,
-    )
-
-    def _dynamic_hook(_module, _input, output):
-        is_tuple = isinstance(output, tuple)
-        out = output[0] if is_tuple else output
-        if isinstance(out, torch.Tensor):
-            out = chop.quantize(out)
-            return (out,) + output[1:] if is_tuple else out
-        return output
-
+        q_model.eval()
+    
+    # Step 2: Quantize weights
+    with torch.no_grad():
+        for name, param in q_model.named_parameters():
+            if param.requires_grad:
+                param.data = chop(param.data)
+                if verbose:
+                    print(f"[Dynamic PTQ] Quantized weight: {name}  shape={param.shape}")
+    
+    # Step 3: Register dynamic activation quantization hooks
+    from pychop import Chopi
+    
+    target_layers = (torch.nn.Conv2d, torch.nn.Linear, torch.nn.ReLU,
+                     torch.nn.BatchNorm2d, torch.nn.BatchNorm1d, torch.nn.GELU)
+    
     hook_count = 0
-    for name, module in quantized_model.named_modules():
-        if isinstance(module, _TARGET_TYPES):
-            module.register_forward_hook(_dynamic_hook)
+    for name, module in q_model.named_modules():
+        if isinstance(module, target_layers):
+            def dynamic_hook(module, input, output):
+                if isinstance(chop, Chopi):
+                    # 量化后立即反量化，保持浮点类型
+                    q = chop.quantize(output)
+                    dq = chop.dequantize(q)
+                    return dq
+                else:
+                    # Chop or Chopf: directly quantize
+                    return chop(output)
+            
+            module.register_forward_hook(dynamic_hook)
             hook_count += 1
             if verbose:
-                print(
-                    f"[Dynamic PTQ] Hook on: {name} ({type(module).__name__})"
-                )
-
+                print(f"[Dynamic PTQ] Dynamic hook: {name} ({module.__class__.__name__})")
+    
     if verbose:
-        print(f"[Dynamic PTQ] Total hooks registered: {hook_count}")
-
-    return quantized_model
-
+        print(f"[Dynamic PTQ] Total dynamic hooks: {hook_count}")
+    
+    return q_model
     
 # ===================================================================
 # Float point quantization
