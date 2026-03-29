@@ -1,4 +1,4 @@
-pychop.builtin.linalg: Chopped linear algebra wrappers
+Chopped linear algebra wrappers
 ======================================================
 
 This page documents the high-level linear algebra helpers added under
