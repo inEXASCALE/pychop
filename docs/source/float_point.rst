@@ -85,7 +85,7 @@ The result is:
 
 The above example is for bit-level simulation for a small number of values, which is not a high performance implementaion, but rather a tool for illustration.
 
-One can depoy a direct setting to floating point arithmetic:
+One can depoy a direct setting to floating point arithmetic (this is very slow for large data, so just do it educational purpose), use:
 
 .. code:: python
 

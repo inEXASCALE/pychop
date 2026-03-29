@@ -171,6 +171,7 @@ np.random.seed(0)
 
 X = np.random.randn(5000, 5000) 
 pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
+backend = pychop.get_backend() # you can also get current backend via .get_backend()
 # One can also specify 'auto', the pychop will automatically detect the types,
 # but speed will be degraded. 
  

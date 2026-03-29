@@ -104,6 +104,7 @@ To give a shot, one may print information of various precision formats:
    start.rst
    float_point.rst
    builtin.rst
+   linalg.rst
    mathfunc.rst
    integer.rst
    fix_point.rst
