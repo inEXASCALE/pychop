@@ -1,4 +1,4 @@
-Chopped linear algebra wrappers
+Linear algebra wrappers
 ======================================================
 
 This page documents the high-level linear algebra helpers added under
