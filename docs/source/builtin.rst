@@ -80,7 +80,7 @@ PyTorch – :class:`CPTensor`
    import torch
    from pychop.builtin import CPTensor
 
-   pychop.backend('torch')  # Switch to JAX backend
+   pychop.backend('torch')  # Switch to Torch backend
    half = Chop(exp_bits=5, sig_bits=10, subnormal=True, rmode=1)
    ufhalf = Chop(exp_bits=5, sig_bits=10, subnormal=False, rmode=1)
 
