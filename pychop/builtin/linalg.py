@@ -7,6 +7,16 @@ import pychop
 
 from .dispatch import ChopWrapSpec, chopwrap_call
 
+def _infer_backend_from_obj(x: object) -> Optional[str]:
+    if isinstance(x, CPArray):
+        return "numpy"
+    if isinstance(x, CPJaxArray):
+        return "jax"
+    if isinstance(x, CPTensor):
+        return "torch"
+    return None
+
+
 def _ensure_backend_for_obj(x) -> str:
     """
     Ensure pychop.backend() is concrete (numpy/jax/torch) when currently 'auto'.
@@ -50,7 +60,7 @@ def _ensure_backend_for_obj(x) -> str:
     except Exception:
         CPTensor = None  # type: ignore
 
-    inferred = None
+    inferred = _infer_backend_from_obj(x)
     if CPArray is not None and isinstance(x, CPArray):
         inferred = "numpy"
     elif CPJaxArray is not None and isinstance(x, CPJaxArray):
