@@ -66,7 +66,7 @@ def _torch_specs():
 
 def _specs_for_backend():
     b = pychop.get_backend()
-    if b == "numpy":
+    if b == "numpy" or b == "auto":
         return _numpy_specs()
     if b == "jax":
         return _jax_specs()
