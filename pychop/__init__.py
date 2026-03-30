@@ -34,7 +34,7 @@ from .layers import ChopSTE, ChopfSTE, ChopiSTE
 from .math_func import *
 
 
-__version__ = '0.5.5'  
+__version__ = '0.5.6'  
 
 import os
 if 'chop_backend' not in os.environ:
