@@ -89,8 +89,15 @@ class Chop_(object):
             3: _chop_round_towards_minus_inf,
             4: _chop_round_towards_zero,
             5: _chop_stochastic_rounding,
-            6: _chop_stochastic_rounding_equal
+            6: _chop_stochastic_rounding_equal,
+            7: _chop_cadna_rounding
         }.get(rmode, lambda *args: raise_value_error('Unsupported rmode'))
+
+        if rmode == 7:
+            from ..cadna_random import CADNARandomGenerator
+            self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="numpy")
+        else:
+            self._cadna_gen = None
 
         # Set precision parameters
         if customs:
@@ -131,7 +138,8 @@ class Chop_(object):
                 raise ValueError('Precision of the custom format must be at most')
                 
         return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
-                                explim=self.explim, p=self.p)
+                                explim=self.explim, p=self.p, randfunc=self.randfunc, 
+                                random_gen=self._cadna_gen)
     
 
     # Trigonometric Functions
@@ -948,6 +956,8 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0,
     return x
 
 
+
+
 def raise_value_error(msg):
     raise ValueError(msg)
 
@@ -1091,7 +1101,185 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
             y[k] = sign(y[k])*u
     
     return y
+# ============================================================
+# CADNA-style Random Rounding (rmode=7)
+# ============================================================
 
+def cadna_style_rounding(x, flip=0, p=0.5, t=24, randfunc=None, random_gen=None):
+    """
+    CADNA-style stochastic rounding using sign-flip method.
+    
+    This implements the random rounding scheme from CADNA library:
+    1. Flip sign bit randomly: x' = (-1)^r * x
+    2. Perform standard rounding
+    3. Flip sign back: result = (-1)^r * round(x')
+    
+    This is mathematically equivalent to random rounding but much faster
+    due to simple bit operations.
+    
+    Parameters
+    ----------
+    x : np.ndarray
+        Input array to be rounded
+    flip : int, default=0
+        Whether to apply random bit flipping (CADNA soft error simulation)
+    p : float, default=0.5
+        Probability of bit flip when flip=1
+    t : int, default=24
+        Number of significand bits (for bit flip)
+    randfunc : callable, optional
+        Random function (not used, kept for compatibility)
+    random_gen : CADNARandomGenerator, optional
+        CADNA random generator instance (IMPORTANT: must be reused!)
+        
+    Returns
+    -------
+    np.ndarray
+        Rounded array
+    """
+    from ..cadna_random import CADNARandomGenerator, numpy_bit_flip
+    
+    if random_gen is None:
+        # Emergency fallback: create new generator (not recommended)
+        random_gen = CADNARandomGenerator(backend="numpy")
+    
+    y = np.abs(x)
+    frac = y - np.floor(y)
+    
+    if np.count_nonzero(frac) == 0:
+        y = x
+    else:
+        sign = lambda x: np.sign(x) + (x == 0)
+        
+        # CADNA method: flip sign, round to nearest, flip back
+        random_bits = random_gen.random_bits(x.shape)
+        
+        # Step 1: Flip sign based on random bit
+        y_flipped = numpy_bit_flip(y.copy(), random_bits)
+        
+        # Step 2: Round to nearest (deterministic)
+        y_rounded = np.round(y_flipped)
+        
+        # Step 3: Flip back
+        y_rounded = numpy_bit_flip(y_rounded, random_bits)
+        
+        y = sign(x) * y_rounded
+        
+        # Optional: additional bit flip (for soft error simulation)
+        if flip:
+            temp = np.random.randint(low=0, high=2, size=y.shape)
+            k = temp <= p
+            if np.any(k):
+                u = np.abs(y[k])
+                b = np.random.randint(low=1, high=t-1, size=u.shape)
+                u = np.bitwise_xor(np.int32(u), np.power(2, b-1))
+                y[k] = sign(y[k]) * u
+    
+    return y
+
+
+def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, 
+                         randfunc=None, random_gen=None, *argv, **kwargs):
+    """
+    CADNA-style random rounding for floating-point simulation.
+    
+    This is rmode=7 implementation using CADNA's sign-flip method.
+    
+    Parameters
+    ----------
+    x : np.ndarray
+        Input array
+    t : int
+        Significand bits (including hidden bit)
+    emax : int
+        Maximum exponent
+    subnormal : int
+        Whether to support subnormal numbers
+    flip : int
+        Whether to apply bit flipping
+    explim : int
+        Whether to apply exponent limits
+    p : float
+        Bit flip probability
+    randfunc : callable
+        Random function (not used)
+    random_gen : CADNARandomGenerator
+        CADNA random generator (CRITICAL: must be reused!)
+        
+    Returns
+    -------
+    np.ndarray
+        Rounded array
+    """
+    from ..cadna_random import CADNARandomGenerator
+    
+    if random_gen is None:
+        # Emergency fallback
+        random_gen = CADNARandomGenerator(backend="numpy")
+    
+    # Precompute constants
+    emin = 1 - emax
+    xmin = 2 ** emin
+    emins = emin + 1 - t
+    xmins = 2 ** emins
+    xmax = 2 ** emax * (2 - 2 ** (1 - t))
+    
+    # Compute exponents using frexp (more robust than log2)
+    _, e = np.frexp(np.abs(x))
+    e = np.array(e - 1, ndmin=1)
+    
+    # Identify subnormal range
+    ktemp = (e < emin) & (e >= emins)
+    
+    if explim:
+        k_sub = ktemp
+        k_norm = ~ktemp
+    else:
+        k_sub = np.array([], dtype=bool)
+        k_norm = np.full(ktemp.shape, True, dtype=bool)
+    
+    # Process normal range
+    if k_norm.size > 0 and np.any(k_norm):
+        w = np.power(2.0, t - 1 - e[k_norm])
+        x[k_norm] = cadna_style_rounding(
+            x=x[k_norm] * w, 
+            flip=flip, 
+            p=p, 
+            t=t, 
+            randfunc=randfunc, 
+            random_gen=random_gen
+        )
+        x[k_norm] *= 1 / w
+    
+    # Process subnormal range
+    if k_sub.size > 0 and np.any(k_sub):
+        temp = emin - e[k_sub]
+        t1 = t - np.fmax(temp, np.zeros(temp.shape))
+        
+        x[k_sub] = cadna_style_rounding(
+            x=x[k_sub] * np.power(2, t1 - 1 - e[k_sub]), 
+            flip=flip, 
+            p=p, 
+            t=t, 
+            randfunc=randfunc,
+            random_gen=random_gen
+        ) * np.power(2, e[k_sub] - (t1 - 1))
+        
+        del temp, t1
+    
+    # Boundary handling
+    if explim:
+        x[(x > xmax) & (x != np.inf)] = xmax
+        x[(x < -xmax) & (x != -np.inf)] = -xmax
+        
+        min_rep = xmin if subnormal == 0 else xmins
+        k_small = np.abs(x) < min_rep
+        x[k_small] = 0
+    
+    # Clean up
+    gc.collect()
+    
+    return x
 
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):

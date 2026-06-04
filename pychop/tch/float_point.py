@@ -91,8 +91,16 @@ class Chop_(object):
             3: _chop_round_towards_minus_inf,
             4: _chop_round_towards_zero,
             5: _chop_stochastic_rounding,
-            6: _chop_stochastic_rounding_equal
+            6: _chop_stochastic_rounding_equal,
+            7: _chop_cadna_rounding 
         }
+
+        if rmode == 7:
+            from ..cadna_random import CADNARandomGenerator
+            self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="torch")
+        else:
+            self._cadna_gen = None
+
         if rmode not in self._chop_funcs:
             raise ValueError('Unsupported value of rmode.')
         self._chop = self._chop_funcs[rmode]
@@ -133,12 +141,15 @@ class Chop_(object):
             
         # Move class constants to the same device as x
         self._xmin = self._xmin.to(x.device)
-        self._xmins = self._xmins.to(x.device)
+        self._xmins = self._xmins.to(x.device) 
             
-        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
-                         explim=self.explim, p=self.p, randfunc=lambda n: self.randfunc(n, device=x.device))
+        #return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
+        #                 explim=self.explim, p=self.p, randfunc=lambda n: self.randfunc(n, device=x.device))
 
-
+        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, 
+                        flip=self.flip, explim=self.explim, p=self.p, 
+                        randfunc=lambda n: self.randfunc(n, device=x.device),
+                        random_gen=self._cadna_gen)
 
     # Trigonometric Functions
     def sin(self, x):
@@ -936,6 +947,128 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
             y[k] = sign(y[k]) * u
     
     return y
+
+
+# ============================================================
+# CADNA-style Random Rounding (rmode=7)
+# ============================================================
+
+def cadna_style_rounding(x, flip=0, p=0.5, t=24, randfunc=None, random_gen=None):
+    """
+    CADNA-style stochastic rounding using sign-flip method (PyTorch version).
+    
+    Parameters
+    ----------
+    x : torch.Tensor
+        Input tensor to be rounded
+    flip : int, default=0
+        Whether to apply random bit flipping
+    p : float, default=0.5
+        Probability of bit flip when flip=1
+    t : int, default=24
+        Number of significand bits
+    randfunc : callable, optional
+        Random function (not used)
+    random_gen : CADNARandomGenerator, optional
+        CADNA random generator instance
+        
+    Returns
+    -------
+    torch.Tensor
+        Rounded tensor
+    """
+    from ..cadna_random import CADNARandomGenerator, torch_bit_flip
+    
+    if random_gen is None:
+        random_gen = CADNARandomGenerator(backend="torch")
+    
+    y = torch.abs(x)
+    frac = y - torch.floor(y)
+    
+    if not frac.any():
+        y = x
+    else:
+        sign = lambda x: torch.sign(x) + (x == 0).float()
+        
+        # Generate random bits
+        random_bits_np = random_gen.random_bits(x.shape)
+        random_bits = torch.from_numpy(random_bits_np).to(x.device)
+        
+        # CADNA method: flip sign, round, flip back
+        y_flipped = torch_bit_flip(y, random_bits)
+        y_rounded = torch.round(y_flipped)
+        y_rounded = torch_bit_flip(y_rounded, random_bits)
+        
+        y = sign(x) * y_rounded
+        
+        if flip:
+            temp = torch.randint(0, 2, y.shape, device=x.device)
+            k = temp <= p
+            if k.any():
+                u = torch.abs(y[k])
+                b = torch.randint(1, t - 1, u.shape, device=x.device)
+                u = torch.bitwise_xor(u.to(torch.int32), 
+                                     torch.pow(2, b - 1).to(torch.int32)).float()
+                y[k] = sign(y[k]) * u
+    
+    return y
+
+
+def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, 
+                         randfunc=None, random_gen=None, *argv, **kwargs):
+    """
+    CADNA-style random rounding for PyTorch tensors.
+    """
+    from ..cadna_random import CADNARandomGenerator
+    
+    if random_gen is None:
+        random_gen = CADNARandomGenerator(backend="torch")
+    
+    # Precompute constants
+    emin = 1 - emax
+    xmin = 2 ** emin
+    emins = emin + 1 - t
+    xmins = 2 ** emins
+    xmax = 2 ** emax * (2 - 2 ** (1 - t))
+    
+    # Efficient exponent calculation
+    abs_x = torch.abs(x)
+    _, e = torch.frexp(abs_x)
+    e = e - 1
+    ktemp = (e < emin) & (e >= emins)
+    
+    if explim:
+        k_sub = ktemp
+        k_norm = ~ktemp
+    else:
+        k_sub = torch.empty_like(ktemp, dtype=torch.bool, device=x.device).fill_(False)
+        k_norm = torch.empty_like(ktemp, dtype=torch.bool, device=x.device).fill_(True)
+    
+    # Normal range
+    w = torch.pow(2.0, t - 1 - e[k_norm].float())
+    x_norm = x[k_norm] * w
+    x_norm = cadna_style_rounding(x_norm, flip=flip, p=p, t=t, 
+                                  randfunc=randfunc, random_gen=random_gen) * (1 / w)
+    x[k_norm] = x_norm
+    
+    # Subnormal range
+    if k_sub.any():
+        temp = emin - e[k_sub]
+        t1 = t - torch.clamp(temp, min=0)
+        w_sub = torch.pow(2.0, t1 - 1 - e[k_sub].float())
+        x_sub = x[k_sub] * w_sub
+        x_sub = cadna_style_rounding(x_sub, flip=flip, p=p, t=t, 
+                                    randfunc=randfunc, random_gen=random_gen) * torch.pow(2.0, e[k_sub].float() - (t1 - 1))
+        x[k_sub] = x_sub
+    
+    # Boundary handling
+    if explim:
+        x.masked_fill_((x > xmax) & (x != float('inf')), xmax)
+        x.masked_fill_((x < -xmax) & (x != float('-inf')), -xmax)
+        min_rep = xmin if subnormal == 0 else xmins
+        x.masked_fill_(abs_x < min_rep, 0)
+    
+    return x
 
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):

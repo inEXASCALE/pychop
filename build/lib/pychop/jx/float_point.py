@@ -1,7 +1,180 @@
 import jax
 import jax.numpy as jnp
 from jax import random
+import numpy as np  # 用于初始化
 
+
+class CADNARandomGeneratorJAX:
+    """
+    JAX-compatible CADNA random number generator.
+    
+    使用与 CADNA 相同的算法：Tausworthe × 3 + LCG
+    但实现为 JAX 兼容的纯函数形式。
+    """
+    
+    # Tausworthe 参数（与 CADNA 一致）
+    TAUS1_S1, TAUS1_S2, TAUS1_S3, TAUS1_M = 13, 19, 12, 4294967294
+    TAUS2_S1, TAUS2_S2, TAUS2_S3, TAUS2_M = 2, 25, 4, 4294967288
+    TAUS3_S1, TAUS3_S2, TAUS3_S3, TAUS3_M = 3, 11, 17, 4294967280
+    
+    # LCG 参数
+    LCG_A, LCG_C = 1664525, 1013904223
+    
+    def __init__(self, seed: int = 0):
+        """初始化生成器种子"""
+        np.random.seed(seed)
+        
+        # 初始化四个生成器的种子（使用 NumPy 生成后转为 uint32）
+        self.z1 = np.uint32(np.random.randint(128, 2**32 - 1))
+        self.z2 = np.uint32(np.random.randint(128, 2**32 - 1))
+        self.z3 = np.uint32(np.random.randint(128, 2**32 - 1))
+        self.z4 = np.uint32(np.random.randint(1, 2**32 - 1))
+        
+        self._cache = np.uint32(0)
+        self._cache_counter = 0
+    
+    def _tausworthe_step(self, z: np.uint32, S1: int, S2: int, S3: int, M: int) -> np.uint32:
+        """Tausworthe 生成器步骤"""
+        b = np.uint32(((z << S1) ^ z) >> S2)
+        z = np.uint32(((z & M) << S3) ^ b)
+        return z
+    
+    def _lcg_step(self) -> np.uint32:
+        """LCG 生成器步骤"""
+        self.z4 = np.uint32((self.LCG_A * self.z4 + self.LCG_C))
+        return self.z4
+    
+    def _generate_batch(self) -> np.uint32:
+        """一次生成 32 个随机位"""
+        self.z1 = self._tausworthe_step(self.z1, self.TAUS1_S1, self.TAUS1_S2, 
+                                         self.TAUS1_S3, self.TAUS1_M)
+        self.z2 = self._tausworthe_step(self.z2, self.TAUS2_S1, self.TAUS2_S2, 
+                                         self.TAUS2_S3, self.TAUS2_M)
+        self.z3 = self._tausworthe_step(self.z3, self.TAUS3_S1, self.TAUS3_S2, 
+                                         self.TAUS3_S3, self.TAUS3_M)
+        lcg_val = self._lcg_step()
+        
+        return np.uint32(self.z1 ^ self.z2 ^ self.z3 ^ lcg_val)
+    
+    def random_bit(self) -> int:
+        """生成单个随机位（0 或 1）"""
+        if self._cache_counter % 32 == 0:
+            self._cache = self._generate_batch()
+            self._cache_counter = 0
+        
+        bit = int(self._cache & 1)
+        self._cache >>= 1
+        self._cache_counter += 1
+        
+        return bit
+    
+    def random_bits_array(self, shape: tuple) -> jnp.ndarray:
+        """
+        生成 JAX 数组的随机位
+        
+        Parameters
+        ----------
+        shape : tuple
+            输出数组形状
+            
+        Returns
+        -------
+        jnp.ndarray
+            随机位数组 (0 或 1)，dtype=uint8
+        """
+        size = int(np.prod(shape))
+        # 使用 NumPy 生成，然后转为 JAX 数组
+        bits = np.array([self.random_bit() for _ in range(size)], dtype=np.uint8)
+        return jnp.array(bits.reshape(shape))
+
+
+# ============================================================
+# JAX 位翻转函数
+# ============================================================
+
+def jax_bit_flip_float32(x: jnp.ndarray, random_bits: jnp.ndarray) -> jnp.ndarray:
+    """
+    翻转 float32 的符号位
+    
+    Parameters
+    ----------
+    x : jnp.ndarray
+        输入数组，dtype=float32
+    random_bits : jnp.ndarray
+        随机位数组 (0 或 1)
+        
+    Returns
+    -------
+    jnp.ndarray
+        符号位翻转后的数组
+    """
+    # 将 float32 转换为 uint32 进行位操作
+    x_int = x.view(jnp.uint32)
+    
+    # 符号位是第 31 位
+    sign_bit = jnp.uint32(1) << 31
+    
+    # XOR 翻转符号位
+    mask = random_bits.astype(jnp.uint32) * sign_bit
+    x_int_flipped = x_int ^ mask
+    
+    # 转回 float32
+    return x_int_flipped.view(jnp.float32)
+
+
+def jax_bit_flip_float64(x: jnp.ndarray, random_bits: jnp.ndarray) -> jnp.ndarray:
+    """
+    翻转 float64 的符号位
+    
+    Parameters
+    ----------
+    x : jnp.ndarray
+        输入数组，dtype=float64
+    random_bits : jnp.ndarray
+        随机位数组 (0 或 1)
+        
+    Returns
+    -------
+    jnp.ndarray
+        符号位翻转后的数组
+    """
+    # 将 float64 转换为 uint64 进行位操作
+    x_int = x.view(jnp.uint64)
+    
+    # 符号位是第 63 位
+    sign_bit = jnp.uint64(1) << 63
+    
+    # XOR 翻转符号位
+    mask = random_bits.astype(jnp.uint64) * sign_bit
+    x_int_flipped = x_int ^ mask
+    
+    # 转回 float64
+    return x_int_flipped.view(jnp.float64)
+
+
+def jax_bit_flip(x: jnp.ndarray, random_bits: jnp.ndarray) -> jnp.ndarray:
+    """
+    根据 dtype 自动选择位翻转函数
+    
+    Parameters
+    ----------
+    x : jnp.ndarray
+        输入数组
+    random_bits : jnp.ndarray
+        随机位数组
+        
+    Returns
+    -------
+    jnp.ndarray
+        翻转后的数组
+    """
+    if x.dtype == jnp.float32:
+        return jax_bit_flip_float32(x, random_bits)
+    elif x.dtype == jnp.float64:
+        return jax_bit_flip_float64(x, random_bits)
+    else:
+        raise ValueError(f"Unsupported dtype: {x.dtype}")
+    
 
 class Chop_(object):
     """
@@ -79,7 +252,8 @@ class Chop_(object):
             3: _chop_round_towards_minus_inf,
             4: _chop_round_towards_zero,
             5: _chop_stochastic_rounding,
-            6: _chop_stochastic_rounding_equal
+            6: _chop_stochastic_rounding_equal,
+            7: _chop_cadna_rounding 
         }
         if rmode not in self._chop_funcs:
             raise ValueError('Unsupported value of rmode.')
@@ -104,6 +278,11 @@ class Chop_(object):
         self._emins = self._emin + 1 - self.t
         self._xmins = 2.0 ** self._emins
 
+        if rmode == 7:
+            self._cadna_gen = CADNARandomGeneratorJAX(seed=random_state)
+        else:
+            self._cadna_gen = None
+
     def __call__(self, x):
         return self.chop_wrapper(x)
 
@@ -120,8 +299,11 @@ class Chop_(object):
             x = x[None]
         
         self.key, subkey = random.split(self.key)
-        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
-                         explim=self.explim, p=self.p, key=subkey)
+        #return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
+        #                 explim=self.explim, p=self.p, key=subkey)
+        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, 
+                        flip=self.flip, explim=self.explim, p=self.p, 
+                        key=subkey, cadna_gen=self._cadna_gen)
 
     # Trigonometric Functions
     def sin(self, x):
@@ -945,6 +1127,112 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p
 
     return x
 
+
+def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, 
+                         randfunc=None, key=None, cadna_gen=None, *argv, **kwargs):
+    """
+    CADNA 风格的随机舍入（主函数）
+    
+    Parameters
+    ----------
+    x : jnp.ndarray
+        输入数组
+    t : int
+        尾数位数（含隐藏位）
+    emax : int
+        最大指数
+    subnormal : int
+        是否支持次正规数
+    flip : int
+        是否应用位翻转
+    explim : int
+        是否应用指数限制
+    p : float
+        位翻转概率
+    randfunc : callable
+        随机函数（未使用）
+    key : jax.random.PRNGKey
+        JAX 随机密钥
+    cadna_gen : CADNARandomGeneratorJAX
+        CADNA 随机数生成器
+        
+    Returns
+    -------
+    jnp.ndarray
+        舍入后的数组
+    """
+    if cadna_gen is None:
+        cadna_gen = CADNARandomGeneratorJAX()
+    
+    if key is None:
+        key = random.PRNGKey(0)
+    
+    # 预计算常量
+    emin = 1 - emax
+    xmin = 2 ** emin
+    emins = emin + 1 - t
+    xmins = 2 ** emins
+    xmax = 2 ** emax * (2 - 2 ** (1 - t))
+    
+    # 计算指数
+    abs_x = jnp.abs(x)
+    e = jnp.floor(jnp.log2(abs_x)).astype(jnp.int32)
+    ktemp = (e < emin) & (e >= emins)
+    
+    # 确定正规数和次正规数区域
+    if explim:
+        k_sub = ktemp
+        k_norm = ~ktemp
+    else:
+        k_sub = jnp.zeros_like(ktemp, dtype=jnp.bool_)
+        k_norm = jnp.ones_like(ktemp, dtype=jnp.bool_)
+    
+    # 处理正规数范围
+    if jnp.any(k_norm):
+        w = jnp.power(2.0, t - 1 - e[k_norm].astype(jnp.float32))
+        x_norm = x[k_norm] * w
+        
+        # 应用 CADNA 舍入
+        x_norm_rounded = cadna_style_rounding(x_norm, flip=flip, p=p, t=t, 
+                                              randfunc=randfunc, key=key, 
+                                              cadna_gen=cadna_gen)
+        x_norm_rounded = x_norm_rounded * (1 / w)
+        
+        # 更新数组（JAX 不可变数组）
+        x = x.at[k_norm].set(x_norm_rounded)
+    
+    # 处理次正规数范围
+    if jnp.any(k_sub):
+        temp = emin - e[k_sub]
+        t1 = t - jnp.maximum(temp, jnp.zeros_like(temp))
+        
+        w_sub = jnp.power(2.0, t1 - 1 - e[k_sub].astype(jnp.float32))
+        x_sub = x[k_sub] * w_sub
+        
+        # 应用 CADNA 舍入
+        key, subkey = random.split(key)
+        x_sub_rounded = cadna_style_rounding(x_sub, flip=flip, p=p, t=t, 
+                                            randfunc=randfunc, key=subkey, 
+                                            cadna_gen=cadna_gen)
+        x_sub_rounded = x_sub_rounded * jnp.power(2.0, e[k_sub].astype(jnp.float32) - (t1 - 1))
+        
+        # 更新数组
+        x = x.at[k_sub].set(x_sub_rounded)
+    
+    # 边界处理
+    if explim:
+        # 溢出处理
+        x = jnp.where((x > xmax) & (x != jnp.inf), xmax, x)
+        x = jnp.where((x < -xmax) & (x != -jnp.inf), -xmax, x)
+        
+        # 下溢处理
+        min_rep = xmin if subnormal == 0 else xmins
+        k_small = jnp.abs(x) < min_rep
+        x = jnp.where(k_small, 0, x)
+    
+    return x
+
+
 def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kwargs):
     if randfunc is None:
         randfunc = lambda n, key: random.uniform(key, (n,))
@@ -1101,6 +1389,89 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None, key=None):
             y = y.at[k].set(sign(y[k]) * u)
     
     return y
+
+
+# ============================================================
+# CADNA-style Random Rounding (rmode=7)
+# ============================================================
+
+def cadna_style_rounding(x, flip=0, p=0.5, t=24, randfunc=None, key=None, cadna_gen=None):
+    """
+    CADNA 风格的随机舍入（JAX 版本）
+    
+    使用符号位翻转法实现随机舍入：
+    1. 随机翻转符号位: x' = (-1)^r * x
+    2. 标准舍入到最近整数
+    3. 翻转回来: result = (-1)^r * round(x')
+    
+    Parameters
+    ----------
+    x : jnp.ndarray
+        输入数组
+    flip : int
+        是否应用额外的位翻转（软错误模拟）
+    p : float
+        位翻转概率
+    t : int
+        尾数位数
+    randfunc : callable
+        随机函数（未使用，保持接口一致）
+    key : jax.random.PRNGKey
+        JAX 随机密钥（用于 flip）
+    cadna_gen : CADNARandomGeneratorJAX
+        CADNA 随机数生成器
+        
+    Returns
+    -------
+    jnp.ndarray
+        舍入后的数组
+    """
+    if cadna_gen is None:
+        cadna_gen = CADNARandomGeneratorJAX()
+    
+    y = jnp.abs(x)
+    frac = y - jnp.floor(y)
+    
+    # 如果没有小数部分，直接返回
+    if not jnp.any(frac):
+        y = x
+    else:
+        sign = lambda x: jnp.sign(x) + (x == 0).astype(jnp.float32)
+        
+        # 步骤 1: 生成随机位
+        random_bits = cadna_gen.random_bits_array(x.shape)
+        
+        # 步骤 2: 翻转符号位
+        y_flipped = jax_bit_flip(y, random_bits)
+        
+        # 步骤 3: 舍入到最近整数
+        y_rounded = jnp.round(y_flipped)
+        
+        # 步骤 4: 翻转回来
+        y_rounded = jax_bit_flip(y_rounded, random_bits)
+        
+        # 步骤 5: 恢复原始符号
+        y = sign(x) * y_rounded
+        
+        # 可选：额外的位翻转（软错误模拟）
+        if flip:
+            if key is None:
+                key = random.PRNGKey(0)
+            
+            key, subkey = random.split(key)
+            temp = random.randint(subkey, x.shape, 0, 2)
+            k = temp <= p
+            
+            if jnp.any(k):
+                u = jnp.abs(y[k])
+                key, subkey = random.split(key)
+                b = random.randint(subkey, u.shape, 1, t - 1)
+                u = jnp.bitwise_xor(u.astype(jnp.int32), 
+                                   jnp.power(2, b - 1).astype(jnp.int32)).astype(jnp.float32)
+                y = y.at[k].set(sign(y[k]) * u)
+    
+    return y
+
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None, key=None):
     if randfunc is None:
