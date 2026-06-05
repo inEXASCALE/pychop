@@ -442,6 +442,58 @@ JAX backend with custom Vector-Jacobian Product for differentiation:
    # Forward pass with quantization
    output = model.apply(variables, x)
 
+TensorFlow Backend (with STE)
+-------------------------------
+
+TensorFlow backend with **Straight-Through Estimator** for Quantization-Aware Training via ``tf.numpy_function()`` with custom gradients:
+
+.. code-block:: python
+
+   import tensorflow as tf
+   import pychop
+
+   pychop.backend('tensorflow')
+
+   # Enable gradient tracking
+   X = tf.Variable(tf.random.normal([128, 768]))
+
+   # Quantize (automatic STE!)
+   X_q = pychop.bfp_quantize(X, format='bfp8')
+
+   # Backward pass - gradients flow through!
+   with tf.GradientTape() as tape:
+       loss = tf.reduce_sum(X_q)
+   grads = tape.gradient(loss, X)
+
+   print(f"Gradient shape: {grads.shape}")
+
+**Using BFP Quantizers in Keras Models:**
+
+.. code-block:: python
+
+   from pychop.tf.bfp_formats import BFPQuantizerSTE
+
+   class QuantizedModel(tf.keras.Model):
+       def __init__(self):
+           super().__init__()
+           self.quantizer = BFPQuantizerSTE(format='bfp8')
+           self.dense = tf.keras.layers.Dense(3072)
+
+       def call(self, x):
+           x = self.quantizer(x)  # Quantize activations
+           return self.dense(x)
+
+   model = QuantizedModel()
+   optimizer = tf.keras.optimizers.Adam()
+
+   # Training loop
+   for batch in dataset:
+       with tf.GradientTape() as tape:
+           output = model(batch)
+           loss = loss_fn(output, target)
+       grads = tape.gradient(loss, model.trainable_variables)
+       optimizer.apply_gradients(zip(grads, model.trainable_variables))
+
 API Reference
 =============
 
@@ -455,11 +507,11 @@ bfp_quantize
 
    Quantize array to BFP format with automatic backend detection.
 
-   :param data: Input data (numpy.ndarray, torch.Tensor, or jax.Array)
+   :param data: Input data (numpy.ndarray, torch.Tensor, jax.Array, or tf.Tensor)
    :type data: array-like
    :param format: BFP format specification
    :type format: str, BFPSpec, or tuple(int, int)
-   :param backend: Force specific backend ('numpy', 'jax', or 'torch')
+   :param backend: Force specific backend ('numpy', 'jax', 'torch', or 'tensorflow')
    :type backend: str, optional
    :return: Quantized data (same type as input)
    :rtype: array-like

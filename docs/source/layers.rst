@@ -5,10 +5,11 @@ Quantized layers module
 
 .. py:module:: pychop.layers
 
-This module provides **drop-in quantized layer replacements** for PyTorch models
+This module provides **drop-in quantized layer replacements** for PyTorch and TensorFlow models
 to support both floating-point and integer **quantization-aware training (QAT)**.
 
-All classes follow the same API as their original :mod:`torch.nn` counterparts.
+For PyTorch, all classes follow the same API as their original :mod:`torch.nn` counterparts.
+For TensorFlow, all classes follow the same API as their original :mod:`tf.keras.layers` counterparts.
 When a ``Pychop`` quantizer (with STE) is provided, weights and activations are
 fake-quantized during the forward pass while gradients flow through unchanged
 (Straight-Through Estimator).
@@ -350,3 +351,47 @@ Post-training quantization (PTQ)
 
     chop = ChopSTE(exp_bits=8, sig_bits=23)   # or any other chop
     quantized_model = post_quantization(model, chop, eval_mode=True, verbose=True)
+
+
+TensorFlow / Keras Quantized Layers
+====================================
+
+``Pychop`` also provides quantized layer replacements for TensorFlow Keras models via the
+``pychop.tf.layers`` module. These layers follow the same API as their original
+``tf.keras.layers`` counterparts and support STE-based quantization-aware training.
+
+Available layers include:
+
+- **Linear**: ``QuantizedLinear`` (``Dense`` replacement)
+- **Convolution**: ``QuantizedConv1d``, ``QuantizedConv2d``, ``QuantizedConv3d``
+- **Pooling**: ``QuantizedMaxPool1d``, ``QuantizedMaxPool2d``, ``QuantizedAvgPool1d``, ``QuantizedAvgPool2d``, ``QuantizedAdaptiveAvgPool2d``
+- **Normalization**: ``QuantizedBatchNorm1d``, ``QuantizedBatchNorm2d``, ``QuantizedLayerNorm``, ``QuantizedInstanceNorm1d``, ``QuantizedInstanceNorm2d``, ``QuantizedGroupNorm``
+- **Activation**: ``QuantizedReLU``, ``QuantizedLeakyReLU``, ``QuantizedSigmoid``, ``QuantizedTanh``, ``QuantizedGELU``, ``QuantizedELU``, ``QuantizedSiLU``, ``QuantizedPReLU``
+- **Other**: ``QuantizedEmbedding``, ``QuantizedMultiheadAttention``, ``QuantizedDropout``, ``QuantizedSoftmax``
+
+**Usage Example (TensorFlow)**:
+
+.. code-block:: python
+
+    import tensorflow as tf
+    import pychop
+    from pychop.tf.layers import (
+        ChopSTE, QuantizedConv2d, QuantizedLinear, QuantizedReLU
+    )
+
+    pychop.backend('tensorflow')
+
+    # Floating-point QAT with TensorFlow
+    chop_fp = ChopSTE(exp_bits=5, sig_bits=10, rmode=3)
+
+    class MyQuantizedNet(tf.keras.Model):
+        def __init__(self):
+            super().__init__()
+            self.conv1 = QuantizedConv2d(64, 3, chop=chop_fp)
+            self.relu  = QuantizedReLU(chop=chop_fp)
+            self.fc    = QuantizedLinear(10, chop=chop_fp)
+
+        def call(self, x):
+            x = self.relu(self.conv1(x))
+            x = tf.reshape(x, [tf.shape(x)[0], -1])
+            return self.fc(x)

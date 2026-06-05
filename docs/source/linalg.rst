@@ -18,6 +18,7 @@ Key features
    - NumPy: ``numpy.linalg`` (and ``scipy.linalg`` for advanced routines)
    - JAX: ``jax.numpy.linalg`` / ``jax.scipy.linalg`` (when available)
    - Torch: ``torch.linalg`` (and legacy torch APIs as fallbacks)
+   - TensorFlow: ``tf.linalg`` (wraps NumPy implementations via ``tf.numpy_function()``)
 
 2. **Chop + wrap at the call boundary**
    Inputs that are PyChop containers (e.g., ``CPArray``, ``CPJaxArray``,
@@ -49,7 +50,7 @@ Selecting a backend
 .. code-block:: python
 
    import pychop
-   pychop.backend("numpy")   # or "jax" or "torch"
+   pychop.backend("numpy")   # or "jax", "torch", or "tensorflow"
 
 Creating chopped arrays/tensors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -10,11 +10,11 @@ The main function of the ``Pychop`` is the method ``Chop``, which is loaded by
 
 
     
-``Pychop`` supports NumPy (default), JAX, Torch as backend for simulation. Before performing the quantization, to set backend:
+``Pychop`` supports NumPy (default), JAX, Torch, and TensorFlow as backend for simulation. Before performing the quantization, to set backend:
 
 .. code:: python
 
-    pychop.backend('numpy') # use NumPy as backend, other options: 'torch' and 'jax'
+    pychop.backend('numpy') # use NumPy as backend, other options: 'torch', 'jax', and 'tensorflow'
 
 
 

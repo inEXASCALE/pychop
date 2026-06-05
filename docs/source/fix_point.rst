@@ -29,7 +29,7 @@ The fixed point representation for $x$ is given by
 
 
 
-The `Chopf` class enables the quantization of floating-point numbers into a fixed-point Qm.n format, where `m` is the number of integer bits (including the sign bit) and `n` is the number of fractional bits. This document describes the usage and provides examples for implementations in PyTorch, NumPy, and JAX, each supporting six rounding modes: `nearest`, `up`, `down`, `towards_zero`, `stochastic_equal`, and `stochastic_proportional`.
+The `Chopf` class enables the quantization of floating-point numbers into a fixed-point Qm.n format, where `m` is the number of integer bits (including the sign bit) and `n` is the number of fractional bits. This document describes the usage and provides examples for implementations in PyTorch, NumPy, JAX, and TensorFlow, each supporting six rounding modes: `nearest`, `up`, `down`, `towards_zero`, `stochastic_equal`, and `stochastic_proportional`.
 
 Overview
 --------
@@ -124,6 +124,32 @@ Quantize a JAX array using the quantization method, specifying a rounding mode a
     # PRNG key for stochastic modes
     key = random.PRNGKey(42)
     # Quantize with nearest rounding (no key needed)
+    result = sim.quantize(values, rounding_mode="nearest")
+    print(result)
+
+TensorFlow Version
+~~~~~~~~~~~~~~~~~~
+
+The TensorFlow implementation operates on TensorFlow tensors, wrapping NumPy implementations with custom gradients for automatic differentiation support (STE).
+
+**Initialization**
+
+Create an instance by setting the integer and fractional bit counts to define the Qm.n format.
+
+**Quantization**
+
+Quantize a TensorFlow tensor of floating-point values by invoking the quantization method, optionally specifying a rounding mode. The result is a tensor with quantized values and gradient support via STE.
+
+**Code Example**:
+
+.. code-block:: python
+
+    import tensorflow as tf
+    # Initialize with Q4.4 format
+    sim = Chopf(ibits=4, fbits=4)
+    # Input tensor
+    values = tf.constant([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
+    # Quantize with nearest rounding
     result = sim.quantize(values, rounding_mode="nearest")
     print(result)
 

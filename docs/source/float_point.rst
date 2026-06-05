@@ -102,7 +102,7 @@ Note that if emin is not set, then IEEE 754 assumption is used which means emin 
 ``Chop``: fast transparent precision emulation for floating point arithmetic and training neural networks
 --------------------------------------------------------------------------------------------------------------------------------
 
-The ``Chop`` class enables quantization of floating-point numbers into a custom floating-point format similar to IEEE 754, defined by a specified number of exponent and mantissa bits. This document outlines the usage and examples of this class across three frameworks: PyTorch, NumPy, and JAX. Each implementation supports six rounding modes: 
+The ``Chop`` class enables quantization of floating-point numbers into a custom floating-point format similar to IEEE 754, defined by a specified number of exponent and mantissa bits. This document outlines the usage and examples of this class across four frameworks: PyTorch, NumPy, JAX, and TensorFlow. Each implementation supports six rounding modes: 
 
 .. code-block:: 
 
@@ -208,6 +208,32 @@ Quantize a JAX array using the quantization method, providing the array, an opti
     # PRNG key for stochastic modes
     key = random.PRNGKey(42)
     # Quantize with nearest rounding (no key needed)
+    result = ch(values)
+    print(result)
+
+TensorFlow version
+~~~~~~~~~~~~~~~~~~
+
+The TensorFlow version operates on TensorFlow tensors, wrapping NumPy implementations via ``tf.numpy_function()`` with custom gradients for automatic differentiation support (Straight-Through Estimator).
+
+**Initialization**
+
+Create an instance by specifying the number of exponent and mantissa bits.
+
+**Quantization**
+
+Quantize a TensorFlow tensor by calling the quantization method. The result is a TensorFlow tensor quantized to the custom floating-point format, with gradient support via STE.
+
+**Code Example**:
+
+.. code-block:: python
+
+    import tensorflow as tf
+    # Initialize with 5 exponent bits and 10 mantissa bits, half precision
+    ch = Chop(exp_bits=5, sig_bits=10, rmode="nearest")
+    # Input tensor
+    values = tf.constant([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
+    # Quantize with nearest rounding
     result = ch(values)
     print(result)
 

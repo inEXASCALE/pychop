@@ -8,7 +8,7 @@ The first approach requires specifying a backend, whereas the second approach do
 Mathematical functions I
 ------------------------------------------------------------------------
 
-The `chop` class provides a suite of mathematical functions that operate on floating-point numbers with custom precision chopping. These functions apply the chopping mechanism (via `chop_wrapper`) to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32). Implementations are available for NumPy, PyTorch, and JAX, with slight variations noted below. Functions are categorized for clarity.
+The `chop` class provides a suite of mathematical functions that operate on floating-point numbers with custom precision chopping. These functions apply the chopping mechanism (via `chop_wrapper`) to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32). Implementations are available for NumPy, PyTorch, JAX, and TensorFlow, with slight variations noted below. Functions are categorized for clarity.
 However, this method requires user to specify the backend first. 
 
 .. note::
@@ -16,6 +16,7 @@ However, this method requires user to specify the backend first.
    - **NumPy**: Uses `numpy` (`np`) operations, operates on `np.ndarray`, and assumes a stateless implementation.
    - **PyTorch**: Uses `torch` operations, operates on `torch.Tensor`, and supports GPU acceleration.
    - **JAX**: Uses `jax.numpy` (`jnp`) operations, operates on `jax.Array`, requires a random key for chopping, and is JIT-compatible.
+   - **TensorFlow**: Uses `tensorflow` (`tf`) operations, operates on `tf.Tensor`, wraps NumPy implementations via ``tf.numpy_function()`` with custom gradients for STE support.
    - Examples assume a `chop` instance with half-precision (`prec='h'`) unless stated otherwise.
 
 
@@ -27,9 +28,9 @@ Trigonometric functions
    Compute the sine of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped sine of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
    **Example (NumPy):**
 
@@ -61,32 +62,42 @@ Trigonometric functions
       result = chopper.sin(x)
       print(result)  # Expected: ~[0.0, 1.0] with chopping
 
+   **Example (TensorFlow):**
+
+   .. code-block:: python
+
+      import tensorflow as tf
+      chopper = chop(prec='h')
+      x = tf.constant([0.0, 1.5708])
+      result = chopper.sin(x)
+      print(result)  # Expected: ~[0.0, 1.0] with chopping
+
 .. function:: cos(x)
 
    Compute the cosine of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped cosine of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: tan(x)
 
    Compute the tangent of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped tangent of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: arcsin(x)
 
    Compute the arcsine of `x` with chopping. Input must be in [-1, 1].
 
    :param x: Input array/tensor in [-1, 1].
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped arcsine of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is not in [-1, 1].
 
 .. function:: arccos(x)
@@ -94,9 +105,9 @@ Trigonometric functions
    Compute the arccosine of `x` with chopping. Input must be in [-1, 1].
 
    :param x: Input array/tensor in [-1, 1].
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped arccosine of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is not in [-1, 1].
 
 .. function:: arctan(x)
@@ -104,9 +115,9 @@ Trigonometric functions
    Compute the arctangent of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped arctangent of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 Hyperbolic functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -116,45 +127,45 @@ Hyperbolic functions
    Compute the hyperbolic sine of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped hyperbolic sine of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: cosh(x)
 
    Compute the hyperbolic cosine of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped hyperbolic cosine of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: tanh(x)
 
    Compute the hyperbolic tangent of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped hyperbolic tangent of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: arcsinh(x)
 
    Compute the inverse hyperbolic sine of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped inverse hyperbolic sine of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: arccosh(x)
 
    Compute the inverse hyperbolic cosine of `x` with chopping. Input must be >= 1.
 
    :param x: Input array/tensor (>= 1).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped inverse hyperbolic cosine of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is < 1.
 
 .. function:: arctanh(x)
@@ -162,9 +173,9 @@ Hyperbolic functions
    Compute the inverse hyperbolic tangent of `x` with chopping. Input must be in (-1, 1).
 
    :param x: Input array/tensor in (-1, 1).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped inverse hyperbolic tangent of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is not in (-1, 1).
 
 Exponential and logarithmic functions
@@ -175,27 +186,27 @@ Exponential and logarithmic functions
    Compute the exponential of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped exponential of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: expm1(x)
 
    Compute exp(x) - 1 with chopping, optimized for small `x`.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped exp(x) - 1.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: log(x)
 
    Compute the natural logarithm of `x` with chopping. Input must be positive.
 
    :param x: Input array/tensor (> 0).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped natural logarithm of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is <= 0.
 
 .. function:: log10(x)
@@ -203,9 +214,9 @@ Exponential and logarithmic functions
    Compute the base-10 logarithm of `x` with chopping. Input must be positive.
 
    :param x: Input array/tensor (> 0).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped base-10 logarithm of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is <= 0.
 
 .. function:: log2(x)
@@ -213,9 +224,9 @@ Exponential and logarithmic functions
    Compute the base-2 logarithm of `x` with chopping. Input must be positive.
 
    :param x: Input array/tensor (> 0).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped base-2 logarithm of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is <= 0.
 
 .. function:: log1p(x)
@@ -223,9 +234,9 @@ Exponential and logarithmic functions
    Compute log(1 + x) with chopping, optimized for small `x`. Input must be > -1.
 
    :param x: Input array/tensor (> -1).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped log(1 + x).
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is <= -1.
 
 Power and root functions
@@ -236,9 +247,9 @@ Power and root functions
    Compute the square root of `x` with chopping. Input must be non-negative.
 
    :param x: Input array/tensor (>= 0).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped square root of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is < 0.
 
 .. function:: cbrt(x)
@@ -246,9 +257,9 @@ Power and root functions
    Compute the cube root of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped cube root of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 Miscellaneous functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -258,18 +269,18 @@ Miscellaneous functions
    Compute the absolute value of `x` with chopping.
 
    :param x: Input array/tensor (real or complex).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped absolute value of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: reciprocal(x)
 
    Compute the reciprocal (1/x) of `x` with chopping. Input must not be zero.
 
    :param x: Input array/tensor (!= 0).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped reciprocal of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :raises ValueError: If any element of `x` is 0.
 
 .. function:: square(x)
@@ -277,9 +288,9 @@ Miscellaneous functions
    Compute the square of `x` with chopping.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped square of `x`.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 Additional mathematical functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -289,7 +300,7 @@ Additional mathematical functions
    Decompose `x` into mantissa and exponent with chopping applied to mantissa.
 
    :param x: Input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Tuple of (chopped mantissa, exponent).
    :rtype: tuple (np.ndarray, np.ndarray) (NumPy), (torch.Tensor, torch.Tensor) (PyTorch), or (jax.Array, jax.Array) (JAX)
 
@@ -299,10 +310,10 @@ Additional mathematical functions
 
    :param x: First input array/tensor (real-valued).
    :param y: Second input array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
-   :type y: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
+   :type y: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped Euclidean norm.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: diff(x, n=1)
 
@@ -310,10 +321,10 @@ Additional mathematical functions
 
    :param x: Input array/tensor (real-valued).
    :param n: Order of difference (default: 1).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :type n: int
    :return: Chopped n-th order difference.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 .. function:: power(x, y)
 
@@ -321,10 +332,10 @@ Additional mathematical functions
 
    :param x: Base array/tensor (real-valued).
    :param y: Exponent array/tensor (real-valued).
-   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
-   :type y: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :type x: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
+   :type y: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
    :return: Chopped x^y.
-   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), or jax.Array (JAX)
+   :rtype: np.ndarray (NumPy), torch.Tensor (PyTorch), jax.Array (JAX), or tf.Tensor (TensorFlow)
 
 
 
@@ -335,7 +346,7 @@ Mathematical functions II
 
 The `pychop.math_func` module provides a suite of backend-aware mathematical functions that operate on floating-point numbers or arrays with custom precision chopping. These functions apply a provided `chop` callable to inputs and outputs, ensuring results adhere to the specified precision (e.g., fp16, fp32).  
 
-Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type of the input array/tensor. Functions are categorized for clarity.
+Supported backends: NumPy, PyTorch, JAX, and TensorFlow. Backend is inferred from the type of the input array/tensor. Functions are categorized for clarity.
 
 .. note::
    - All functions apply the `chop` callable before and after computation.
@@ -343,6 +354,7 @@ Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type o
      - **NumPy**: `np.ndarray`
      - **PyTorch**: `torch.Tensor`
      - **JAX**: `jax.Array`
+     - **TensorFlow**: `tf.Tensor`
    - Inputs must satisfy domain constraints (e.g., positive for log, non-zero for reciprocal).
    - `matmul` requires inputs to be at least 1-dimensional; scalars are not allowed.
 
@@ -385,6 +397,20 @@ Supported backends: NumPy, PyTorch, and JAX. Backend is inferred from the type o
 
    chopper = Chop(exp_bits=5, sig_bits=10, rmode=3)
    x = jnp.array([0.0, 1.5708])
+   result = mf.sin(x, chopper)
+   print(result)  # Expected: ~ [0.0, 1.0] with chopping
+
+
+**Example (TensorFlow):**
+
+.. code-block:: python
+
+   import tensorflow as tf
+   import pychop.math_func as mf
+   from pychop import Chop
+
+   chopper = Chop(exp_bits=5, sig_bits=10, rmode=3)
+   x = tf.constant([0.0, 1.5708])
    result = mf.sin(x, chopper)
    print(result)  # Expected: ~ [0.0, 1.0] with chopping
 

@@ -15,6 +15,7 @@ without retraining. PTQ is ideal for quick deployment and model compression with
 - ✅ **4 PTQ Methods**: Basic, Static, Dynamic, Mixed-Precision
 - ✅ **4 Calibration Algorithms**: MinMax, Percentile, KL-Divergence, MSE
 - ✅ **Dual Backend Support**: PyTorch and JAX/Flax
+- ✅ **TensorFlow Backend**: Full PTQ support with calibration
 - ✅ **Flexible Quantization**: FP16, INT8, INT4, Custom Precision
 - ✅ **Easy API**: Unified interface across backends
 
@@ -95,7 +96,7 @@ Basic PTQ: ``post_quantization``
    * - Parameter
      - Description
    * - ``model``
-     - **PyTorch**: ``torch.nn.Module`` | **JAX**: Flax variables dict
+     - **PyTorch**: ``torch.nn.Module`` | **JAX**: Flax variables dict | **TensorFlow**: ``tf.keras.Model``
    * - ``chop``
      - Quantizer instance (``Chop``, ``Chopf``, or ``Chopi``)
    * - ``eval_mode``
@@ -107,6 +108,7 @@ Basic PTQ: ``post_quantization``
 
 - **PyTorch**: Quantized ``nn.Module``
 - **JAX**: Quantized params dict
+- **TensorFlow**: Quantized ``tf.keras.Model``
 
 **Example:**
 
@@ -126,6 +128,11 @@ Basic PTQ: ``post_quantization``
    from pychop.jx.layers import ChopiSTE
    chop = ChopiSTE(bits=8, symmetric=True)
    quantized_params = post_quantization(variables, chop, verbose=True)
+
+   # TensorFlow
+   pychop.backend('tensorflow')
+   chop = Chopi(bits=8, symmetric=True)
+   model_q = post_quantization(tf_model, chop, verbose=True)
 
 
 .. _static_post_quantization:

@@ -16,7 +16,7 @@ The integer arithmetic emulation of ``Pychop`` is implemented by the interface `
 
    A class for quantizing and dequantizing arrays to and from integer representations.
 
-   This class supports both symmetric and asymmetric quantization, with optional per-channel quantization along a specified axis. It is designed for inference-style quantization in JAX, PyTorch, and NumPy frameworks, with framework-specific array types (``jnp.ndarray``, ``torch.Tensor``, ``np.ndarray``).
+   This class supports both symmetric and asymmetric quantization, with optional per-channel quantization along a specified axis. It is designed for inference-style quantization in JAX, PyTorch, NumPy, and TensorFlow frameworks, with framework-specific array types (``jnp.ndarray``, ``torch.Tensor``, ``np.ndarray``, ``tf.Tensor``).
 
    :param int num_bits: Bit-width for quantization (e.g., 8 for INT8). Default is 8.
    :param bool symmetric: If True, use symmetric quantization (zero_point = 0). If False, use asymmetric quantization. Default is False.
@@ -32,7 +32,7 @@ The integer arithmetic emulation of ``Pychop`` is implemented by the interface `
 
       Calibrate the Chopi by computing the scale and zero-point based on the input array.
 
-      :param x: Input array to calibrate from (``jnp.ndarray`` for JAX, ``torch.Tensor`` for PyTorch, ``np.ndarray`` for NumPy).
+      :param x: Input array to calibrate from (``jnp.ndarray`` for JAX, ``torch.Tensor`` for PyTorch, ``np.ndarray`` for NumPy, ``tf.Tensor`` for TensorFlow).
       :raises TypeError: If the input is not of the expected array type for the framework.
 
    .. method:: quantize(x)
@@ -41,16 +41,16 @@ The integer arithmetic emulation of ``Pychop`` is implemented by the interface `
 
       If the Chopi has not been calibrated, it will automatically calibrate using the input array.
 
-      :param x: Input array to quantize (``jnp.ndarray`` for JAX, ``torch.Tensor`` for PyTorch, ``np.ndarray`` for NumPy).
-      :return: Quantized integer array (``jnp.ndarray`` with dtype ``int8`` for JAX, ``torch.Tensor`` with dtype ``torch.int8`` for PyTorch, ``np.ndarray`` with dtype ``int8`` for NumPy).
+      :param x: Input array to quantize (``jnp.ndarray`` for JAX, ``torch.Tensor`` for PyTorch, ``np.ndarray`` for NumPy, ``tf.Tensor`` for TensorFlow).
+      :return: Quantized integer array (``jnp.ndarray`` with dtype ``int8`` for JAX, ``torch.Tensor`` with dtype ``torch.int8`` for PyTorch, ``np.ndarray`` with dtype ``int8`` for NumPy, ``tf.Tensor`` with dtype ``tf.int8`` for TensorFlow).
       :raises TypeError: If the input is not of the expected array type for the framework.
 
    .. method:: dequantize(q)
 
       Dequantize the integer array back to floating-point.
 
-      :param q: Quantized integer array (``jnp.ndarray`` for JAX, ``torch.Tensor`` for PyTorch, ``np.ndarray`` for NumPy).
-      :return: Dequantized floating-point array (``jnp.ndarray`` for JAX, ``torch.Tensor`` for PyTorch, ``np.ndarray`` for NumPy).
+      :param q: Quantized integer array (``jnp.ndarray`` for JAX, ``torch.Tensor`` for PyTorch, ``np.ndarray`` for NumPy, ``tf.Tensor`` for TensorFlow).
+      :return: Dequantized floating-point array (``jnp.ndarray`` for JAX, ``torch.Tensor`` for PyTorch, ``np.ndarray`` for NumPy, ``tf.Tensor`` for TensorFlow).
       :raises TypeError: If the input is not of the expected array type for the framework.
       :raises ValueError: If the Chopi has not been calibrated (i.e., ``scale`` is None).
 
@@ -113,8 +113,23 @@ The integer arithmetic emulation of ``Pychop`` is implemented by the interface `
       print(q)  # e.g., [[ 85  42] [106 127]], dtype=int8
       print(dq)  # e.g., [[ 0.098  -0.196] [ 0.294   0.392]]
 
+   **TensorFlow Example**:
+
+   .. code-block:: python
+
+      import tensorflow as tf
+      from pychop import Chopi  
+      pychop.backend('tensorflow')
+
+      x = tf.constant([[0.1, -0.2], [0.3, 0.4]])
+      ch = Chopi(num_bits=8, symmetric=False)
+      q = ch.quantize(x)
+      dq = ch.dequantize(q)
+      print(q)  # e.g., tf.Tensor([[ 85  42] [106 127]], dtype=int8)
+      print(dq)  # e.g., tf.Tensor([[ 0.098  -0.196] [ 0.294   0.392]])
+
    .. note::
-      - The PyTorch version supports training mode via ``forward(x, training=True)`` for fake quantization, which isn’t shown here but is useful for quantization-aware training.
+      - The PyTorch version supports training mode via ``forward(x, training=True)`` for fake quantization, which isn't shown here but is useful for quantization-aware training. The TensorFlow version also supports training mode with STE-based fake quantization.
       - Exact integer values may vary slightly due to rounding and range differences.
 
 .. code:: python
@@ -149,6 +164,14 @@ The integer arithmetic emulation of ``Pychop`` is implemented by the interface `
     X_q = pyq_f.quantize(X_jx) # quant array -> integer
     X_inv = pyq_f.dequantize(X_q) # dequant array -> floating point values 
     linalg.norm(X_inv - X_jx)
+
+
+    import tensorflow as tf
+    X_tf = tf.constant(X_np) # TensorFlow tensor
+    pychop.backend('tensorflow')
+    pyq_f = pychop.Chopi(num_bits=8)
+    X_q = pyq_f.quantize(X_tf) # quant array -> integer
+    X_inv = pyq_f.dequantize(X_q) # dequant array -> floating point values
 
 
 

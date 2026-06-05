@@ -245,6 +245,8 @@ Performance tip
 
 * Use the **PyTorch** backend (``pychop.backend('torch')``) for GPU-accelerated
   chopping.
+* Use the **TensorFlow** backend (``pychop.backend('tensorflow')``) for TensorFlow/Keras
+  workflows with STE-based gradient support.
 * Use the **NumPy** backend (default) for pure-CPU workloads.
 
 That’s it, simply drop the three imports into your code and you instantly get

@@ -79,9 +79,10 @@ Key Features
    - **NumPy**: Pure numerical computation (inference, analysis)
    - **PyTorch**: Straight-Through Estimator (STE) for QAT
    - **JAX**: Custom VJP for differentiation
+   - **TensorFlow**: STE via ``tf.numpy_function()`` with custom gradients
 
  **Automatic Backend Detection**
-   - Automatically detects input type (numpy.ndarray, torch.Tensor, jax.Array)
+   - Automatically detects input type (numpy.ndarray, torch.Tensor, jax.Array, tf.Tensor)
    - No manual backend switching needed
 
  **Flexible Quantization**
@@ -251,6 +252,28 @@ JAX Backend (with Custom VJP)
    grads = grad_fn(X)
    print(f"Gradient norm: {jnp.linalg.norm(grads):.2e}")
 
+TensorFlow Backend (with STE)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   import tensorflow as tf
+   from pychop import mx_quantize
+   
+   pychop.backend('tensorflow')
+   
+   # Create data with gradient tracking
+   X = tf.Variable(tf.random.normal([128, 768]))
+   
+   # Quantize (automatic STE!)
+   with tf.GradientTape() as tape:
+       X_q = mx_quantize(X, format='mxfp8_e4m3')
+       loss = tf.reduce_sum(X_q)
+   
+   # Backward pass - gradients flow through!
+   grads = tape.gradient(loss, X)
+   print(f"Gradient shape: {grads.shape}")
+
 API Reference
 ---------------- 
 
@@ -264,7 +287,7 @@ mx_quantize
    
    Automatically detects backend from input type or uses specified backend.
    
-   :param data: Input data (numpy.ndarray, torch.Tensor, or jax.Array)
+   :param data: Input data (numpy.ndarray, torch.Tensor, jax.Array, or tf.Tensor)
    :type data: array-like
    :param format: MX format specification (string, MXSpec, or tuple)
    :type format: str, MXSpec, or tuple
@@ -274,7 +297,7 @@ mx_quantize
    :type scale_exp_bits: int or None
    :param scale_sig_bits: Override scale significand bits (optional)
    :type scale_sig_bits: int or None
-   :param backend: Force specific backend ('numpy', 'jax', or 'torch')
+   :param backend: Force specific backend ('numpy', 'jax', 'torch', or 'tensorflow')
    :type backend: str or None
    :return: Quantized data (same type as input)
    :rtype: array-like
