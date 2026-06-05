@@ -1,4 +1,5 @@
-__all__ = ['detect_array_type', 'to_numpy_array', 'to_torch_tensor', 'to_jax_array']
+from __future__ import annotations
+__all__ = ['detect_array_type', 'to_numpy_array', 'to_torch_tensor', 'to_jax_array', 'to_tensorflow_tensor']
 import warnings
 import numpy as np
 import importlib.util
@@ -36,6 +37,18 @@ if importlib.util.find_spec("jax") is not None:
     except ImportError:
         pass
 
+has_tensorflow = False
+TensorFlowTensor = tuple()
+tf = None
+
+if importlib.util.find_spec("tensorflow") is not None:
+    try:
+        import tensorflow as tf
+        TensorFlowTensor = (tf.Tensor, tf.Variable)
+        has_tensorflow = True
+    except ImportError:
+        pass
+
 
 def detect_array_type(arr, verbose=False) -> str:
     """
@@ -62,6 +75,7 @@ def detect_array_type(arr, verbose=False) -> str:
         - 'numpy'   : NumPy ndarray or Pandas DataFrame/Series
         - 'torch'   : PyTorch Tensor
         - 'jax'     : JAX Array
+        - 'tensorflow' : TensorFlow Tensor
         - 'list'    : Python list or tuple
         - 'unknown' : No array-like object found or unrecognized type
 
@@ -103,6 +117,11 @@ def detect_array_type(arr, verbose=False) -> str:
         if verbose:
             print("Detected type: jax Array")
         return 'jax'
+
+    if has_tensorflow and tf.is_tensor(arr):
+        if verbose:
+            print("Detected type: tensorflow Tensor")
+        return 'tensorflow'
     
     return 'unknown'
 
@@ -215,6 +234,12 @@ def to_numpy_array(arr) -> np.ndarray:
             raise ImportError("JAX is required for this conversion.")
         warnings.warn("Converting JAX array to NumPy may involve device-to-host copy.", UserWarning)
         return np.asarray(arr)
+
+    if arr_type == 'tensorflow':
+        if not has_tensorflow:
+            raise ImportError("TensorFlow is required for this conversion.")
+        warnings.warn("Converting TensorFlow tensor to NumPy may involve device-to-host copy.", UserWarning)
+        return arr.numpy()
     
     raise TypeError(f"Cannot convert type '{arr_type}' to NumPy ndarray.")
 
@@ -273,6 +298,10 @@ def to_torch_tensor(arr) -> torch.Tensor:
         warnings.warn("Converting JAX to PyTorch involves copy via NumPy intermediate.", UserWarning)
         np_arr = np.asarray(arr)
         return torch.from_numpy(np_arr)
+
+    if arr_type == 'tensorflow':
+        warnings.warn("Converting TensorFlow to PyTorch involves copy via NumPy intermediate.", UserWarning)
+        return torch.from_numpy(arr.numpy())
     
     raise TypeError(f"Cannot convert type '{arr_type}' to PyTorch tensor.")
 
@@ -333,6 +362,10 @@ def to_jax_array(arr) -> jax.Array:
             warnings.warn(f"Additional copy from {arr.device} to CPU.", UserWarning)
         np_arr = arr.cpu().numpy()
         return jnp.array(np_arr)
+
+    if arr_type == 'tensorflow':
+        warnings.warn("Converting TensorFlow to JAX involves copy via NumPy intermediate.", UserWarning)
+        return jnp.array(arr.numpy())
     
     raise TypeError(f"Cannot convert type '{arr_type}' to JAX array.")
 
@@ -413,3 +446,31 @@ if __name__ == "__main__":
     print("=== All tests completed ===")
     if not (has_torch or has_jax):
         print("Note: torch and jax not installed, some tests skipped.")
+
+def to_tensorflow_tensor(arr):
+    """
+    Convert array-like object to TensorFlow tensor.
+    """
+    if not has_tensorflow:
+        raise ImportError("TensorFlow is not available.")
+
+    arr_type = detect_array_type(arr)
+
+    if arr_type == 'tensorflow':
+        return arr
+
+    if arr_type == 'numpy':
+        return tf.convert_to_tensor(to_numpy_safe(arr))
+
+    if arr_type == 'list':
+        return tf.convert_to_tensor(_try_convert_list_to_numpy(arr))
+
+    if arr_type == 'torch':
+        warnings.warn("Converting PyTorch to TensorFlow involves copy via NumPy intermediate.", UserWarning)
+        return tf.convert_to_tensor(arr.detach().cpu().numpy())
+
+    if arr_type == 'jax':
+        warnings.warn("Converting JAX to TensorFlow involves copy via NumPy intermediate.", UserWarning)
+        return tf.convert_to_tensor(np.asarray(arr))
+
+    raise TypeError(f"Cannot convert type '{arr_type}' to TensorFlow tensor.")

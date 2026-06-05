@@ -66,6 +66,10 @@ def Bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_sta
         from .jx.bitchop import Bitchop
         obj = Bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
                    random_state=random_state, rmode=rmode)
+    elif os.environ['chop_backend'] == 'tensorflow':
+        from .tf.bitchop import Bitchop
+        obj = Bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, device=device, 
+                   random_state=random_state, rmode=rmode)
     else:
         from .np.bitchop import Bitchop
         obj = Bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, random_state=random_state, rmode=rmode)

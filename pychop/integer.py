@@ -51,10 +51,10 @@ class Chopi:
         if env_backend == "auto":
             return detect_array_type(X)
 
-        if env_backend not in {"torch", "jax", "numpy"}:
+        if env_backend not in {"torch", "jax", "tensorflow", "numpy"}:
             raise ValueError(
                 f"Invalid chop_backend environment value: {env_backend}. "
-                "Must be 'torch', 'jax', or 'numpy'."
+                "Must be 'torch', 'jax', 'tensorflow', or 'numpy'."
             )
 
         return env_backend
@@ -68,12 +68,14 @@ class Chopi:
             from .tch.integer import Chopi_ as _ChopiImpl
         elif backend == "jax":
             from .jx.integer import Chopi_ as _ChopiImpl
+        elif backend == "tensorflow":
+            from .tf.integer import Chopi_ as _ChopiImpl
         elif backend == "numpy":
             from .np.integer import Chopi_ as _ChopiImpl
         else:
             raise ValueError(
                 f"Unsupported backend: {backend}. "
-                "Must be 'torch', 'jax', or 'numpy'."
+                "Must be 'torch', 'jax', 'tensorflow', or 'numpy'."
             )
 
         self._impl = _ChopiImpl(
@@ -118,6 +120,8 @@ class Chopi:
             X = to_torch_tensor(X)
         elif backend == "jax":
             X = to_jax_array(X)
+        elif backend == "tensorflow":
+            X = to_tensorflow_tensor(X)
         else:
             X = to_numpy_array(X)
 

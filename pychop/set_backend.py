@@ -1,6 +1,6 @@
 import os
 
-_VALID_BACKENDS = ('numpy', 'jax', 'torch', 'auto')
+_VALID_BACKENDS = ('numpy', 'jax', 'torch', 'tensorflow', 'tf', 'auto')
 
 
 def backend(lib='auto', verbose=0):
@@ -10,8 +10,8 @@ def backend(lib='auto', verbose=0):
     Parameters
     ----------
     lib : str
-        The backend library. One of 'numpy', 'jax', 'torch', or 'auto'.
-        'auto' detects the backend from the input array type at runtime.
+        The backend library. One of 'numpy', 'jax', 'torch', 'tensorflow', 'tf', or 'auto'.
+        'auto' detects the backend from the input array type at runtime. 'tf' is an alias for 'tensorflow'.
 
     verbose : int | bool
         Whether or not to print the information.
@@ -34,6 +34,9 @@ def backend(lib='auto', verbose=0):
             f"Unsupported backend '{lib}'. "
             f"Must be one of: {_VALID_BACKENDS}"
         )
+
+    if lib == 'tf':
+        lib = 'tensorflow'
 
     os.environ['chop_backend'] = lib
 
@@ -63,6 +66,15 @@ def backend(lib='auto', verbose=0):
             print(f'PyTorch is not installed ({e}). Falling back to NumPy backend.')
             os.environ['chop_backend'] = 'numpy'
 
+    elif lib == 'tensorflow':
+        try:
+            import tensorflow  # noqa: F401
+            if verbose:
+                print('Load TensorFlow backend.')
+        except ImportError as e:
+            print(f'TensorFlow is not installed ({e}). Falling back to NumPy backend.')
+            os.environ['chop_backend'] = 'numpy'
+
     elif lib == 'auto':
         if verbose:
             print('Backend set to auto: will be detected from input array type at runtime.')
@@ -75,6 +87,6 @@ def get_backend():
     Returns
     -------
     str
-        One of 'numpy', 'jax', 'torch', or 'auto'.
+        One of 'numpy', 'jax', 'torch', 'tensorflow', or 'auto'.
     """
     return os.environ.get('chop_backend', 'auto')

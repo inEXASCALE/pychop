@@ -5,7 +5,7 @@ This module provides mathematical functions that simulate
 low-precision arithmetic using a provided ``chop`` object.
 
 
-Backend is inferred from input array type (NumPy, PyTorch, or JAX).
+Backend is inferred from input array type (NumPy, PyTorch, JAX, or TensorFlow).
 """
 
 from typing import Any, Callable
@@ -27,7 +27,7 @@ def _detect_backend(x: Any) -> str:
     Returns
     -------
     str
-        Backend name: 'numpy', 'torch', or 'jax'.
+        Backend name: 'numpy', 'torch', 'jax', or 'tensorflow'.
     """
     module = type(x).__module__
 
@@ -35,6 +35,8 @@ def _detect_backend(x: Any) -> str:
         return "torch"
     if "jax" in module:
         return "jax"
+    if "tensorflow" in module:
+        return "tensorflow"
     return "numpy"
 
 
@@ -58,6 +60,9 @@ def _get_backend_module(backend: str):
     elif backend == "jax":
         import jax.numpy as jnp
         return jnp
+    elif backend == "tensorflow":
+        import tensorflow.experimental.numpy as tnp
+        return tnp
     else:
         import numpy as np
         return np

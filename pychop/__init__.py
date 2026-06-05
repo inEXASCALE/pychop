@@ -3,7 +3,7 @@ Pychop: Precision Simulation for Low-Precision Arithmetic
 
 A comprehensive Python package for simulating low-precision arithmetic in
 scientific computing and machine learning, with support for multiple backends
-(NumPy, JAX, PyTorch).
+(NumPy, JAX, PyTorch, TensorFlow).
 
 Supported formats:
 - Floating-point (Chop): IEEE 754 and custom formats
@@ -16,6 +16,7 @@ Backends:
 - NumPy: Pure numerical computation
 - JAX: Custom VJP for differentiation
 - PyTorch: Straight-Through Estimator (STE) for QAT
+- TensorFlow: Custom-gradient quantizers for Keras/QAT
 
 Author: Erin Carson, Xinye Chen
 """

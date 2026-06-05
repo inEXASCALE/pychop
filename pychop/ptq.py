@@ -1,7 +1,7 @@
 """
 Post-Training Quantization (PTQ) unified frontend for PyChop.
 
-This module provides a unified interface for PTQ across PyTorch and JAX backends.
+This module provides a unified interface for PTQ across PyTorch, JAX, and TensorFlow backends.
 
 Available PTQ Methods:
 1. post_quantization: Basic weight-only quantization
@@ -25,7 +25,23 @@ from typing import Optional, Iterable, Callable
 
 def _get_backend():
     """Get current backend from environment variable."""
-    return os.environ.get("chop_backend", "torch")
+    backend = os.environ.get("chop_backend", "auto")
+    return "tensorflow" if backend == "tf" else backend
+
+
+def _resolve_backend_for_model(model):
+    backend = _get_backend()
+    if backend != "auto":
+        return backend
+
+    module = getattr(type(model), "__module__", "").lower()
+    if "tensorflow" in module or "keras" in module:
+        return "tensorflow"
+    if "torch" in module:
+        return "torch"
+    if "flax" in module or "jax" in module:
+        return "jax"
+    return "torch"
 
 
 def _import_backend_ptq(backend: str):
@@ -52,13 +68,24 @@ def _import_backend_ptq(backend: str):
                     "Or switch to JAX backend: pychop.backend('jax')"
                 ) from e
             raise
+    elif backend == "tensorflow":
+        try:
+            from .tf import ptq as backend_module
+        except ImportError as e:
+            if 'tensorflow' in str(e).lower():
+                raise ImportError(
+                    "TensorFlow backend requires 'tensorflow' to be installed. "
+                    "Install it with: pip install tensorflow\n"
+                    "Or switch to PyTorch backend: pychop.backend('torch')"
+                ) from e
+            raise
     else:
         try:
             from .tch import ptq as backend_module
         except ImportError:
             raise ImportError(
                 f"Unknown backend '{backend}' and PyTorch backend is not available. "
-                f"Valid backends: 'torch', 'jax'"
+                f"Valid backends: 'torch', 'jax', 'tensorflow'"
             )
     
     return backend_module
@@ -100,7 +127,7 @@ def post_quantization(model, chop, eval_mode: bool = True, verbose: bool = False
     >>> chop = Chopi(bits=8, symmetric=True)
     >>> model_q = post_quantization(model, chop, verbose=True)
     """
-    backend = _get_backend()
+    backend = _resolve_backend_for_model(model)
     module = _import_backend_ptq(backend)
     return module.post_quantization(model, chop, eval_mode, verbose)
 
@@ -194,7 +221,7 @@ def static_post_quantization(
     >>>     verbose=True
     >>> )
     """
-    backend = _get_backend()
+    backend = _resolve_backend_for_model(model)
     module = _import_backend_ptq(backend)
     
     if backend == 'jax':
@@ -259,7 +286,7 @@ def dynamic_post_quantization(
     >>> chop = Chopi(bits=8, symmetric=True)
     >>> model_q = dynamic_post_quantization(model, chop, verbose=True)
     """
-    backend = _get_backend()
+    backend = _resolve_backend_for_model(model)
     module = _import_backend_ptq(backend)
     return module.dynamic_post_quantization(model, chop, eval_mode, verbose)
 
@@ -349,7 +376,7 @@ def mixed_post_quantization(
     >>>     verbose=True
     >>> )
     """
-    backend = _get_backend()
+    backend = _resolve_backend_for_model(model)
     module = _import_backend_ptq(backend)
     
     if backend == 'jax':

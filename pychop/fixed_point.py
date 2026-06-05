@@ -1,5 +1,5 @@
 import os
-from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array
+from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array, to_tensorflow_tensor
 
 
 class Chopf:
@@ -58,11 +58,13 @@ class Chopf:
                 from .tch import FPRound_ as _ChopfImpl
             elif backend == "jax":
                 from .jx import FPRound_ as _ChopfImpl
+            elif backend == "tensorflow":
+                from .tf import FPRound_ as _ChopfImpl
             elif backend == "numpy":
                 from .np import FPRound_ as _ChopfImpl
             else:
                 raise ValueError(
-                    f"Unsupported backend: {backend}. Must be 'torch', 'jax', or 'numpy'."
+                    f"Unsupported backend: {backend}. Must be 'torch', 'jax', 'tensorflow', or 'numpy'."
                 )
 
             impl = _ChopfImpl(
@@ -87,10 +89,10 @@ class Chopf:
                 target_backend = detect_array_type(X)
             else:
                 target_backend = env_backend
-                if target_backend not in {"torch", "jax", "numpy"}:
+                if target_backend not in {"torch", "jax", "tensorflow", "numpy"}:
                     raise ValueError(
                         f"Invalid chop_backend environment value: {target_backend}. "
-                        "Must be 'torch', 'jax', or 'numpy'."
+                        "Must be 'torch', 'jax', 'tensorflow', or 'numpy'."
                     )
 
             # Convert input to the target backend type
@@ -98,6 +100,8 @@ class Chopf:
                 X = to_torch_tensor(X)
             elif target_backend == "jax":
                 X = to_jax_array(X)
+            elif target_backend == "tensorflow":
+                X = to_tensorflow_tensor(X)
             elif target_backend == "numpy": 
                 X = to_numpy_array(X)
         

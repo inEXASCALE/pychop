@@ -1,5 +1,5 @@
 import os
-from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array
+from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array, to_tensorflow_tensor
 
 class FaultChop:
     """
@@ -153,6 +153,8 @@ class FaultChop:
                 from .tch.float_point import Chop_ as _ChopImpl
             elif backend == "jax":
                 from .jx.float_point import Chop_ as _ChopImpl
+            elif backend == "tensorflow":
+                from .tf.float_point import Chop_ as _ChopImpl
             elif backend == "numpy":
                 from .np.float_point import Chop_ as _ChopImpl
 
@@ -190,6 +192,9 @@ class FaultChop:
             elif backend == "jax":
                 X = to_jax_array(X)  
                 from .jx.float_point import Chop_ as _ChopImpl
+            elif backend == "tensorflow":
+                X = to_tensorflow_tensor(X)
+                from .tf.float_point import Chop_ as _ChopImpl
             else:
                 X = to_numpy_array(X)  
                 from .np.float_point import Chop_ as _ChopImpl

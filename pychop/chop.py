@@ -1,5 +1,5 @@
 import os
-from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array
+from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array, to_tensorflow_tensor
 
 
 class Chop:
@@ -88,6 +88,8 @@ class Chop:
                 from .tch.lightchop import LightChop_ as _LightChopImpl
             elif backend == "jax":
                 from .jx.lightchop import LightChop_ as _LightChopImpl
+            elif backend == "tensorflow":
+                from .tf.lightchop import LightChop_ as _LightChopImpl
             elif backend == "numpy":
                 from .np.lightchop import LightChop_ as _LightChopImpl
 
@@ -123,6 +125,9 @@ class Chop:
             elif backend == "jax":
                 X = to_jax_array(X) 
                 from .jx.lightchop import LightChop_ as _LightChopImpl
+            elif backend == "tensorflow":
+                X = to_tensorflow_tensor(X)
+                from .tf.lightchop import LightChop_ as _LightChopImpl
             elif backend == "numpy":
                 X = to_numpy_array(X)  
                 from .np.lightchop import LightChop_ as _LightChopImpl

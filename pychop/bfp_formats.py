@@ -48,7 +48,7 @@ def _detect_array_type(x: Any) -> str:
     Returns
     -------
     str
-        Backend name: 'numpy', 'torch', or 'jax'
+        Backend name: 'numpy', 'torch', 'jax', or 'tensorflow'
     """
     module = type(x).__module__
     
@@ -56,6 +56,8 @@ def _detect_array_type(x: Any) -> str:
         return "torch"
     if "jax" in module:
         return "jax"
+    if "tensorflow" in module:
+        return "tensorflow"
     return "numpy"
 
 
@@ -196,10 +198,10 @@ def _resolve_backend(X: Any = None) -> str:
             # Default to numpy if no input provided
             return 'numpy'
     
-    if env_backend not in {'numpy', 'jax', 'torch'}:
+    if env_backend not in {'numpy', 'jax', 'torch', 'tensorflow'}:
         raise ValueError(
             f"Invalid backend: {env_backend}. "
-            "Must be 'numpy', 'jax', 'torch', or 'auto'."
+            "Must be 'numpy', 'jax', 'torch', 'tensorflow', or 'auto'."
         )
     
     return env_backend
@@ -237,6 +239,14 @@ def _get_backend_module(backend: str):
             )
     elif backend == 'numpy':
         from .np import bfp_formats as backend_module
+    elif backend == 'tensorflow':
+        try:
+            from .tf import bfp_formats as backend_module
+        except ImportError:
+            raise ImportError(
+                "TensorFlow backend not available. "
+                "Install with: pip install tensorflow"
+            )
     else:
         raise ValueError(f"Unsupported backend: {backend}")
     

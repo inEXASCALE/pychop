@@ -2,7 +2,23 @@ import os
 
 def _get_backend():
     """Get current backend from environment variable."""
-    return os.environ.get("chop_backend", "torch")
+    backend = os.environ.get("chop_backend", "auto")
+    return "tensorflow" if backend == "tf" else backend
+
+
+def _resolve_backend_for_model(model):
+    backend = _get_backend()
+    if backend != "auto":
+        return backend
+
+    module = getattr(type(model), "__module__", "").lower()
+    if "tensorflow" in module or "keras" in module:
+        return "tensorflow"
+    if "torch" in module:
+        return "torch"
+    if "flax" in module or "jax" in module:
+        return "jax"
+    return "torch"
 
 
 def _import_backend_layers(backend: str):
@@ -35,6 +51,17 @@ def _import_backend_layers(backend: str):
                     "Or switch to JAX backend: pychop.backend('jax')"
                 ) from e
             raise
+    elif backend == "tensorflow":
+        try:
+            from .tf import layers as backend_module
+        except ImportError as e:
+            if 'tensorflow' in str(e).lower():
+                raise ImportError(
+                    "TensorFlow backend requires 'tensorflow' to be installed. "
+                    "Install it with: pip install tensorflow\n"
+                    "Or switch to PyTorch backend: pychop.backend('torch')"
+                ) from e
+            raise
     else:
         # Default to torch
         try:
@@ -42,7 +69,7 @@ def _import_backend_layers(backend: str):
         except ImportError:
             raise ImportError(
                 f"Unknown backend '{backend}' and PyTorch backend is not available. "
-                f"Valid backends: 'torch', 'jax'"
+                f"Valid backends: 'torch', 'jax', 'tensorflow'"
             )
     
     return backend_module
@@ -149,7 +176,7 @@ def post_quantization(model, chop, eval_mode: bool = True, verbose: bool = False
     ImportError
         If the current backend's dependencies are not installed.
     """
-    backend = _get_backend()
+    backend = _resolve_backend_for_model(model)
     module = _import_backend_layers(backend)
     return module.post_quantization(model, chop, eval_mode, verbose)
 
@@ -192,7 +219,7 @@ def static_post_quantization(model, chop, calibration_data,
     ImportError
         If the current backend's dependencies are not installed.
     """
-    backend = _get_backend()
+    backend = _resolve_backend_for_model(model)
     module = _import_backend_layers(backend)
     return module.static_post_quantization(
         model, chop, calibration_data, eval_mode, verbose
@@ -234,7 +261,7 @@ def dynamic_post_quantization(model, chop,
     ImportError
         If the current backend's dependencies are not installed.
     """
-    backend = _get_backend()
+    backend = _resolve_backend_for_model(model)
     module = _import_backend_layers(backend)
     return module.dynamic_post_quantization(model, chop, eval_mode, verbose)
 
@@ -285,7 +312,7 @@ def mixed_post_quantization(model, weight_chop, activation_chop,
     ImportError
         If the current backend's dependencies are not installed.
     """
-    backend = _get_backend()
+    backend = _resolve_backend_for_model(model)
     module = _import_backend_layers(backend)
     return module.mixed_post_quantization(
         model, weight_chop, activation_chop,
