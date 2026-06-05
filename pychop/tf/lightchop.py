@@ -1,3 +1,5 @@
+import threading
+import numpy as np
 import tensorflow as tf
 
 from ..np.lightchop import LightChop_ as NPLightChop
@@ -27,6 +29,14 @@ class LightChop_:
         self.subnormal = subnormal
         self.chunk_size = chunk_size
         self.random_state = random_state
+
+        # Per-instance RNG state for stochastic rounding modes.
+        # The NumPy implementation is called through tf.numpy_function, so this
+        # wrapper protects NumPy's global RNG state and makes rmode=5/6 use an
+        # instance-local deterministic random stream without changing the public API.
+        self._np_random_state = np.random.RandomState(random_state)
+        self._rng_lock = threading.RLock()
+
         self._np_impl = NPLightChop(
             exp_bits=exp_bits,
             sig_bits=sig_bits,
@@ -37,27 +47,45 @@ class LightChop_:
         )
         self.u = getattr(self._np_impl, 'u', None)
 
+    def _call_np_impl(self, fn, *args, **kwargs):
+        if self.rmode not in (5, 6):
+            return fn(*args, **kwargs)
+
+        with self._rng_lock:
+            global_state = np.random.get_state()
+            try:
+                np.random.set_state(self._np_random_state.get_state())
+                out = fn(*args, **kwargs)
+                self._np_random_state.set_state(np.random.get_state())
+                return out
+            finally:
+                np.random.set_state(global_state)
+
     def quantize(self, x):
         x = tf.convert_to_tensor(x)
         if not x.dtype.is_floating:
             x = tf.cast(x, tf.float32)
         return unary_numpy_op(
             x,
-            lambda arr: self._np_impl.quantize(arr),
+            lambda arr: self._call_np_impl(self._np_impl.quantize, arr),
             tout=x.dtype,
             identity_grad=x.dtype.is_floating,
         )
 
     def diff(self, x, n=1):
         x = tf.convert_to_tensor(x)
-        out = tf.numpy_function(lambda arr: self._np_impl.diff(arr, n=n), [x], Tout=x.dtype)
+        out = tf.numpy_function(
+            lambda arr: self._call_np_impl(self._np_impl.diff, arr, n=n),
+            [x],
+            Tout=x.dtype,
+        )
         out.set_shape(None)
         return out
 
     def frexp(self, x):
         x = tf.convert_to_tensor(x)
         mantissa, exponent = tf.numpy_function(
-            lambda arr: self._np_impl.frexp(arr),
+            lambda arr: self._call_np_impl(self._np_impl.frexp, arr),
             [x],
             Tout=[x.dtype if x.dtype.is_floating else tf.float32, tf.int32],
         )
@@ -68,7 +96,7 @@ class LightChop_:
     def modf(self, x):
         x = tf.convert_to_tensor(x)
         frac, integ = tf.numpy_function(
-            lambda arr: self._np_impl.modf(arr),
+            lambda arr: self._call_np_impl(self._np_impl.modf, arr),
             [x],
             Tout=[
                 x.dtype if x.dtype.is_floating else tf.float32,
@@ -85,7 +113,7 @@ class LightChop_:
         return binary_numpy_op(
             x,
             i,
-            lambda arr_x, arr_i: self._np_impl.ldexp(arr_x, arr_i),
+            lambda arr_x, arr_i: self._call_np_impl(self._np_impl.ldexp, arr_x, arr_i),
             tout=x.dtype if x.dtype.is_floating else tf.float32,
             grad_x=x.dtype.is_floating,
             grad_y=False,
@@ -96,7 +124,7 @@ class LightChop_:
         x = tf.convert_to_tensor(x)
         return unary_numpy_op(
             x,
-            lambda arr: self._np_impl.round(arr, decimals=decimals),
+            lambda arr: self._call_np_impl(self._np_impl.round, arr, decimals=decimals),
             tout=x.dtype if x.dtype.is_floating else tf.float32,
             identity_grad=x.dtype.is_floating,
         )
@@ -105,7 +133,7 @@ class LightChop_:
         x = tf.convert_to_tensor(x)
         return unary_numpy_op(
             x,
-            lambda arr: self._np_impl.clip(arr, a_min=a_min, a_max=a_max),
+            lambda arr: self._call_np_impl(self._np_impl.clip, arr, a_min=a_min, a_max=a_max),
             tout=x.dtype if x.dtype.is_floating else tf.float32,
             identity_grad=x.dtype.is_floating,
         )
@@ -120,7 +148,7 @@ def _make_unary(name):
         fn = getattr(self._np_impl, name)
         return unary_numpy_op(
             x,
-            lambda arr: fn(arr, *args, **kwargs),
+            lambda arr: self._call_np_impl(fn, arr, *args, **kwargs),
             tout=x.dtype if x.dtype.is_floating else tf.float32,
             identity_grad=x.dtype.is_floating,
         )
@@ -135,7 +163,7 @@ def _make_binary(name):
         return binary_numpy_op(
             x,
             y,
-            lambda arr_x, arr_y: fn(arr_x, arr_y, *args, **kwargs),
+            lambda arr_x, arr_y: self._call_np_impl(fn, arr_x, arr_y, *args, **kwargs),
             tout=x.dtype if x.dtype.is_floating else tf.float32,
             grad_x=x.dtype.is_floating,
             grad_y=y.dtype.is_floating,
@@ -150,7 +178,7 @@ def _make_reduction(name):
         fn = getattr(self._np_impl, name)
         return unary_numpy_op(
             x,
-            lambda arr: fn(arr, axis=axis),
+            lambda arr: self._call_np_impl(fn, arr, axis=axis),
             tout=x.dtype if x.dtype.is_floating else tf.float32,
             identity_grad=x.dtype.is_floating,
             shape_like=tf.reduce_sum(x, axis=axis),

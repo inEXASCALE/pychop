@@ -104,6 +104,7 @@ class LightChop_:
         'noise' is a pre-generated array of random values [0, 1] used for stochastic modes.
         """
         exp_max_val = 2 ** self.exp_bits - 1
+        overflow_mask = (exponent > exp_max_val)
         
         # Clip exponent to representable range
         exponent = jnp.clip(exponent, 0, exp_max_val)
@@ -114,7 +115,8 @@ class LightChop_:
         # For our extracted components, subnormal handling in target:
         # If we allowed subnormals in decomposition, they are already scaled relative to min_exp.
         # We just need to check if the *target* exponent is 0.
-        subnormal_mask = (exponent == 0) if self.subnormal else jnp.zeros_like(x, dtype=bool)
+        normal_mask = (exponent > 0) & (exponent < exp_max_val)
+        subnormal_mask = ((exponent == 0) & (significand > 0)) if self.subnormal else jnp.zeros_like(x, dtype=bool)
 
         # Scale significand to integer range for rounding
         # Normals: Remove implicit 1.0, scale fractional part
@@ -156,8 +158,11 @@ class LightChop_:
         def stoc_equal(val, noise):
             # Stochastic 50/50
             floor_val = jnp.floor(val)
-            # Round up if random noise < 0.5
-            return jnp.where(noise < 0.5, floor_val, floor_val + 1.0)
+            fraction = val - floor_val
+            exact_mask = (fraction == 0)
+            # Exact representable values must remain unchanged.
+            return jnp.where(exact_mask, floor_val,
+                             jnp.where(noise < 0.5, floor_val, floor_val + 1.0))
         
         def cadna_directed(val, sgn, bits):
             """
@@ -230,6 +235,13 @@ class LightChop_:
             # Fallback to nearest
             rounded_val = nearest(val_to_round)
 
+        if rmode in (5, 6):
+            carry_mask = normal_mask & (rounded_val >= sig_steps)
+            exponent = jnp.where(carry_mask, exponent + 1, exponent)
+            rounded_val = jnp.where(carry_mask, jnp.zeros_like(rounded_val), rounded_val)
+            overflow_mask = overflow_mask | (exponent >= exp_max_val)
+            normal_mask = (exponent > 0) & (exponent < exp_max_val)
+
         # Scale back down
         sig_q = rounded_val / sig_steps
         
@@ -241,11 +253,15 @@ class LightChop_:
         res_subnormal = sign * sig_q * (2.0 ** self.min_exp)
         
         result = jnp.where(subnormal_mask, res_subnormal, res_normal)
+        result = jnp.where(normal_mask | subnormal_mask, result, 0.0)
         
         # Apply standard masks
         result = jnp.where(zero_mask, 0.0, result)
         result = jnp.where(inf_mask, sign * jnp.inf, result)
         result = jnp.where(nan_mask, jnp.nan, result)
+        
+        inf_val = jnp.where(sign < 0, -jnp.inf, jnp.inf)
+        result = jnp.where(overflow_mask & ~inf_mask & ~nan_mask & ~zero_mask, inf_val, result)
         
         return result
 
@@ -797,9 +813,10 @@ class LightChop_:
 
         if self.rmode in [5, 6]:
             self.rng_key, subkey = jax.random.split(self.rng_key)
-            noise = jax.random.uniform(subkey, shape=x.shape)
+            noise_dtype = x.dtype if jnp.issubdtype(x.dtype, jnp.floating) else jnp.float32
+            noise = jax.random.uniform(subkey, shape=x.shape, dtype=noise_dtype)
 
-        elif self.rmode == 7:
+        elif self.rmode == 10:
             if self._cadna_gen is None:
                 self._cadna_gen = CADNARandomGenerator(backend="jax")
 
@@ -814,3 +831,6 @@ class LightChop_:
         return self._quantize_core(
             x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode, noise
         )
+
+    def quantize(self, x):
+        return self.__call__(x)
