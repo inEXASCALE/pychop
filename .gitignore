@@ -25,4 +25,4 @@ pychop/examples/qat_compare/*.pth
 pychop/np/__pycache__/
 pychop/jx/__pycache__/
 pychop/tch/__pycache__/
-new_test/*
+forks/*
