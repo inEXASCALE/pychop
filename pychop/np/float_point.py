@@ -1052,7 +1052,7 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
         y = x 
     else:   
         sign = lambda x: np.sign(x) + (x==0)
-        rnd = randfunc(frac.shape)
+        rnd = randfunc(frac.size).reshape(frac.shape)
         j = rnd <= frac
             
         y[j] = np.ceil(y[j])
@@ -1083,7 +1083,7 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
     else:   
         # Uniformly distributed random numbers
         sign = lambda x: np.sign(x) + (x==0)
-        rnd = randfunc(frac.shape)
+        rnd = randfunc(frac.size).reshape(frac.shape)
         j = rnd <= 0.5
         y[j] = np.ceil(y[j])
         y[~j] = np.floor(y[~j])
