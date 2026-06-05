@@ -58,11 +58,33 @@ class LightChop_:
         self.exp_max = 2 ** exp_bits - 1
         self.inv_sig_steps = 1.0 / self.sig_steps
         self.inv_min_exp_power = 1.0 / self.min_exp_power  # Precompute for subnormal case
-        torch.manual_seed(random_state)
+        # Use per-instance RNGs for stochastic rounding modes.
+        # This avoids modifying PyTorch's global RNG state via torch.manual_seed(...).
+        self.random_state = random_state
+        self._torch_gens = {}
         if rmode == 10:
             self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="torch")
         else:
             self._cadna_gen = None
+
+    def _get_torch_generator(self, device: torch.device) -> torch.Generator:
+        """Return a per-instance torch.Generator for the tensor device."""
+        device = torch.device(device)
+        key = (device.type, device.index)
+        if key not in self._torch_gens:
+            gen = torch.Generator(device=device)
+            gen.manual_seed(self.random_state)
+            self._torch_gens[key] = gen
+        return self._torch_gens[key]
+
+    def _rand_like(self, x: torch.Tensor) -> torch.Tensor:
+        """Per-instance replacement for torch.rand_like used by stochastic rounding."""
+        return torch.rand(
+            x.shape,
+            dtype=x.dtype,
+            device=x.device,
+            generator=self._get_torch_generator(x.device),
+        )
 
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -124,6 +146,7 @@ class LightChop_:
                             inf_mask: torch.Tensor,
                             nan_mask: torch.Tensor) -> torch.Tensor:
         """Quantize components according to IEEE 754 rules with specified rounding mode."""
+        overflow_mask = (exponent > self.exp_max)
         exponent = torch.clamp(exponent, self.exp_min, self.exp_max)
         
         sig_steps = self.sig_steps
@@ -160,22 +183,42 @@ class LightChop_:
         elif self.rmode == 5:  # Stochastic proportional
             floor_val = torch.floor(sig_scaled)
             fraction = sig_scaled - floor_val
-            prob = torch.rand_like(fraction)
-            sig_q = torch.where(prob < fraction, floor_val + 1, floor_val) * inv_sig_steps
+            prob = self._rand_like(fraction)
+            sig_q_int = torch.where(prob < fraction, floor_val + 1, floor_val)
             if self.subnormal:
                 sub_floor = torch.floor(sub_scaled)
                 sub_fraction = sub_scaled - sub_floor
-                sig_q = torch.where(subnormal_mask, 
-                                torch.where(prob < sub_fraction, sub_floor + 1, sub_floor) * inv_sig_steps, sig_q)
+                prob_sub = self._rand_like(sub_fraction)
+                sig_q_int = torch.where(subnormal_mask,
+                                torch.where(prob_sub < sub_fraction, sub_floor + 1, sub_floor), sig_q_int)
+            carry_mask = normal_mask & (sig_q_int >= sig_steps)
+            exponent = torch.where(carry_mask, exponent + 1, exponent)
+            sig_q_int = torch.where(carry_mask, torch.zeros_like(sig_q_int), sig_q_int)
+            overflow_mask = overflow_mask | (exponent >= self.exp_max)
+            normal_mask = (exponent > self.exp_min) & (exponent < self.exp_max)
+            sig_q = sig_q_int * inv_sig_steps
             
         elif self.rmode == 6:  # Stochastic equal
             floor_val = torch.floor(sig_scaled)
-            prob = torch.rand_like(floor_val)
-            sig_q = torch.where(prob < 0.5, floor_val, floor_val + 1) * inv_sig_steps
+            fraction = sig_scaled - floor_val
+            prob = self._rand_like(floor_val)
+            exact_mask = (fraction == 0)
+            sig_q_int = torch.where(exact_mask, floor_val,
+                                    torch.where(prob < 0.5, floor_val, floor_val + 1))
             if self.subnormal:
                 sub_floor = torch.floor(sub_scaled)
-                sig_q = torch.where(subnormal_mask, 
-                                torch.where(prob < 0.5, sub_floor, sub_floor + 1) * inv_sig_steps, sig_q)
+                sub_fraction = sub_scaled - sub_floor
+                prob_sub = self._rand_like(sub_floor)
+                sub_exact_mask = (sub_fraction == 0)
+                sub_q_int = torch.where(sub_exact_mask, sub_floor,
+                                        torch.where(prob_sub < 0.5, sub_floor, sub_floor + 1))
+                sig_q_int = torch.where(subnormal_mask, sub_q_int, sig_q_int)
+            carry_mask = normal_mask & (sig_q_int >= sig_steps)
+            exponent = torch.where(carry_mask, exponent + 1, exponent)
+            sig_q_int = torch.where(carry_mask, torch.zeros_like(sig_q_int), sig_q_int)
+            overflow_mask = overflow_mask | (exponent >= self.exp_max)
+            normal_mask = (exponent > self.exp_min) & (exponent < self.exp_max)
+            sig_q = sig_q_int * inv_sig_steps
 
         elif self.rmode == 7:  # CADNA random directed rounding
             sig_q = self._cadna_directed_round(sig_scaled, sign) * inv_sig_steps
@@ -229,6 +272,8 @@ class LightChop_:
                             torch.where(subnormal_mask, subnormal_result, 
                                     torch.where(inf_mask, sign * float('inf'), 
                                                 torch.where(nan_mask, float('nan'), 0.0))))
+        inf_val = sign * torch.full_like(result, float('inf'))
+        result = torch.where(overflow_mask & ~inf_mask & ~nan_mask & ~zero_mask, inf_val, result)
         
         return result
 
@@ -684,10 +729,33 @@ class LightChopSTE(nn.Module):
         self.exp_max = 2 ** exp_bits - 1
         self.inv_sig_steps = 1.0 / self.sig_steps
         self.inv_min_exp_power = 1.0 / self.min_exp_power
+        # Use per-instance RNGs for stochastic rounding modes.
+        # This avoids modifying/depending on PyTorch's global RNG state.
+        self.random_state = random_state
+        self._torch_gens = {}
         if rmode == 10:
             self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="torch")
         else:
             self._cadna_gen = None
+
+    def _get_torch_generator(self, device: torch.device) -> torch.Generator:
+        """Return a per-instance torch.Generator for the tensor device."""
+        device = torch.device(device)
+        key = (device.type, device.index)
+        if key not in self._torch_gens:
+            gen = torch.Generator(device=device)
+            gen.manual_seed(self.random_state)
+            self._torch_gens[key] = gen
+        return self._torch_gens[key]
+
+    def _rand_like(self, x: torch.Tensor) -> torch.Tensor:
+        """Per-instance replacement for torch.rand_like used by stochastic rounding."""
+        return torch.rand(
+            x.shape,
+            dtype=x.dtype,
+            device=x.device,
+            generator=self._get_torch_generator(x.device),
+        )
 
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor,
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -765,7 +833,7 @@ class LightChopSTE(nn.Module):
         sig_scaled = sig_normal * sig_steps
         sub_scaled = significand * sig_steps  # Always compute for safety
         
-        # Rounding modes (stochastic only effect when training)
+        # Rounding modes
         if self.rmode == 1:  # Nearest
             sig_q = torch.round(sig_scaled)
             sig_q = torch.where(subnormal_mask, torch.round(sub_scaled), sig_q)
@@ -784,39 +852,43 @@ class LightChopSTE(nn.Module):
             sig_q = torch.floor(sig_scaled)
             sig_q = torch.where(subnormal_mask, torch.floor(sub_scaled), sig_q)
         
-        elif self.rmode == 5:  # Stochastic proportional（training - use random, eval 0 use nearest）
+        elif self.rmode == 5:  # Stochastic proportional
+            # Always stochastic, both in training() and eval().
             floor_val = torch.floor(sig_scaled)
             fraction = sig_scaled - floor_val
-            if self.training:
-                prob = torch.rand_like(fraction)
-                sig_q = torch.where(prob < fraction, floor_val + 1, floor_val)
-            else:
-                sig_q = torch.round(sig_scaled)
+            prob = self._rand_like(fraction)
+            sig_q = torch.where(prob < fraction, floor_val + 1, floor_val)
+
             # subnormal
             sub_floor = torch.floor(sub_scaled)
             sub_fraction = sub_scaled - sub_floor
-            if self.training:
-                prob_sub = torch.rand_like(sub_fraction)
-                sig_q = torch.where(subnormal_mask,
-                                    torch.where(prob_sub < sub_fraction, sub_floor + 1, sub_floor), sig_q)
-            else:
-                sig_q = torch.where(subnormal_mask, torch.round(sub_scaled), sig_q)
+            prob_sub = self._rand_like(sub_fraction)
+            sub_q = torch.where(prob_sub < sub_fraction, sub_floor + 1, sub_floor)
+            sig_q = torch.where(subnormal_mask, sub_q, sig_q)
         
         elif self.rmode == 6:  # Stochastic equal
+            # Always stochastic, both in training() and eval().
             floor_val = torch.floor(sig_scaled)
-            if self.training:
-                prob = torch.rand_like(floor_val)
-                sig_q = torch.where(prob < 0.5, floor_val + 1, floor_val)
-            else:
-                sig_q = torch.round(sig_scaled)
+            fraction = sig_scaled - floor_val
+            prob = self._rand_like(floor_val)
+            exact_mask = (fraction == 0)
+            sig_q = torch.where(
+                exact_mask,
+                floor_val,
+                torch.where(prob < 0.5, floor_val, floor_val + 1),
+            )
+
             # subnormal
             sub_floor = torch.floor(sub_scaled)
-            if self.training:
-                prob_sub = torch.rand_like(sub_floor)
-                sig_q = torch.where(subnormal_mask,
-                                    torch.where(prob_sub < 0.5, sub_floor + 1, sub_floor), sig_q)
-            else:
-                sig_q = torch.where(subnormal_mask, torch.round(sub_scaled), sig_q)
+            sub_fraction = sub_scaled - sub_floor
+            prob_sub = self._rand_like(sub_floor)
+            sub_exact_mask = (sub_fraction == 0)
+            sub_q = torch.where(
+                sub_exact_mask,
+                sub_floor,
+                torch.where(prob_sub < 0.5, sub_floor, sub_floor + 1),
+            )
+            sig_q = torch.where(subnormal_mask, sub_q, sig_q)
         
 
         elif self.rmode == 7:  # Nearest, ties to zero
@@ -861,6 +933,13 @@ class LightChopSTE(nn.Module):
         else:
             raise ValueError(f"Unsupported rounding mode: {self.rmode}")
         
+        if self.rmode in (5, 6):
+            carry_mask = normal_mask & (sig_q >= sig_steps)
+            exponent = torch.where(carry_mask, exponent + 1, exponent)
+            sig_q = torch.where(carry_mask, torch.zeros_like(sig_q), sig_q)
+            overflow_mask = overflow_mask | (exponent >= self.exp_max)
+            normal_mask = (exponent > self.exp_min) & (exponent < self.exp_max)
+
         sig_q = sig_q * inv_sig_steps
         
         # Reconstruct
