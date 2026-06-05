@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
 from jax import jit
+from ..cadna_random import CADNARandomGenerator
 
 class LightChop_:
     """
@@ -26,9 +27,10 @@ class LightChop_:
         - 4 : Truncate toward zero (no rounding up).
         - 5 : Stochastic rounding proportional to the fractional part.
         - 6 : Stochastic rounding with 50% probability.
-        - 7 : Round to nearest value, ties to zero.
-        - 8 : Round to nearest value, ties to away.
-        - 9 : Round to odd.
+        - 7 : CADNA-style random directed rounding.
+        - 8 : Round to nearest value, ties to zero.
+        - 9 : Round to nearest value, ties to away.
+        - 10 : Round to odd.
 
     random_state : int, default=42
         Random seed for stochastic rounding.
@@ -54,11 +56,16 @@ class LightChop_:
         self.chunk_size = chunk_size
         # Random state management
         self.rng_key = jax.random.PRNGKey(random_state)
+        if rmode == 7:
+            self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="jax")
+        else:
+            self._cadna_gen = None
 
         # JIT-compile the quantization core. 
         # static_argnums=(7,) corresponds to 'rmode' to allow specialized kernels.
         self._quantize_core = jit(self._quantize_impl, static_argnums=(7,))
 
+            
     def _to_custom_float(self, x):
         """Decomposes x into sign, exponent, and significand (vectorized)."""
         sign = jnp.sign(x)
@@ -151,7 +158,21 @@ class LightChop_:
             floor_val = jnp.floor(val)
             # Round up if random noise < 0.5
             return jnp.where(noise < 0.5, floor_val, floor_val + 1.0)
+        
+        def cadna_directed(val, sgn, bits):
+            """
+            CADNA-style random directed rounding for positive scaled significands.
 
+            bit = 0: upward rounding
+            bit = 1: downward rounding
+            """
+            bits = bits.astype(jnp.bool_)
+
+            upward = plus_inf(val, sgn)
+            downward = minus_inf(val, sgn)
+
+            return jnp.where(bits, downward, upward)
+        
         def nearest_ties_zero(val, sgn):
             floor_val = jnp.floor(val)
             is_half = jnp.abs(val - floor_val - 0.5) < 1e-6
@@ -198,10 +219,12 @@ class LightChop_:
         elif rmode == 6:
             rounded_val = stoc_equal(val_to_round, noise)
         elif rmode == 7:
-            rounded_val = nearest_ties_zero(val_to_round, sign)
+            rounded_val = cadna_directed(val_to_round, sign, noise)
         elif rmode == 8:
-            rounded_val = nearest_ties_away(val_to_round, sign)
+            rounded_val = nearest_ties_zero(val_to_round, sign)
         elif rmode == 9:
+            rounded_val = nearest_ties_away(val_to_round, sign)
+        elif rmode == 10:
             rounded_val = round_to_odd(val_to_round)
         else:
             # Fallback to nearest
@@ -771,15 +794,23 @@ class LightChop_:
         Main entry point. Quantizes x.
         """
         x = jnp.asarray(x)
-        
+
         if self.rmode in [5, 6]:
-            subkey = jax.random.fold_in(self.rng_key, 0)
+            self.rng_key, subkey = jax.random.split(self.rng_key)
             noise = jax.random.uniform(subkey, shape=x.shape)
+
+        elif self.rmode == 7:
+            if self._cadna_gen is None:
+                self._cadna_gen = CADNARandomGenerator(backend="jax")
+
+            bits = self._cadna_gen.random_bits(tuple(x.shape))
+            noise = jnp.asarray(bits, dtype=jnp.bool_)
+
         else:
             noise = jnp.zeros_like(x)
-                
+
         sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-        
+
         return self._quantize_core(
             x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode, noise
         )

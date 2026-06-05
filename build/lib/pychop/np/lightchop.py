@@ -1,5 +1,6 @@
 import numpy as np
 import dask.array as da
+from ..cadna_random import CADNARandomGenerator
 
 class LightChop_:
     """
@@ -32,9 +33,10 @@ class LightChop_:
         - 4 : Truncate toward zero (no rounding up).
         - 5 : Stochastic rounding proportional to the fractional part.
         - 6 : Stochastic rounding with 50% probability.
-        - 7 : Round to nearest value, ties to zero.
-        - 8 : Round to nearest value, ties to away.
-        - 9 : Round to odd.
+        - 7 : CADNA-style stochastic rounding (random sign bit flip).
+        - 8 : Round to nearest value, ties to zero.
+        - 9 : Round to nearest value, ties to away.
+        - 10 : Round to odd.
 
     subnormal : boolean, default=True
         Whether or not to support subnormal numbers.
@@ -65,6 +67,10 @@ class LightChop_:
         self.sig_steps = 2 ** sig_bits
         self.chunk_size = chunk_size
         np.random.seed(random_state)
+        if rmode == 7:
+            self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="numpy")
+        else:
+            self._cadna_gen = None
 
     def _to_custom_float(self, x: np.ndarray) -> tuple:
         sign = np.sign(x)
@@ -88,7 +94,28 @@ class LightChop_:
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
     
+    def _cadna_directed_round(self, val, sign):
+        """
+        CADNA-style random directed rounding for positive scaled significands.
 
+        random bit = 0: upward rounding
+            positive number -> ceil(val)
+            negative number -> floor(val)
+
+        random bit = 1: downward rounding
+            positive number -> floor(val)
+            negative number -> ceil(val)
+        """
+        if self._cadna_gen is None:
+            self._cadna_gen = CADNARandomGenerator(backend="numpy")
+
+        bits = self._cadna_gen.random_bits(val.shape).astype(bool)
+
+        upward = np.where(sign > 0, np.ceil(val), np.floor(val))
+        downward = np.where(sign > 0, np.floor(val), np.ceil(val))
+
+        return np.where(bits, downward, upward)
+    
     def _quantize_components(self, x: np.ndarray, sign: np.ndarray, exponent: np.ndarray, 
                             significand: np.ndarray, zero_mask: np.ndarray, 
                             inf_mask: np.ndarray, nan_mask: np.ndarray, rmode) -> np.ndarray:
@@ -139,17 +166,14 @@ class LightChop_:
                             np.where(prob < sub_fraction, sub_floor + 1, sub_floor) / sig_steps, 
                             sig_q)
                 
-        elif rmode == 6:  # Stochastic equal
-            floor_val = np.floor(sig_scaled)
-            prob = np.random.random(x.shape)
-            sig_q = np.where(prob < 0.5, floor_val, floor_val + 1) / sig_steps
+        elif rmode == 7:  # CADNA random directed rounding
+            sig_q = self._cadna_directed_round(sig_scaled, sign) / sig_steps
+
             if self.subnormal:
-                sub_floor = np.floor(sig_sub_scaled)
-                sig_q = np.where(subnormal_mask, 
-                            np.where(prob < 0.5, sub_floor, sub_floor + 1) / sig_steps, 
-                            sig_q)
-                
-        elif rmode == 7:  # Nearest, ties to zero
+                sig_q_sub = self._cadna_directed_round(sig_sub_scaled, sign) / sig_steps
+                sig_q = np.where(subnormal_mask, sig_q_sub, sig_q)
+              
+        elif rmode == 8:  # Nearest, ties to zero
             floor_val = np.floor(sig_scaled)
             is_half = np.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = np.where(is_half, np.where(sign >= 0, floor_val, floor_val + 1), np.round(sig_scaled)) / sig_steps
@@ -160,7 +184,7 @@ class LightChop_:
                             np.where(sub_is_half, np.where(sign >= 0, sub_floor, sub_floor + 1), 
                                         np.round(sig_sub_scaled)) / sig_steps, sig_q)
                 
-        elif rmode == 8:  # Nearest, ties away
+        elif rmode == 9:  # Nearest, ties away
             floor_val = np.floor(sig_scaled)
             is_half = np.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = np.where(is_half, np.where(sign >= 0, floor_val + 1, floor_val), np.round(sig_scaled)) / sig_steps
@@ -171,7 +195,7 @@ class LightChop_:
                             np.where(sub_is_half, np.where(sign >= 0, sub_floor + 1, sub_floor), 
                                         np.round(sig_sub_scaled)) / sig_steps, sig_q)
         
-        elif rmode == 9:  # Round-to-Odd
+        elif rmode == 10:  # Round-to-Odd
             rounded = np.round(sig_scaled)
             sig_q = np.where(rounded % 2 == 0, 
                             rounded + np.where(sig_scaled >= rounded, 1, -1), 
@@ -199,6 +223,15 @@ class LightChop_:
         return result
 
     def quantize(self, x: np.ndarray) -> np.ndarray:
+        x = np.asarray(x)
+
+        # CADNA rmode=7 uses a stateful RNG; avoid Dask map_blocks here.
+        if self.rmode == 7:
+            sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
+            return self._quantize_components(
+                x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode
+            )
+        
         # Convert to Dask array if input is large
         if isinstance(x, np.ndarray) and x.size > self.chunk_size:
             x_da = da.from_array(x, chunks=self.chunk_size)

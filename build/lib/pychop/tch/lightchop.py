@@ -1,6 +1,7 @@
 import torch
 from typing import Tuple
 import torch.nn as nn
+from ..cadna_random import CADNARandomGenerator
 
 class LightChop_:
     """
@@ -33,9 +34,10 @@ class LightChop_:
         - 4 : Truncate toward zero (no rounding up).
         - 5 : Stochastic rounding proportional to the fractional part.
         - 6 : Stochastic rounding with 50% probability.
-        - 7 : Round to nearest value, ties to zero.
-        - 8 : Round to nearest value, ties to away.
-        - 9 : Round to odd.
+        - 7 : CADNA-style random directed rounding.
+        - 8 : Round to nearest value, ties to zero.
+        - 9 : Round to nearest value, ties to away.
+        - 10 : Round to odd.
         
     random_state : int, default=42
         random seed for stochastic rounding.
@@ -57,7 +59,11 @@ class LightChop_:
         self.inv_sig_steps = 1.0 / self.sig_steps
         self.inv_min_exp_power = 1.0 / self.min_exp_power  # Precompute for subnormal case
         torch.manual_seed(random_state)
-        
+        if rmode == 7:
+            self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="torch")
+        else:
+            self._cadna_gen = None
+
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
         """Convert to custom float representation with proper IEEE 754 handling."""
@@ -81,6 +87,28 @@ class LightChop_:
         
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
     
+    def _cadna_directed_round(self, val: torch.Tensor, sign: torch.Tensor) -> torch.Tensor:
+        """
+        CADNA-style random directed rounding for positive scaled significands.
+
+        random bit = 0: upward rounding
+            positive number -> ceil(val)
+            negative number -> floor(val)
+
+        random bit = 1: downward rounding
+            positive number -> floor(val)
+            negative number -> ceil(val)
+        """
+        if self._cadna_gen is None:
+            self._cadna_gen = CADNARandomGenerator(backend="torch")
+
+        bits_np = self._cadna_gen.random_bits(tuple(val.shape))
+        bits = torch.from_numpy(bits_np).to(device=val.device, dtype=torch.bool)
+
+        upward = torch.where(sign > 0, torch.ceil(val), torch.floor(val))
+        downward = torch.where(sign > 0, torch.floor(val), torch.ceil(val))
+
+        return torch.where(bits, downward, upward)
     
     def _quantize_components(self, 
                             x: torch.Tensor,
@@ -143,8 +171,15 @@ class LightChop_:
                 sub_floor = torch.floor(sub_scaled)
                 sig_q = torch.where(subnormal_mask, 
                                 torch.where(prob < 0.5, sub_floor, sub_floor + 1) * inv_sig_steps, sig_q)
-            
-        elif self.rmode == 7:  # Nearest, ties to zero
+
+        elif self.rmode == 7:  # CADNA random directed rounding
+            sig_q = self._cadna_directed_round(sig_scaled, sign) * inv_sig_steps
+
+            if self.subnormal:
+                sig_q_sub = self._cadna_directed_round(sub_scaled, sign) * inv_sig_steps
+                sig_q = torch.where(subnormal_mask, sig_q_sub, sig_q)
+
+        elif self.rmode == 8:  # Nearest, ties to zero
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val, floor_val + 1), 
@@ -156,7 +191,7 @@ class LightChop_:
                                 torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
                                             torch.round(sub_scaled)) * inv_sig_steps, sig_q)
             
-        elif self.rmode == 8:  # Nearest, ties away
+        elif self.rmode == 9:  # Nearest, ties away
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val + 1, floor_val), 
@@ -168,7 +203,7 @@ class LightChop_:
                                 torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
                                             torch.round(sub_scaled)) * inv_sig_steps, sig_q)
         
-        elif self.rmode == 9:  # Round-to-Odd
+        elif self.rmode == 10:  # Round-to-Odd
             rounded = torch.round(sig_scaled)
             sig_q = torch.where(rounded % 2 == 0, 
                                 rounded + torch.where(sig_scaled >= rounded, 1, -1), 
@@ -619,7 +654,15 @@ class LightChopSTE(nn.Module):
         7-9: Additional specialized modes (ties handling, round-to-odd, etc.)
     subnormal (bool): Whether to support subnormal (denormal) numbers.
     """
-    def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True):
+    def __init__(
+        self,
+        exp_bits: int,
+        sig_bits: int,
+        rmode: int = 1,
+        subnormal: bool = True,
+        random_state: int = 42,
+    ):
+    #def __init__(self, exp_bits: int, sig_bits: int, rmode: int = 1, subnormal: bool = True):
         super().__init__()
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits
@@ -635,6 +678,10 @@ class LightChopSTE(nn.Module):
         self.exp_max = 2 ** exp_bits - 1
         self.inv_sig_steps = 1.0 / self.sig_steps
         self.inv_min_exp_power = 1.0 / self.min_exp_power
+        if rmode == 7:
+            self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="torch")
+        else:
+            self._cadna_gen = None
 
     def _to_custom_float(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor,
                                                         torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -665,6 +712,24 @@ class LightChopSTE(nn.Module):
         biased_exponent = exponent + self.bias
         return sign, biased_exponent, significand, zero_mask, inf_mask, nan_mask
 
+    def _cadna_directed_round(self, val: torch.Tensor, sign: torch.Tensor) -> torch.Tensor:
+        """
+        CADNA-style random directed rounding for positive scaled significands.
+
+        bit = 0: upward rounding
+        bit = 1: downward rounding
+        """
+        if self._cadna_gen is None:
+            self._cadna_gen = CADNARandomGenerator(backend="torch")
+
+        bits_np = self._cadna_gen.random_bits(tuple(val.shape))
+        bits = torch.from_numpy(bits_np).to(device=val.device, dtype=torch.bool)
+
+        upward = torch.where(sign > 0, torch.ceil(val), torch.floor(val))
+        downward = torch.where(sign > 0, torch.floor(val), torch.ceil(val))
+
+        return torch.where(bits, downward, upward)
+    
     def _quantize_components(self,
                              x: torch.Tensor,
                              sign: torch.Tensor,
@@ -742,7 +807,13 @@ class LightChopSTE(nn.Module):
             else:
                 sig_q = torch.where(subnormal_mask, torch.round(sub_scaled), sig_q)
         
-        elif self.rmode == 7:  # Nearest, ties to zero
+        elif self.rmode == 7:  # CADNA random directed rounding
+            sig_q = self._cadna_directed_round(sig_scaled, sign)
+
+            sig_q_sub = self._cadna_directed_round(sub_scaled, sign)
+            sig_q = torch.where(subnormal_mask, sig_q_sub, sig_q)
+
+        elif self.rmode == 8:  # Nearest, ties to zero
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val, floor_val + 1),
@@ -753,7 +824,7 @@ class LightChopSTE(nn.Module):
                                 torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
                                             torch.round(sub_scaled)), sig_q)
         
-        elif self.rmode == 8:  # Nearest, ties away
+        elif self.rmode == 9:  # Nearest, ties away
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val + 1, floor_val),
@@ -764,7 +835,7 @@ class LightChopSTE(nn.Module):
                                 torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
                                             torch.round(sub_scaled)), sig_q)
         
-        elif self.rmode == 9:  # Round-to-Odd
+        elif self.rmode == 10:  # Round-to-Odd
             rounded = torch.round(sig_scaled)
             sig_q = torch.where(rounded % 2 == 0,
                                 rounded + torch.where(sig_scaled >= rounded, 1, -1), rounded)
