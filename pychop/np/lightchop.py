@@ -33,10 +33,10 @@ class LightChop_:
         - 4 : Truncate toward zero (no rounding up).
         - 5 : Stochastic rounding proportional to the fractional part.
         - 6 : Stochastic rounding with 50% probability.
-        - 7 : CADNA-style stochastic rounding (random sign bit flip).
-        - 8 : Round to nearest value, ties to zero.
-        - 9 : Round to nearest value, ties to away.
-        - 10 : Round to odd.
+        - 7 : Round to nearest value, ties to zero.
+        - 8 : Round to nearest value, ties to away.
+        - 9 : Round to odd.
+        - 10 : CADNA-style random directed rounding.
 
     subnormal : boolean, default=True
         Whether or not to support subnormal numbers.
@@ -67,7 +67,7 @@ class LightChop_:
         self.sig_steps = 2 ** sig_bits
         self.chunk_size = chunk_size
         np.random.seed(random_state)
-        if rmode == 7:
+        if rmode == 10:
             self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="numpy")
         else:
             self._cadna_gen = None
@@ -111,10 +111,14 @@ class LightChop_:
 
         bits = self._cadna_gen.random_bits(val.shape).astype(bool)
 
-        upward = np.where(sign > 0, np.ceil(val), np.floor(val))
-        downward = np.where(sign > 0, np.floor(val), np.ceil(val))
+        floor_val = np.floor(val)
+        ceil_val = np.ceil(val)
 
-        return np.where(bits, downward, upward)
+        # bit=0: upward;   sign>0 -> ceil,  sign<0 -> floor
+        # bit=1: downward; sign>0 -> floor, sign<0 -> ceil
+        choose_floor = bits == (sign > 0)
+
+        return np.where(choose_floor, floor_val, ceil_val)
     
     def _quantize_components(self, x: np.ndarray, sign: np.ndarray, exponent: np.ndarray, 
                             significand: np.ndarray, zero_mask: np.ndarray, 
@@ -166,14 +170,17 @@ class LightChop_:
                             np.where(prob < sub_fraction, sub_floor + 1, sub_floor) / sig_steps, 
                             sig_q)
                 
-        elif rmode == 7:  # CADNA random directed rounding
-            sig_q = self._cadna_directed_round(sig_scaled, sign) / sig_steps
-
+        elif rmode == 6:  # Stochastic equal
+            floor_val = np.floor(sig_scaled)
+            prob = np.random.random(x.shape)
+            sig_q = np.where(prob < 0.5, floor_val, floor_val + 1) / sig_steps
             if self.subnormal:
-                sig_q_sub = self._cadna_directed_round(sig_sub_scaled, sign) / sig_steps
-                sig_q = np.where(subnormal_mask, sig_q_sub, sig_q)
-              
-        elif rmode == 8:  # Nearest, ties to zero
+                sub_floor = np.floor(sig_sub_scaled)
+                sig_q = np.where(subnormal_mask, 
+                            np.where(prob < 0.5, sub_floor, sub_floor + 1) / sig_steps, 
+                            sig_q)
+                
+        elif rmode == 7:  # Nearest, ties to zero
             floor_val = np.floor(sig_scaled)
             is_half = np.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = np.where(is_half, np.where(sign >= 0, floor_val, floor_val + 1), np.round(sig_scaled)) / sig_steps
@@ -184,7 +191,7 @@ class LightChop_:
                             np.where(sub_is_half, np.where(sign >= 0, sub_floor, sub_floor + 1), 
                                         np.round(sig_sub_scaled)) / sig_steps, sig_q)
                 
-        elif rmode == 9:  # Nearest, ties away
+        elif rmode == 8:  # Nearest, ties away
             floor_val = np.floor(sig_scaled)
             is_half = np.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = np.where(is_half, np.where(sign >= 0, floor_val + 1, floor_val), np.round(sig_scaled)) / sig_steps
@@ -195,7 +202,7 @@ class LightChop_:
                             np.where(sub_is_half, np.where(sign >= 0, sub_floor + 1, sub_floor), 
                                         np.round(sig_sub_scaled)) / sig_steps, sig_q)
         
-        elif rmode == 10:  # Round-to-Odd
+        elif rmode == 9:  # Round-to-Odd
             rounded = np.round(sig_scaled)
             sig_q = np.where(rounded % 2 == 0, 
                             rounded + np.where(sig_scaled >= rounded, 1, -1), 
@@ -207,7 +214,14 @@ class LightChop_:
                                         sub_rounded + np.where(sig_sub_scaled >= sub_rounded, 1, -1),
                                         sub_rounded) / sig_steps,
                                 sig_q)
-        
+
+        elif rmode == 10:  # CADNA random directed rounding
+            sig_q = self._cadna_directed_round(sig_scaled, sign) / sig_steps
+
+            if self.subnormal:
+                sig_q_sub = self._cadna_directed_round(sig_sub_scaled, sign) / sig_steps
+                sig_q = np.where(subnormal_mask, sig_q_sub, sig_q)
+              
         else:
             raise ValueError(f"Unsupported rounding mode: {rmode}")
         

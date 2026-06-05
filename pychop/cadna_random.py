@@ -166,26 +166,61 @@ class CADNARandomGenerator:
         """
         Generate an array of random bits.
 
-        Parameters
-        ----------
-        shape : tuple
-            Shape of output array.
-
-        Returns
-        -------
-        np.ndarray
-            Array of random bits, values 0 or 1, dtype uint8.
+        Same output sequence as repeated random_bit(), but faster for arrays:
+        consumes cached bits LSB-first, then generates uint32 batches and unpacks
+        them LSB-first.
         """
         if shape == ():
             return np.array(self.random_bit(), dtype=np.uint8)
 
         size = int(np.prod(shape))
-        bits = np.fromiter(
-            (self.random_bit() for _ in range(size)),
-            dtype=np.uint8,
-            count=size,
-        )
-        return bits.reshape(shape)
+        out = np.empty(size, dtype=np.uint8)
+        pos = 0
+
+        # Consume existing cache first, exactly as repeated random_bit()
+        if self._cache_counter < 32:
+            n_cached = min(size, 32 - self._cache_counter)
+
+            cache = np.uint32(self._random_cache)
+            shifts = np.arange(n_cached, dtype=np.uint32)
+            out[pos:pos + n_cached] = ((cache >> shifts) & np.uint32(1)).astype(np.uint8)
+
+            self._random_cache = np.uint32(cache >> np.uint32(n_cached))
+            self._cache_counter += n_cached
+            pos += n_cached
+
+        # Generate full uint32 words
+        remaining = size - pos
+        n_words = remaining // 32
+
+        if n_words > 0:
+            words = np.empty(n_words, dtype=np.uint32)
+
+            # Keep generator state sequence unchanged
+            for i in range(n_words):
+                words[i] = self._generate_batch()
+
+            shifts = np.arange(32, dtype=np.uint32)
+            bits = ((words[:, None] >> shifts[None, :]) & np.uint32(1)).astype(np.uint8)
+
+            n_bits = n_words * 32
+            out[pos:pos + n_bits] = bits.reshape(-1)
+            pos += n_bits
+
+            self._random_cache = np.uint32(0)
+            self._cache_counter = 32
+
+        # Tail bits
+        tail = size - pos
+        if tail > 0:
+            cache = self._generate_batch()
+            shifts = np.arange(tail, dtype=np.uint32)
+            out[pos:pos + tail] = ((cache >> shifts) & np.uint32(1)).astype(np.uint8)
+
+            self._random_cache = np.uint32(cache >> np.uint32(tail))
+            self._cache_counter = tail
+
+        return out.reshape(shape)
 
 
 def numpy_bit_flip(x: np.ndarray, random_bits: np.ndarray) -> np.ndarray:

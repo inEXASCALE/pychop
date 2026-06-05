@@ -34,10 +34,10 @@ class LightChop_:
         - 4 : Truncate toward zero (no rounding up).
         - 5 : Stochastic rounding proportional to the fractional part.
         - 6 : Stochastic rounding with 50% probability.
-        - 7 : CADNA-style random directed rounding.
-        - 8 : Round to nearest value, ties to zero.
-        - 9 : Round to nearest value, ties to away.
-        - 10 : Round to odd.
+        - 7 : Round to nearest value, ties to zero.
+        - 8 : Round to nearest value, ties to away.
+        - 9 : Round to odd.
+        - 10 : CADNA-style random directed rounding.
         
     random_state : int, default=42
         random seed for stochastic rounding.
@@ -59,7 +59,7 @@ class LightChop_:
         self.inv_sig_steps = 1.0 / self.sig_steps
         self.inv_min_exp_power = 1.0 / self.min_exp_power  # Precompute for subnormal case
         torch.manual_seed(random_state)
-        if rmode == 7:
+        if rmode == 10:
             self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="torch")
         else:
             self._cadna_gen = None
@@ -103,12 +103,17 @@ class LightChop_:
             self._cadna_gen = CADNARandomGenerator(backend="torch")
 
         bits_np = self._cadna_gen.random_bits(tuple(val.shape))
-        bits = torch.from_numpy(bits_np).to(device=val.device, dtype=torch.bool)
 
-        upward = torch.where(sign > 0, torch.ceil(val), torch.floor(val))
-        downward = torch.where(sign > 0, torch.floor(val), torch.ceil(val))
+        bits = torch.as_tensor(bits_np, device=val.device, dtype=torch.bool)
 
-        return torch.where(bits, downward, upward)
+        floor_val = torch.floor(val)
+        ceil_val = torch.ceil(val)
+
+        # bit=0: upward   => sign>0 选 ceil, sign<=0 选 floor
+        # bit=1: downward => sign>0 选 floor, sign<=0 选 ceil
+        choose_floor = bits == (sign > 0)
+
+        return torch.where(choose_floor, floor_val, ceil_val)
     
     def _quantize_components(self, 
                             x: torch.Tensor,
@@ -652,6 +657,7 @@ class LightChopSTE(nn.Module):
         5: Stochastic proportional rounding
         6: Stochastic equal-probability rounding
         7-9: Additional specialized modes (ties handling, round-to-odd, etc.)
+        10: CADNA-style random directed rounding
     subnormal (bool): Whether to support subnormal (denormal) numbers.
     """
     def __init__(
@@ -678,7 +684,7 @@ class LightChopSTE(nn.Module):
         self.exp_max = 2 ** exp_bits - 1
         self.inv_sig_steps = 1.0 / self.sig_steps
         self.inv_min_exp_power = 1.0 / self.min_exp_power
-        if rmode == 7:
+        if rmode == 10:
             self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="torch")
         else:
             self._cadna_gen = None
@@ -723,12 +729,17 @@ class LightChopSTE(nn.Module):
             self._cadna_gen = CADNARandomGenerator(backend="torch")
 
         bits_np = self._cadna_gen.random_bits(tuple(val.shape))
-        bits = torch.from_numpy(bits_np).to(device=val.device, dtype=torch.bool)
 
-        upward = torch.where(sign > 0, torch.ceil(val), torch.floor(val))
-        downward = torch.where(sign > 0, torch.floor(val), torch.ceil(val))
+        bits = torch.as_tensor(bits_np, device=val.device, dtype=torch.bool)
 
-        return torch.where(bits, downward, upward)
+        floor_val = torch.floor(val)
+        ceil_val = torch.ceil(val)
+
+        # bit=0: upward   => sign>0 选 ceil, sign<=0 选 floor
+        # bit=1: downward => sign>0 选 floor, sign<=0 选 ceil
+        choose_floor = bits == (sign > 0)
+
+        return torch.where(choose_floor, floor_val, ceil_val)
     
     def _quantize_components(self,
                              x: torch.Tensor,
@@ -807,13 +818,8 @@ class LightChopSTE(nn.Module):
             else:
                 sig_q = torch.where(subnormal_mask, torch.round(sub_scaled), sig_q)
         
-        elif self.rmode == 7:  # CADNA random directed rounding
-            sig_q = self._cadna_directed_round(sig_scaled, sign)
 
-            sig_q_sub = self._cadna_directed_round(sub_scaled, sign)
-            sig_q = torch.where(subnormal_mask, sig_q_sub, sig_q)
-
-        elif self.rmode == 8:  # Nearest, ties to zero
+        elif self.rmode == 7:  # Nearest, ties to zero
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val, floor_val + 1),
@@ -824,7 +830,7 @@ class LightChopSTE(nn.Module):
                                 torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
                                             torch.round(sub_scaled)), sig_q)
         
-        elif self.rmode == 9:  # Nearest, ties away
+        elif self.rmode == 8:  # Nearest, ties away
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val + 1, floor_val),
@@ -835,7 +841,7 @@ class LightChopSTE(nn.Module):
                                 torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
                                             torch.round(sub_scaled)), sig_q)
         
-        elif self.rmode == 10:  # Round-to-Odd
+        elif self.rmode == 9:  # Round-to-Odd
             rounded = torch.round(sig_scaled)
             sig_q = torch.where(rounded % 2 == 0,
                                 rounded + torch.where(sig_scaled >= rounded, 1, -1), rounded)
@@ -845,6 +851,13 @@ class LightChopSTE(nn.Module):
                                             sub_rounded + torch.where(sub_scaled >= sub_rounded, 1, -1),
                                             sub_rounded), sig_q)
         
+
+        elif self.rmode == 10:  # CADNA random directed rounding
+            sig_q = self._cadna_directed_round(sig_scaled, sign)
+
+            sig_q_sub = self._cadna_directed_round(sub_scaled, sign)
+            sig_q = torch.where(subnormal_mask, sig_q_sub, sig_q)
+
         else:
             raise ValueError(f"Unsupported rounding mode: {self.rmode}")
         

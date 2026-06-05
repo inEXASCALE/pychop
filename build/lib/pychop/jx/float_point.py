@@ -199,6 +199,8 @@ class Chop_(object):
         6. Stochastic rounding - round to the next larger or next smaller 
            floating-point number with equal probability.
 
+        10. Stochastic rounding - CADNA-style random directed rounding.
+        
     flip : boolean, default=False
         Default is False; If ``flip`` is True, then each element
         of the rounded result has a randomly generated bit in its significand flipped 
@@ -253,7 +255,7 @@ class Chop_(object):
             4: _chop_round_towards_zero,
             5: _chop_stochastic_rounding,
             6: _chop_stochastic_rounding_equal,
-            7: _chop_cadna_rounding 
+            10: _chop_cadna_rounding 
         }
         if rmode not in self._chop_funcs:
             raise ValueError('Unsupported value of rmode.')
@@ -278,7 +280,7 @@ class Chop_(object):
         self._emins = self._emin + 1 - self.t
         self._xmins = 2.0 ** self._emins
 
-        if rmode == 7:
+        if rmode == 10:
             self._cadna_gen = CADNARandomGeneratorJAX(seed=random_state)
         else:
             self._cadna_gen = None

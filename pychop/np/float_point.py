@@ -24,6 +24,7 @@ class Chop_(object):
            to those floating-point numbers.
         6. Stochastic rounding - round to the next larger or next smaller 
            floating-point number with equal probability.
+        10. Stochastic rounding - CADNA-style random directed rounding.
 
     flip : boolean, default=False
         Default is False; If ``flip`` is True, then each element
@@ -90,10 +91,10 @@ class Chop_(object):
             4: _chop_round_towards_zero,
             5: _chop_stochastic_rounding,
             6: _chop_stochastic_rounding_equal,
-            7: _chop_cadna_rounding
+            10: _chop_cadna_rounding
         }.get(rmode, lambda *args: raise_value_error('Unsupported rmode'))
 
-        if rmode == 7:
+        if rmode == 10:
             from ..cadna_random import CADNARandomGenerator
             self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="numpy")
         else:

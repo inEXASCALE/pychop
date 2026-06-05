@@ -28,6 +28,7 @@ class FaultChop:
         - 4 or "toward_zero": Truncate toward zero (no rounding up).
         - 5 or "stoc_prop": Stochastic rounding proportional to the fractional part.
         - 6 or "stoc_equal": Stochastic rounding with 50% probability.
+        - 10 or "cadna": Stochastic rounding - CADNA-style random directed rounding.
 
     flip : boolean, default=False
         Default is False; If ``flip`` is True, then each element

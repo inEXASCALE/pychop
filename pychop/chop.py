@@ -25,6 +25,7 @@ class Chop:
         - 7 : Round to nearest value, ties to zero.
         - 8 : Round to nearest value, ties to away.
         - 9 : Round to odd.
+        - 10 : CADNA-style random directed rounding.
 
     subnormal : boolean, default=True
         Whether or not to support subnormal numbers.

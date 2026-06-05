@@ -27,10 +27,10 @@ class LightChop_:
         - 4 : Truncate toward zero (no rounding up).
         - 5 : Stochastic rounding proportional to the fractional part.
         - 6 : Stochastic rounding with 50% probability.
-        - 7 : CADNA-style random directed rounding.
-        - 8 : Round to nearest value, ties to zero.
-        - 9 : Round to nearest value, ties to away.
-        - 10 : Round to odd.
+        - 7 : Round to nearest value, ties to zero.
+        - 8 : Round to nearest value, ties to away.
+        - 9 : Round to odd.
+        - 10 : CADNA-style random directed rounding.
 
     random_state : int, default=42
         Random seed for stochastic rounding.
@@ -56,7 +56,7 @@ class LightChop_:
         self.chunk_size = chunk_size
         # Random state management
         self.rng_key = jax.random.PRNGKey(random_state)
-        if rmode == 7:
+        if rmode == 10:
             self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="jax")
         else:
             self._cadna_gen = None
@@ -219,13 +219,13 @@ class LightChop_:
         elif rmode == 6:
             rounded_val = stoc_equal(val_to_round, noise)
         elif rmode == 7:
-            rounded_val = cadna_directed(val_to_round, sign, noise)
-        elif rmode == 8:
             rounded_val = nearest_ties_zero(val_to_round, sign)
-        elif rmode == 9:
+        elif rmode == 8:
             rounded_val = nearest_ties_away(val_to_round, sign)
-        elif rmode == 10:
+        elif rmode == 9:
             rounded_val = round_to_odd(val_to_round)
+        elif rmode == 10:
+            rounded_val = cadna_directed(val_to_round, sign, noise)
         else:
             # Fallback to nearest
             rounded_val = nearest(val_to_round)
