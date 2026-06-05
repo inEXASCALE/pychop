@@ -26,6 +26,7 @@ install_requires = [
     "torch>=1.12",
     "jax>=0.4.8",
     "jaxlib>=0.4.7",
+    "tensorflow>=2.16",
 ]
 
 class CustomBuildExtCommand(build_ext):
