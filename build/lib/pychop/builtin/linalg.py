@@ -7,6 +7,78 @@ import pychop
 
 from .dispatch import ChopWrapSpec, chopwrap_call
 
+def _infer_backend_from_obj(x: object) -> Optional[str]:
+    if isinstance(x, CPArray):
+        return "numpy"
+    if isinstance(x, CPJaxArray):
+        return "jax"
+    if isinstance(x, CPTensor):
+        return "torch"
+    return None
+
+
+def _ensure_backend_for_obj(x) -> str:
+    """
+    Ensure pychop.backend() is concrete (numpy/jax/torch) when currently 'auto'.
+
+    This function infers the backend from the CP* wrapper type of `x` and sets
+    the global backend via `pychop.backend(<name>)`.
+
+    Parameters
+    ----------
+    x : object
+        Typically a CPArray / CPJaxArray / CPTensor instance.
+
+    Returns
+    -------
+    str
+        Concrete backend name.
+
+    Raises
+    ------
+    ValueError
+        If backend is 'auto' and cannot be inferred from x.
+    """
+    b = pychop.get_backend()
+
+    if b != "auto":
+        return b
+
+    # Import types lazily to avoid circular imports at module import time
+    try:
+        from .cparray import CPArray
+    except Exception:
+        CPArray = None  # type: ignore
+
+    try:
+        from .cparray_jax import CPJaxArray
+    except Exception:
+        CPJaxArray = None  # type: ignore
+
+    try:
+        from .cptensor import CPTensor
+    except Exception:
+        CPTensor = None  # type: ignore
+
+    inferred = _infer_backend_from_obj(x)
+    if CPArray is not None and isinstance(x, CPArray):
+        inferred = "numpy"
+    elif CPJaxArray is not None and isinstance(x, CPJaxArray):
+        inferred = "jax"
+    elif CPTensor is not None and isinstance(x, CPTensor):
+        inferred = "torch"
+
+    if inferred is None:
+        raise ValueError(
+            "pychop backend is 'auto' and could not be inferred from input type. "
+            "Please call pychop.backend('numpy'|'jax'|'torch') explicitly."
+        )
+
+    # Set the global backend
+    pychop.backend(inferred)
+    return inferred
+
+
 
 # -------------------------
 # Specs per backend
@@ -66,7 +138,7 @@ def _torch_specs():
 
 def _specs_for_backend():
     b = pychop.get_backend()
-    if b == "numpy":
+    if b == "numpy" or b == "auto":
         return _numpy_specs()
     if b == "jax":
         return _jax_specs()
@@ -638,6 +710,7 @@ def lu_factor(A, *args, **kwargs):
       pivots to remain plain integer tensors, that requires special-casing in
       the wrap spec.
     """
+    _ensure_backend_for_obj(A) 
     b = pychop.get_backend()
     specs = _specs_for_backend()
 
