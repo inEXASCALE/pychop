@@ -14,9 +14,10 @@ class BFPTensor_:
             self.spec = create_bfp_spec(*format)
         else:
             self.spec = format
+        self._original_format = format
         self.dtype = tf.convert_to_tensor(data).dtype
         self.shape = tf.convert_to_tensor(data).shape
-        self._np_impl = NPBFPTensor(tf.convert_to_tensor(data).numpy(), format=self.spec)
+        self._np_impl = NPBFPTensor(tf.convert_to_tensor(data).numpy(), format=self._original_format)
 
     def dequantize(self):
         out = tf.convert_to_tensor(self._np_impl.dequantize())
@@ -31,6 +32,7 @@ class BFPTensor_:
 class BFPQuantizerSTE(tf.keras.layers.Layer):
     def __init__(self, format: Union[str, BFPSpec, Tuple[int, int]] = 'bfp8', **kwargs):
         super().__init__(**kwargs)
+        self._original_format = format
         if isinstance(format, str):
             self.spec = BFP_FORMATS[format.lower()]
         elif isinstance(format, tuple):
@@ -40,9 +42,10 @@ class BFPQuantizerSTE(tf.keras.layers.Layer):
 
     def call(self, x):
         x = tf.convert_to_tensor(x)
+        fmt = self._original_format
         return unary_numpy_op(
             x,
-            lambda arr: NPBFPTensor(arr, format=self.spec).dequantize(),
+            lambda arr: NPBFPTensor(arr, format=fmt).dequantize(),
             tout=x.dtype,
             identity_grad=x.dtype.is_floating,
         )

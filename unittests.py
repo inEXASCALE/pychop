@@ -13,6 +13,7 @@ from pychop import ChopSTE
 import torch
 import jax
 from jax import config
+import importlib.util
 
 config.update("jax_enable_x64", True)
 pychop.backend('numpy') # verbose=1 -> print information, NumPy is the default option.
@@ -23,6 +24,11 @@ X_np = X_np['array'][0]
 
 X_th = torch.from_numpy(X_np) # torch array
 X_jx = jax.numpy.float64(X_np)
+
+_HAS_TF = importlib.util.find_spec('tensorflow') is not None
+if _HAS_TF:
+    import tensorflow as tf
+    X_tf = tf.constant(X_np, dtype=tf.float64)
 
 
 class TestClassix(unittest.TestCase):
@@ -972,6 +978,453 @@ class TestClassix(unittest.TestCase):
         print(f"Half eps: {2**(-10):.2e}")
 
 
-        
+
+    # tensorflow
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_q52_tf(self):
+        pychop.backend('tensorflow')
+        ch = FaultChop('q52', rmode=1, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/q52/q52_rmode_1_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = FaultChop('q52', rmode=2, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/q52/q52_rmode_2_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = FaultChop('q52', rmode=3, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/q52/q52_rmode_3_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = FaultChop('q52', rmode=4, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/q52/q52_rmode_4_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+        scaling = 1000
+        X_tf_scaling = X_tf / scaling
+
+        ch = FaultChop('q52', rmode=1, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/q52/q52_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = FaultChop('q52', rmode=2, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/q52/q52_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = FaultChop('q52', rmode=3, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/q52/q52_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = FaultChop('q52', rmode=4, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/q52/q52_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_43_tf(self):
+        pychop.backend('tensorflow')
+        ch = FaultChop('q43', rmode=1, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/q43/q43_rmode_1_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = FaultChop('q43', rmode=2, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/q43/q43_rmode_2_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = FaultChop('q43', rmode=3, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/q43/q43_rmode_3_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = FaultChop('q43', rmode=4, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/q43/q43_rmode_4_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+        scaling = 1000
+        X_tf_scaling = X_tf / scaling
+
+        ch = FaultChop('q43', rmode=1, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/q43/q43_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = FaultChop('q43', rmode=2, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/q43/q43_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = FaultChop('q43', rmode=3, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/q43/q43_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = FaultChop('q43', rmode=4, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/q43/q43_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_half_tf(self):
+        pychop.backend('tensorflow')
+        ch = FaultChop('h', rmode=1, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/half/half_rmode_1_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = FaultChop('h', rmode=2, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/half/half_rmode_2_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = FaultChop('h', rmode=3, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/half/half_rmode_3_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = FaultChop('h', rmode=4, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/half/half_rmode_4_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+        scaling = 1000
+        X_tf_scaling = X_tf / scaling
+
+        ch = FaultChop('h', rmode=1, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = FaultChop('h', rmode=2, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = FaultChop('h', rmode=3, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = FaultChop('h', rmode=4, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_bfloat16_tf(self):
+        pychop.backend('tensorflow')
+        ch = FaultChop('b', rmode=1, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_1_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = FaultChop('b', rmode=2, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_2_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = FaultChop('b', rmode=3, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_3_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = FaultChop('b', rmode=4, subnormal=0)
+        emulated= ch(X_tf)
+        groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_4_subnormal_0.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+        scaling = 1000
+        X_tf_scaling = X_tf / scaling
+
+        ch = FaultChop('b', rmode=1, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = FaultChop('b', rmode=2, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = FaultChop('b', rmode=3, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = FaultChop('b', rmode=4, subnormal=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/bfloat16/bfloat16_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_lightchop_tf(self):
+        pychop.backend('tensorflow')
+        scaling = 1000
+        X_tf_scaling = X_tf / scaling
+
+        ch = Chop(exp_bits=5, sig_bits=10, rmode=1)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = Chop(exp_bits=5, sig_bits=10, rmode=2)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = Chop(exp_bits=5, sig_bits=10, rmode=3)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = Chop(exp_bits=5, sig_bits=10, rmode=4)
+        emulated= ch(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_lightchop_ste_tf(self):
+        pychop.backend('tensorflow')
+        scaling = 1000
+        X_tf_scaling = X_tf / scaling
+
+        ch = ChopSTE(exp_bits=5, sig_bits=10, rmode=1)
+        emulated= ch.quantize(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_1_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 1")
+
+        ch = ChopSTE(exp_bits=5, sig_bits=10, rmode=2)
+        emulated= ch.quantize(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_2_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 2")
+
+        ch = ChopSTE(exp_bits=5, sig_bits=10, rmode=3)
+        emulated= ch.quantize(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_3_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 3")
+
+        ch = ChopSTE(exp_bits=5, sig_bits=10, rmode=4)
+        emulated= ch.quantize(X_tf_scaling)
+        groud_truth = loadmat("tests/half/half_rmode_4_subnormal_1.mat")
+        groud_truth = groud_truth["emu_vals"].flatten()
+        assert np.array_equal(emulated, groud_truth), print("error rmode 4")
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_tf_lightchop_surface_methods(self):
+        from pychop.tf.lightchop import LightChop_
+        from pychop.tf.fixed_point import FPRound_
+
+        ch = LightChop_(exp_bits=5, sig_bits=10)
+        fp = FPRound_(ibits=4, fbits=4)
+
+        for method in ('sin', 'add', 'sum', 'round', 'clip', 'ldexp', 'frexp', 'modf'):
+            self.assertTrue(hasattr(ch, method), f"LightChop_ missing {method}")
+            self.assertTrue(hasattr(fp, method), f"FPRound_ missing {method}")
+
+        # Test quantize with a simple tensor
+        x = tf.constant([1.234, 2.345, 3.456], dtype=tf.float32)
+        result = ch(x)
+        self.assertEqual(result.shape, x.shape)
+
+        result_fp = fp(x)
+        self.assertEqual(result_fp.shape, x.shape)
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_tf_fpround(self):
+        from pychop.tf.fixed_point import FPRound_
+
+        fp = FPRound_(ibits=4, fbits=4, rmode=1)
+        x = tf.constant([1.234, -2.345, 0.5, 3.75], dtype=tf.float32)
+
+        # quantize
+        result = fp(x)
+        self.assertEqual(result.shape, x.shape)
+
+        # get_format_info
+        info = fp.get_format_info()
+        self.assertIsNotNone(info)
+
+        # diff
+        diff_result = fp.diff(x)
+        self.assertIsNotNone(diff_result)
+
+        # frexp
+        mantissa, exponent = fp.frexp(x)
+        self.assertEqual(mantissa.shape, x.shape)
+        self.assertEqual(exponent.shape, x.shape)
+
+        # modf
+        frac, integ = fp.modf(x)
+        self.assertEqual(frac.shape, x.shape)
+        self.assertEqual(integ.shape, x.shape)
+
+        # round
+        rounded = fp.round(x)
+        self.assertEqual(rounded.shape, x.shape)
+
+
+        # unary method (sin)
+        sin_result = fp.sin(x)
+        self.assertEqual(sin_result.shape, x.shape)
+
+        # binary method (add)
+        y = tf.constant([0.1, 0.2, 0.3, 0.4], dtype=tf.float32)
+        add_result = fp.add(x, y)
+        self.assertEqual(add_result.shape, x.shape)
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_tf_integer(self):
+        from pychop.tf.integer import Chopi_
+
+        ch = Chopi_(bits=8, verbose=False)
+        self.assertFalse(ch.is_calibrated)
+
+        x = tf.constant([0.1, -0.2, 0.3, 0.5, -0.8], dtype=tf.float32)
+        ch.calibrate(x)
+        self.assertTrue(ch.is_calibrated)
+        self.assertIsNotNone(ch.scale)
+        self.assertIsNotNone(ch.zero_point)
+
+        # quantize
+        q = ch.quantize(x)
+        self.assertEqual(q.shape, x.shape)
+
+        # dequantize
+        dq = ch.dequantize(q)
+        self.assertEqual(dq.shape, x.shape)
+
+        # forward (STE)
+        out = ch(x)
+        self.assertEqual(out.shape, x.shape)
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_tf_bitchop(self):
+        from pychop.tf.bitchop import Bitchop
+
+        bc = Bitchop(exp_bits=5, sig_bits=10, rmode=1)
+        x = tf.constant([1.234, 2.345, -3.456], dtype=tf.float32)
+        result = bc(x)
+        self.assertEqual(result.shape, x.shape)
+
+        # Verify it produces finite values
+        self.assertTrue(np.all(np.isfinite(result.numpy())))
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_tf_bfp_formats(self):
+        from pychop.tf.bfp_formats import BFPTensor_, BFPQuantizerSTE, bfp_quantize
+
+        x = tf.constant([1.0, 2.0, 3.0, 4.0], dtype=tf.float32)
+
+        # BFPTensor_
+        bfp = BFPTensor_(x, format='bfp8')
+        dequant = bfp.dequantize()
+        self.assertEqual(dequant.shape, x.shape)
+
+        stats = bfp.statistics()
+        self.assertIsNotNone(stats)
+
+        # BFPQuantizerSTE layer
+        layer = BFPQuantizerSTE(format='bfp8')
+        result = layer(x)
+        self.assertEqual(result.shape, x.shape)
+
+        # bfp_quantize convenience function
+        result2 = bfp_quantize(x, format='bfp8')
+        self.assertEqual(result2.shape, x.shape)
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_tf_mx_formats(self):
+        from pychop.tf.mx_formats import MXTensor_, MXQuantizerSTE, mx_quantize
+
+        x = tf.constant(np.random.randn(64).astype(np.float32))
+
+        # MXTensor_
+        mx = MXTensor_(x, format='mxfp8_e4m3')
+        dequant = mx.dequantize()
+        self.assertEqual(dequant.shape, x.shape)
+
+        stats = mx.statistics()
+        self.assertIsNotNone(stats)
+
+        # MXQuantizerSTE layer
+        layer = MXQuantizerSTE(format='mxfp8_e4m3')
+        result = layer(x)
+        self.assertEqual(result.shape, x.shape)
+
+        # mx_quantize convenience function
+        result2 = mx_quantize(x, format='mxfp8_e4m3')
+        self.assertEqual(result2.shape, x.shape)
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_tf_ptq(self):
+        from pychop.tf.ptq import static_post_quantization
+
+        model = tf.keras.Sequential([tf.keras.layers.Dense(4)])
+        model(tf.ones((1, 3), dtype=tf.float32))
+        ch = Chop(exp_bits=5, sig_bits=10)
+        wrapped = static_post_quantization(model, ch, calibration_data=[])
+        y = wrapped(tf.ones((1, 3), dtype=tf.float32), training=False)
+        self.assertEqual(tuple(y.shape), (1, 4))
+
+    @unittest.skipUnless(_HAS_TF, "TensorFlow not installed")
+    def test_tf_backend_switch(self):
+        """Test that backend can be switched to tensorflow and back."""
+        pychop.backend('tensorflow')
+        self.assertEqual(pychop.get_backend(), 'tensorflow')
+
+        pychop.backend('tf')
+        self.assertEqual(pychop.get_backend(), 'tensorflow')
+
+        pychop.backend('numpy')
+        self.assertEqual(pychop.get_backend(), 'numpy')
+
+
 if __name__ == '__main__':
     unittest.main()

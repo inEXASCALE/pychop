@@ -15,11 +15,12 @@ class MXTensor_:
             self.spec = create_mx_spec(*format, block_size=block_size)
         else:
             self.spec = format
+        self._original_format = format
         self.dtype = tf.convert_to_tensor(data).dtype
         self.shape = tf.convert_to_tensor(data).shape
         self._np_impl = NPMXTensor(
             tf.convert_to_tensor(data).numpy(),
-            format=self.spec,
+            format=self._original_format,
             block_size=block_size,
             scale_exp_bits=scale_exp_bits,
             scale_sig_bits=scale_sig_bits,

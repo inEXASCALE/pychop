@@ -25,7 +25,6 @@ class Chopi_:
             symmetric=symmetric,
             per_channel=per_channel,
             axis=axis,
-            verbose=verbose,
         )
         self.scale = None
         self.zero_point = None
