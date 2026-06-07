@@ -38,3 +38,15 @@ maintainers = [
 urls = {Homepage = "https://github.com/nla-group/pychop"}
 
 dynamic = ["version", "dependencies"]
+
+# Optional dependencies (extras) - heavy backends moved here to avoid conflicts
+[project.optional-dependencies]
+torch = ["torch>=1.12"]
+jax = ["jax>=0.4.8", "jaxlib>=0.4.7"]
+tensorflow = ["tensorflow>=2.16"]
+all = [
+    "torch>=1.12",
+    "jax>=0.4.8",
+    "jaxlib>=0.4.7",
+    "tensorflow>=2.16",
+]

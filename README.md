@@ -175,6 +175,7 @@ pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
 backend = pychop.get_backend() # you can also get current backend via .get_backend()
 # One can also specify 'auto', the pychop will automatically detect the types,
 # but speed will be degraded. 
+# For other backends, e.g., the ``torch`` backend, the input must be consistent array type, e.g., X = torch.from_numpy(X) # torch array
  
 ch = Chop(exp_bits=5, sig_bits=10, rmode=3) # half precision
 X_q = ch(X)

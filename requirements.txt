@@ -1,6 +1,12 @@
+# Core dependencies (always required)
 numpy>=1.17.3
 pandas
-scipy>= 1.0
+scipy>=1.0
 scikit-learn>=0.20
 dask[array]
-tensorflow>=2.16
+
+# Optional backends - install separately when needed
+# pip install "pychop[tensorflow]"   # or [torch], [jax], [all]
+
+# For TensorFlow users (common conflict fix)
+# protobuf<4.21
