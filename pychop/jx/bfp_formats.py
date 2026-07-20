@@ -9,9 +9,31 @@ Author: Xinye Chen
 
 import jax
 import jax.numpy as jnp
-from flax import linen as nn
 from typing import Union, Tuple, Optional, Any
 import numpy as np
+
+try:
+    from flax import linen as nn
+except ImportError:
+    class _MissingFlax:
+        class Module:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("Flax is required for BFPDense")
+
+        class initializers:
+            @staticmethod
+            def lecun_normal():
+                raise ImportError("Flax is required for BFPDense")
+
+            @staticmethod
+            def zeros(*args, **kwargs):
+                raise ImportError("Flax is required for BFPDense")
+
+        @staticmethod
+        def compact(fn):
+            return fn
+
+    nn = _MissingFlax()
 
 # Import shared spec
 import sys

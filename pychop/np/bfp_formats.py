@@ -8,6 +8,7 @@ Author: Xinye Chen
 """
 
 import numpy as np
+import math
 from typing import Union, Tuple, Optional, List
 from dataclasses import dataclass
 
@@ -16,6 +17,11 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from bfp_formats import BFPSpec, BFP_FORMATS, create_bfp_spec
+
+
+def _shared_exponent_bounds(exponent_bits: int) -> Tuple[int, int]:
+    bias = 2 ** (exponent_bits - 1) - 1
+    return -bias, (2 ** exponent_bits - 2) - bias
 
 
 # ============================================================================
@@ -41,34 +47,43 @@ class BFPBlock_:
         """Quantize data to BFP format."""
         # Handle all-zero block
         if np.all(data == 0):
-            self.shared_exponent = 0
+            min_exp, _ = _shared_exponent_bounds(self.spec.exponent_bits)
+            self.shared_exponent = min_exp
             self.mantissas = np.zeros(len(data), dtype=np.float32)
             return
         
         # Find max absolute value
-        max_val = np.max(np.abs(data))
+        max_val = np.nanmax(np.abs(data))
         
         if max_val == 0:
-            self.shared_exponent = 0
+            min_exp, _ = _shared_exponent_bounds(self.spec.exponent_bits)
+            self.shared_exponent = min_exp
             self.mantissas = np.zeros(len(data), dtype=np.float32)
             return
         
-        # Extract shared exponent from max value
-        max_bits = np.float32(max_val).view(np.uint32)
-        max_exp_bits = (max_bits >> 23) & 0xFF
-        self.shared_exponent = int(max_exp_bits) - 127
+        # Signed p-bit mantissas represent normalized values in
+        # [-1, 1 - 2^(1-p)]. Choose the shared exponent so the block maximum
+        # does not saturate that fixed-point interval.
+        mantissa_levels = 2 ** (self.spec.mantissa_bits - 1)
+        max_int = mantissa_levels - 1
+        min_int = -mantissa_levels
+        max_normalized = max_int / mantissa_levels
+        min_exp, max_exp = _shared_exponent_bounds(self.spec.exponent_bits)
+
+        if np.isinf(max_val):
+            self.shared_exponent = max_exp
+        else:
+            exponent = math.ceil(math.log2(max_val / max_normalized))
+            self.shared_exponent = int(np.clip(exponent, min_exp, max_exp))
         
         # Normalize by shared exponent
         scale = 2.0 ** self.shared_exponent
         normalized = data / scale
         
         # Quantize mantissas
-        mantissa_levels = 2 ** (self.spec.mantissa_bits - 1)
-        quantized_int = np.round(normalized * mantissa_levels).astype(np.int32)
+        quantized_int = np.rint(normalized * mantissa_levels)
         
         # Clip to valid range
-        max_int = mantissa_levels - 1
-        min_int = -mantissa_levels
         quantized_int = np.clip(quantized_int, min_int, max_int)
         
         # Store as float

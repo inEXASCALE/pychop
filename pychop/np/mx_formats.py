@@ -9,8 +9,9 @@ Author: Xinye Chen
 
 
 import numpy as np
+import math
 from typing import Union, Tuple, Optional, List
-from dataclasses import dataclass
+from dataclasses import replace
 import warnings
 
 # Import shared spec
@@ -18,6 +19,123 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from mx_formats import MXSpec, MX_FORMATS, create_mx_spec
+
+
+def _scale_exponent_bounds(scale_exp_bits: int) -> Tuple[int, int]:
+    """Return the exponent range for an unsigned E<M>0 scale type."""
+    bias = 2 ** (scale_exp_bits - 1) - 1
+    return -bias, (2 ** scale_exp_bits - 2) - bias
+
+
+def _mx_float_params(spec: MXSpec) -> dict:
+    """Return OCP-style finite range parameters for an MX element format."""
+    if spec.exp_bits == 0:
+        int_scale = 2 ** (spec.element_bits - 2)
+        return {
+            "max": (2 ** (spec.element_bits - 1) - 1) / int_scale,
+            "min": -(2 ** (spec.element_bits - 1)) / int_scale,
+            "emax": 0,
+        }
+
+    bias = 2 ** (spec.exp_bits - 1) - 1
+    max_exp_field = 2 ** spec.exp_bits - 1
+    max_sig_field = 2 ** spec.sig_bits - 1
+    name = spec.name.upper()
+
+    if name == "MXFP8_E5M2":
+        max_exp_field -= 1
+    elif name == "MXFP8_E4M3":
+        max_sig_field -= 1
+
+    max_value = (1.0 + max_sig_field * 2.0 ** (-spec.sig_bits)) * (
+        2.0 ** (max_exp_field - bias)
+    )
+    return {
+        "bias": bias,
+        "max": max_value,
+        "min": -max_value,
+        "emax": int(math.floor(math.log2(max_value))),
+        "smallest_normal": 2.0 ** (1 - bias),
+        "smallest_subnormal": 2.0 ** (1 - bias - spec.sig_bits),
+    }
+
+
+def _quantize_mxint(value: float, spec: MXSpec) -> float:
+    """Quantize to the OCP MXINT two's-complement element value."""
+    scale = 2 ** (spec.element_bits - 2)
+    q = np.rint(value * scale)
+    q = np.clip(q, -(2 ** (spec.element_bits - 1)), 2 ** (spec.element_bits - 1) - 1)
+    return float(q / scale)
+
+
+def _quantize_float_element(value: float, spec: MXSpec, params: dict) -> float:
+    """Round one scaled value to the target MX floating-point element format."""
+    if np.isnan(value):
+        return np.nan
+    if value == 0:
+        return 0.0
+
+    sign = -1.0 if value < 0 else 1.0
+    value = abs(float(value))
+
+    if np.isinf(value) or value >= params["max"]:
+        return sign * params["max"]
+
+    expval = math.floor(math.log2(value))
+    expval = max(expval, 1 - params["bias"])
+    step = 2.0 ** (expval - spec.sig_bits)
+    rounded = np.rint(value / step) * step
+
+    if rounded == 0:
+        return 0.0
+    if rounded > params["max"]:
+        rounded = params["max"]
+    return sign * float(rounded)
+
+
+def _quantize_element(value: float, spec: MXSpec, params: dict) -> float:
+    if spec.exp_bits == 0:
+        if np.isnan(value):
+            return np.nan
+        if np.isposinf(value):
+            return params["max"]
+        if np.isneginf(value):
+            return params["min"]
+        return _quantize_mxint(value, spec)
+    return _quantize_float_element(value, spec, params)
+
+
+def _resolve_spec(
+    format: Union[str, MXSpec, Tuple[int, int]],
+    block_size: int,
+    scale_exp_bits: Optional[int],
+    scale_sig_bits: Optional[int],
+) -> MXSpec:
+    if isinstance(format, str):
+        if format.lower() not in MX_FORMATS:
+            raise ValueError(f"Unknown format: {format}")
+        spec = MX_FORMATS[format.lower()]
+        return replace(
+            spec,
+            block_size=block_size,
+            scale_exp_bits=scale_exp_bits if scale_exp_bits is not None else spec.scale_exp_bits,
+            scale_sig_bits=scale_sig_bits if scale_sig_bits is not None else spec.scale_sig_bits,
+        )
+    if isinstance(format, tuple):
+        exp_bits, sig_bits = format
+        spec = create_mx_spec(exp_bits, sig_bits, block_size)
+        return replace(
+            spec,
+            scale_exp_bits=scale_exp_bits if scale_exp_bits is not None else spec.scale_exp_bits,
+            scale_sig_bits=scale_sig_bits if scale_sig_bits is not None else spec.scale_sig_bits,
+        )
+    if isinstance(format, MXSpec):
+        return replace(
+            format,
+            scale_exp_bits=scale_exp_bits if scale_exp_bits is not None else format.scale_exp_bits,
+            scale_sig_bits=scale_sig_bits if scale_sig_bits is not None else format.scale_sig_bits,
+        )
+    raise TypeError("format must be str, MXSpec, or tuple")
 
 
 # ============================================================================
@@ -54,33 +172,32 @@ class MXBlock_:
     
     def _quantize(self, data: np.ndarray):
         """Quantize data to MX format."""
+        params = _mx_float_params(self.spec)
+
         # Handle all-zero block
         if np.all(data == 0):
-            self.shared_scale = 1.0
+            min_scale_exp, _ = _scale_exponent_bounds(self.scale_exp_bits)
+            self.shared_scale = 2.0 ** min_scale_exp
             self.quantized_elements = np.zeros(len(data), dtype=np.float32)
             return
         
         # Step 1: Find maximum absolute value for scale
-        max_val = np.max(np.abs(data))
+        max_val = np.nanmax(np.abs(data))
         
         if max_val == 0:
-            self.shared_scale = 1.0
+            min_scale_exp, _ = _scale_exponent_bounds(self.scale_exp_bits)
+            self.shared_scale = 2.0 ** min_scale_exp
             self.quantized_elements = np.zeros(len(data), dtype=np.float32)
             return
         
-        # Step 2: Compute shared scale (power of 2)
-        # Max representable value with given exponent bits
-        if self.spec.exp_bits > 0:
-            max_exp_val = 2.0 ** (2 ** self.spec.exp_bits - 2)  # Conservative estimate
+        # Step 2: Compute the E8M0 shared scale.
+        min_scale_exp, max_scale_exp = _scale_exponent_bounds(self.scale_exp_bits)
+        if np.isinf(max_val):
+            scale_exp = max_scale_exp
         else:
-            max_exp_val = 2.0 ** 7  # For integer formats
-        
-        # Find scale such that max_val / scale <= max_exp_val
-        if max_val > max_exp_val:
-            scale_exp = np.ceil(np.log2(max_val / max_exp_val))
-            self.shared_scale = 2.0 ** scale_exp
-        else:
-            self.shared_scale = 1.0
+            scale_exp = np.floor(np.log2(max_val)) - params["emax"]
+            scale_exp = np.clip(scale_exp, min_scale_exp, max_scale_exp)
+        self.shared_scale = 2.0 ** scale_exp
         
         # Step 3: Scale data
         scaled_data = data / self.shared_scale
@@ -91,84 +208,12 @@ class MXBlock_:
     def _quantize_elements(self, data: np.ndarray) -> np.ndarray:
         """
         Quantize elements to MX element format (exp_bits, sig_bits).
-        
-        Improved version with overflow handling.
         """
         result = np.zeros_like(data, dtype=np.float32)
-        
-        # IEEE 754 bias
-        bias_ieee = 127
-        
-        # Target bias for MX format
-        if self.spec.exp_bits > 0:
-            bias_mx = 2 ** (self.spec.exp_bits - 1) - 1
-            max_exp_mx = 2 ** self.spec.exp_bits - 1
-        else:
-            # Integer format (no exponent)
-            bias_mx = 0
-            max_exp_mx = 0
-        
+        params = _mx_float_params(self.spec)
+
         for i, val in enumerate(data):
-            if val == 0:
-                result[i] = 0
-                continue
-            
-            # Handle inf/nan
-            if not np.isfinite(val):
-                result[i] = val
-                continue
-            
-            # Extract IEEE 754 components
-            val_bits = np.float32(val).view(np.uint32)
-            sign = (val_bits >> 31) & 1
-            exp_ieee = ((val_bits >> 23) & 0xFF)
-            mantissa_ieee = val_bits & 0x7FFFFF
-            
-            # Handle subnormal numbers
-            if exp_ieee == 0:
-                # Subnormal or zero - flush to zero for simplicity
-                result[i] = 0.0
-                continue
-            
-            # Integer format (exp_bits = 0)
-            if self.spec.exp_bits == 0:
-                # For MXINT8: just round mantissa, keep as normalized float
-                if self.spec.sig_bits > 0:
-                    shift = 23 - self.spec.sig_bits
-                    mantissa_mx = (mantissa_ieee >> shift) << shift
-                else:
-                    mantissa_mx = 0
-                
-                result_bits = (sign << 31) | (exp_ieee << 23) | mantissa_mx
-                result[i] = np.frombuffer(np.uint32(result_bits).tobytes(), dtype=np.float32)[0]
-                continue
-            
-            # Floating-point format (exp_bits > 0)
-            # Convert exponent (with overflow protection)
-            exp_ieee_unbiased = int(exp_ieee) - bias_ieee
-            
-            # Clip exponent to MX range
-            exp_mx_unbiased = np.clip(exp_ieee_unbiased, -bias_mx, max_exp_mx - bias_mx - 1)
-            exp_mx = exp_mx_unbiased + bias_mx
-            
-            # Quantize mantissa
-            if self.spec.sig_bits > 0:
-                shift = 23 - self.spec.sig_bits
-                mantissa_mx = (mantissa_ieee >> shift) << shift
-            else:
-                mantissa_mx = 0
-            
-            # Reconstruct IEEE 754 (with overflow protection)
-            try:
-                new_exp_ieee = int(exp_mx - bias_mx + bias_ieee)
-                # Clip to valid IEEE 754 range
-                new_exp_ieee = np.clip(new_exp_ieee, 0, 254)
-                
-                result_bits = (sign << 31) | (new_exp_ieee << 23) | mantissa_mx
-                result[i] = np.frombuffer(np.uint32(result_bits).tobytes(), dtype=np.float32)[0]
-            except (OverflowError, ValueError):
-                # If still overflow, use original value
-                result[i] = val
+            result[i] = _quantize_element(float(val), self.spec, params)
         
         return result
     
@@ -184,7 +229,11 @@ class MXBlock_:
             'shared_scale_exp': np.log2(self.shared_scale) if self.shared_scale > 0 else 0,
             'element_range': (self.quantized_elements.min(), self.quantized_elements.max()),
             'bits_per_element': self.spec.element_bits,
-            'total_bits': self.spec.element_bits * self.size + self.scale_exp_bits,
+            'total_bits': (
+                self.spec.element_bits * self.size
+                + self.scale_exp_bits
+                + self.scale_sig_bits
+            ),
         }
 
 
@@ -205,26 +254,15 @@ class MXTensor_:
         scale_exp_bits: Optional[int] = None,
         scale_sig_bits: Optional[int] = None
     ):
-        # Parse format
-        if isinstance(format, str):
-            if format.lower() not in MX_FORMATS:
-                raise ValueError(f"Unknown format: {format}")
-            self.spec = MX_FORMATS[format.lower()]
-        elif isinstance(format, tuple):
-            exp_bits, sig_bits = format
-            self.spec = create_mx_spec(exp_bits, sig_bits, block_size)
-        elif isinstance(format, MXSpec):
-            self.spec = format
-        else:
-            raise TypeError("format must be str, MXSpec, or tuple")
+        self.spec = _resolve_spec(format, block_size, scale_exp_bits, scale_sig_bits)
         
         # Convert to numpy if needed
         if not isinstance(data, np.ndarray):
             data = np.array(data)
         
         self.original_shape = data.shape
-        self.scale_exp_bits = scale_exp_bits
-        self.scale_sig_bits = scale_sig_bits
+        self.scale_exp_bits = self.spec.scale_exp_bits
+        self.scale_sig_bits = self.spec.scale_sig_bits
         
         # Flatten
         data_flat = data.flatten()
@@ -250,7 +288,12 @@ class MXTensor_:
                 end_idx = start_idx + block_size
                 block_data = data_flat[start_idx:end_idx]
                 
-                block = MXBlock_(block_data, self.spec, scale_exp_bits, scale_sig_bits)
+                block = MXBlock_(
+                    block_data,
+                    self.spec,
+                    self.scale_exp_bits,
+                    self.scale_sig_bits,
+                )
                 self.blocks.append(block)
     
     def dequantize(self) -> np.ndarray:
