@@ -1,30 +1,17 @@
-"""
-Block Floating Point (BFP) Format - Backend Agnostic Entry Point
+"""Backend-agnostic entry point for block floating point formats.
 
-This module provides automatic backend detection and routing for BFP quantization.
-Supports NumPy, JAX, and PyTorch backends with automatic detection.
+BFP quantization stores one shared exponent per block and one signed
+fixed-point mantissa per element. The predefined registry includes BFP,
+low-bit BFP, and Flexpoint-style formats. NumPy, PyTorch, JAX, and TensorFlow
+backends are supported; PyTorch, JAX, and TensorFlow wrappers provide
+straight-through-estimator behavior for training use.
 
-Usage:
-    >>> import pychop
-    >>> pychop.backend('auto')  # Auto-detect from input
-    >>> 
-    >>> # NumPy
-    >>> import numpy as np
-    >>> X = np.random.randn(1024, 768)
-    >>> X_q = bfp_quantize(X, format='bfp8')
-    >>> 
-    >>> # PyTorch (with STE for training)
-    >>> import torch
-    >>> X = torch.randn(128, 768, requires_grad=True)
-    >>> X_q = bfp_quantize(X, format='bfp8')  # Automatic STE!
-    >>> 
-    >>> # JAX
-    >>> import jax.numpy as jnp
-    >>> X = jnp.array(np.random.randn(512, 512))
-    >>> X_q = bfp_quantize(X, format='bfp8')
-
-Author: Xinye Chen
-
+Examples
+--------
+>>> import numpy as np
+>>> from pychop import bfp_quantize
+>>> x = np.random.randn(64)
+>>> x_q = bfp_quantize(x, format="bfp8")
 """
 
 import os
@@ -62,7 +49,7 @@ def _detect_array_type(x: Any) -> str:
 
 
 def _get_backend_env() -> str:
-    """Get backend from environment variable."""
+    """Return the backend name stored in ``chop_backend``."""
     return os.environ.get('chop_backend', 'auto')
 
 
@@ -73,24 +60,22 @@ def _get_backend_env() -> str:
 @dataclass
 class BFPSpec:
     """
-    Block Floating Point format specification.
-    
-    This is backend-independent and shared across all implementations.
+    Backend-independent block floating point format specification.
     
     Attributes
     ----------
     name : str
-        Format name
+        Format name.
     mantissa_bits : int
-        Number of mantissa bits per element (including sign)
+        Number of stored signed mantissa bits per element.
     block_size : int
-        Number of elements sharing same exponent
+        Number of elements sharing one exponent.
     exponent_bits : int
-        Number of bits for shared exponent
+        Number of bits for the shared exponent.
     has_sign : bool
-        Whether elements have sign bits
+        Whether elements have sign bits.
     use_subnormals : bool
-        Whether to support subnormal numbers
+        Whether to support subnormal-like behavior inside the block format.
     """
     name: str
     mantissa_bits: int
@@ -101,18 +86,18 @@ class BFPSpec:
     
     @property
     def total_bits_per_block(self) -> int:
-        """Total bits for entire block."""
+        """Total stored bits for one BFP block."""
         return self.exponent_bits + (self.mantissa_bits * self.block_size)
     
     @property
     def compression_vs_fp32(self) -> float:
-        """Compression ratio vs FP32."""
+        """Compression ratio relative to a dense FP32 block."""
         fp32_bits = 32 * self.block_size
         return fp32_bits / self.total_bits_per_block
     
     @property
     def compression_vs_fp16(self) -> float:
-        """Compression ratio vs FP16."""
+        """Compression ratio relative to a dense FP16 block."""
         fp16_bits = 16 * self.block_size
         return fp16_bits / self.total_bits_per_block
     
@@ -142,23 +127,24 @@ def create_bfp_spec(
     name: Optional[str] = None
 ) -> BFPSpec:
     """
-    Create custom BFP format specification.
+    Create a custom BFP format specification.
     
     Parameters
     ----------
     mantissa_bits : int
-        Number of mantissa bits (1-32)
+        Number of signed mantissa bits per element.
     block_size : int
-        Elements per block
+        Number of elements sharing one exponent.
     exponent_bits : int
-        Bits for shared exponent
+        Number of bits for the shared exponent.
     name : str, optional
-        Custom name
+        Custom format name. If omitted, a name is derived from
+        ``mantissa_bits``.
     
     Returns
     -------
     BFPSpec
-        BFP format specification
+        BFP format specification.
     """
     if name is None:
         name = f"custom_bfp{mantissa_bits}"
@@ -187,7 +173,8 @@ def _resolve_backend(X: Any = None) -> str:
     Returns
     -------
     str
-        Backend name: 'numpy', 'jax', or 'torch'
+        Backend name: ``"numpy"``, ``"jax"``, ``"torch"``, or
+        ``"tensorflow"``.
     """
     env_backend = _get_backend_env()
     
@@ -262,42 +249,31 @@ def bfp_quantize(
     format: Union[str, BFPSpec, Tuple[int, int]] = 'bfp8',
     backend: Optional[str] = None
 ) -> Any:
-    """
-    Quantize array to BFP format.
-    
-    Automatically detects backend from input type or uses specified backend.
-    
+    """Quantize an array or tensor to a BFP or Flexpoint format.
+
     Parameters
     ----------
     data : array-like
-        Input data (numpy.ndarray, torch.Tensor, or jax.Array)
-    format : str, BFPSpec, or tuple
-        BFP format specification
+        Input values. NumPy, PyTorch, JAX, and TensorFlow tensors are
+        supported.
+    format : str, BFPSpec, or tuple of int, default="bfp8"
+        Predefined format name, custom ``BFPSpec``, or
+        ``(mantissa_bits, block_size)``.
     backend : str, optional
-        Force specific backend ('numpy', 'jax', or 'torch')
-        If None, auto-detects from input
+        Backend override. If omitted, the active pychop backend or input type
+        is used.
     
     Returns
     -------
-    array-like
-        Quantized data (same type as input)
+    quantized : array-like
+        Quantized-dequantized values in the same backend family as ``data``.
     
     Examples
     --------
-    >>> # NumPy
     >>> import numpy as np
-    >>> X = np.random.randn(1024, 768)
-    >>> X_q = bfp_quantize(X, format='bfp8')
-    >>> 
-    >>> # PyTorch (with automatic STE if requires_grad=True)
-    >>> import torch
-    >>> X = torch.randn(128, 768, requires_grad=True)
-    >>> X_q = bfp_quantize(X, format='bfp8')
-    >>> loss = X_q.sum()
-    >>> loss.backward()  # Gradients flow through!
-    >>> 
-    >>> # Custom format
-    >>> X_q = bfp_quantize(X, format=(4, 32))  # 4-bit mantissa, 32 elem/block
+    >>> x = np.random.randn(64)
+    >>> x_q = bfp_quantize(x, format="bfp8")
+    >>> x_custom = bfp_quantize(x, format=(4, 32))
     """
     # Resolve backend
     if backend is None:
@@ -311,27 +287,23 @@ def bfp_quantize(
 
 
 class BFPTensor:
-    """
-    Backend-agnostic BFP tensor wrapper.
-    
-    Automatically routes to appropriate backend implementation.
-    
+    """Backend-agnostic BFP tensor wrapper.
+
     Parameters
     ----------
     data : array-like
-        Input tensor
-    format : str, BFPSpec, or tuple
-        BFP format
+        Input values.
+    format : str, BFPSpec, or tuple of int, default="bfp8"
+        BFP format specification.
     backend : str, optional
-        Force specific backend
+        Backend override. If omitted, backend auto detection is used.
     
     Examples
     --------
-    >>> # NumPy backend
     >>> import numpy as np
-    >>> X = np.random.randn(1024, 768)
-    >>> bfp = BFPTensor(X, format='bfp8')
-    >>> X_reconstructed = bfp.dequantize()
+    >>> x = np.random.randn(64)
+    >>> bfp = BFPTensor(x, format="bfp8")
+    >>> x_reconstructed = bfp.dequantize()
     >>> stats = bfp.statistics()
     """
     
@@ -354,11 +326,11 @@ class BFPTensor:
         self._impl = backend_module.BFPTensor_(data, format=format)
     
     def dequantize(self) -> Any:
-        """Dequantize to original data type."""
+        """Return quantized-dequantized values in the backend-native type."""
         return self._impl.dequantize()
     
     def statistics(self) -> dict:
-        """Get quantization statistics."""
+        """Return block count, compression, and format statistics."""
         return self._impl.statistics()
     
     def __repr__(self):
@@ -366,7 +338,7 @@ class BFPTensor:
 
 
 def print_bfp_format_table():
-    """Print table of predefined BFP formats."""
+    """Print the predefined BFP and Flexpoint format table."""
     print("="*90)
     print("Predefined BFP Formats")
     print("="*90)

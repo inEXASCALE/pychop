@@ -1,3 +1,5 @@
+"""PyTorch tensor subclass that preserves chopped precision after operations."""
+
 import torch
 from pychop import Chop
 

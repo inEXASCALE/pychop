@@ -1,3 +1,5 @@
+"""NumPy LightChop backend for fast custom floating-point quantization."""
+
 import numpy as np
 try:
     import dask.array as da

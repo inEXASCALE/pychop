@@ -1,10 +1,9 @@
-"""
-Microscaling (MX) Formats - JAX Backend with Custom VJP
+"""JAX backend for OCP MX quantization.
 
-JAX implementation with custom VJP for differentiation.
-Enables training with MX quantization in JAX/Flax.
-
-Author: Xinye Chen
+Array-level MX quantization wraps the NumPy reference implementation and
+returns JAX arrays. ``MXQuantizerSTE`` adds a JAX custom VJP so gradients pass
+through as a straight-through estimator. Flax is optional for array quantizers
+and required only when instantiating ``MXDense``.
 """
 
 import jax
@@ -47,9 +46,7 @@ from mx_formats import MXSpec, MX_FORMATS, create_mx_spec
 # ============================================================================
 
 class MXTensor_:
-    """
-    JAX implementation of MX tensor.
-    """
+    """JAX MX tensor wrapper backed by the NumPy reference quantizer."""
     
     def __init__(
         self,
@@ -112,8 +109,24 @@ def create_mx_ste_quantizer(
     scale_exp_bits: Optional[int] = None,
     scale_sig_bits: Optional[int] = None
 ):
-    """
-    Create MX quantizer with STE using JAX custom VJP.
+    """Create an MX quantizer with a JAX straight-through estimator.
+
+    Parameters
+    ----------
+    spec : MXSpec
+        MX format specification.
+    block_size : int, default=32
+        Number of elements sharing one scale.
+    scale_exp_bits : int, optional
+        Override for scale exponent bits.
+    scale_sig_bits : int, optional
+        Override for scale significand bits.
+
+    Returns
+    -------
+    quantize_with_ste : callable
+        JAX-callable quantizer whose backward pass returns the incoming
+        gradient unchanged.
     """
     
     def quantize_fn(x):
@@ -144,8 +157,9 @@ def create_mx_ste_quantizer(
 # ============================================================================
 
 class MXQuantizerSTE:
-    """
-    MX quantizer with STE for JAX/Flax.
+    """Callable JAX MX quantizer with straight-through gradients.
+
+    This class does not require Flax. It can be used directly on JAX arrays.
     """
     
     def __init__(
@@ -193,9 +207,7 @@ class MXQuantizerSTE:
 # ============================================================================
 
 class MXDense(nn.Module):
-    """
-    Dense layer with MX quantization for Flax.
-    """
+    """Flax dense layer with optional MX input and weight quantization."""
     
     features: int
     use_bias: bool = True

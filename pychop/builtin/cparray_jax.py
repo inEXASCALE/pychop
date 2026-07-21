@@ -1,3 +1,5 @@
+"""JAX array wrapper that preserves chopped precision after operations."""
+
 import jax
 import jax.numpy as jnp
 from pychop import Chop

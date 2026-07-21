@@ -1,3 +1,9 @@
+"""Linear algebra wrappers for chopped-precision containers.
+
+The module dispatches to NumPy/SciPy, JAX, or PyTorch linalg functions and
+re-wraps results so chopped-precision semantics continue across operations.
+"""
+
 from __future__ import annotations
 
 from typing import Callable, Optional

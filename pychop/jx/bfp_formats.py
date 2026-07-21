@@ -1,10 +1,9 @@
-"""
-Block Floating Point (BFP) - JAX Backend with Custom VJP
+"""JAX backend for BFP and Flexpoint quantization.
 
-JAX implementation with custom VJP for differentiation.
-Enables training with BFP quantization in JAX/Flax.
-
-Author: Xinye Chen
+Array-level BFP quantization wraps the NumPy reference implementation and
+returns JAX arrays. ``BFPQuantizerSTE`` adds a JAX custom VJP so gradients pass
+through as a straight-through estimator. Flax is optional for array quantizers
+and required only when instantiating ``BFPDense``.
 """
 
 import jax
@@ -47,11 +46,7 @@ from bfp_formats import BFPSpec, BFP_FORMATS, create_bfp_spec
 # ============================================================================
 
 class BFPTensor_:
-    """
-    JAX implementation of BFP tensor.
-    
-    Wraps NumPy implementation but returns JAX arrays.
-    """
+    """JAX BFP tensor wrapper backed by the NumPy reference quantizer."""
     
     def __init__(
         self,
@@ -140,10 +135,9 @@ def create_bfp_ste_quantizer(spec: BFPSpec):
 # ============================================================================
 
 class BFPQuantizerSTE:
-    """
-    BFP quantizer with STE for JAX/Flax.
-    
-    Note: In JAX, this is not an nn.Module, just a callable class.
+    """Callable JAX BFP quantizer with straight-through gradients.
+
+    This class does not require Flax. It can be used directly on JAX arrays.
     """
     
     def __init__(self, format: Union[str, BFPSpec, Tuple[int, int]] = 'bfp8'):
@@ -179,8 +173,7 @@ class BFPQuantizerSTE:
 # ============================================================================
 
 class BFPDense(nn.Module):
-    """
-    Dense layer with BFP quantization for Flax.
+    """Flax dense layer with optional BFP input and weight quantization.
     
     Attributes
     ----------

@@ -1,8 +1,8 @@
 """
-Test LightChop CADNA-style random rounding rmode=7.
+Test LightChop CADNA-style random rounding rmode=10.
 
 Run:
-    pytest tests/test_lightchop_cadna_rmode7.py -s
+    pytest tests/test_lightchop_random_rounding.py -s
 """
 
 import importlib
@@ -145,9 +145,9 @@ def assert_reasonable_5050_distribution(outputs, lower, upper):
 # Backend runners
 # ---------------------------------------------------------------------
 
-def run_lightchop_backend(backend, x, ntrials=300, seed=42):
+def run_lightchop_backend(backend, x, ntrials=300, seed=42, rmode=10):
     """
-    Run LightChop_(exp_bits=8, sig_bits=23, rmode=7) repeatedly.
+    Run LightChop_(exp_bits=8, sig_bits=23) repeatedly.
 
     exp_bits=8, sig_bits=23 corresponds to float32-style exponent/mantissa
     convention in LightChop.
@@ -160,7 +160,7 @@ def run_lightchop_backend(backend, x, ntrials=300, seed=42):
         ch = LightChop_(
             exp_bits=8,
             sig_bits=23,
-            rmode=7,
+            rmode=rmode,
             subnormal=True,
             random_state=seed,
         )
@@ -177,7 +177,7 @@ def run_lightchop_backend(backend, x, ntrials=300, seed=42):
         ch = LightChop_(
             exp_bits=8,
             sig_bits=23,
-            rmode=7,
+            rmode=rmode,
             subnormal=True,
             random_state=seed,
         )
@@ -204,7 +204,7 @@ def run_lightchop_backend(backend, x, ntrials=300, seed=42):
         ch = LightChop_(
             exp_bits=8,
             sig_bits=23,
-            rmode=7,
+            rmode=rmode,
             subnormal=True,
             random_state=seed,
         )
@@ -220,7 +220,7 @@ def run_lightchop_backend(backend, x, ntrials=300, seed=42):
     raise ValueError(f"Unknown backend: {backend}")
 
 
-def run_lightchop_ste_torch(x, ntrials=300, seed=42, training=True):
+def run_lightchop_ste_torch(x, ntrials=300, seed=42, training=True, rmode=10):
     torch = pytest.importorskip("torch")
     from pychop.tch.lightchop import LightChopSTE
 
@@ -228,7 +228,7 @@ def run_lightchop_ste_torch(x, ntrials=300, seed=42, training=True):
         ch = LightChopSTE(
             exp_bits=8,
             sig_bits=23,
-            rmode=7,
+            rmode=rmode,
             subnormal=True,
             random_state=seed,
         )
@@ -258,7 +258,7 @@ def run_lightchop_ste_torch(x, ntrials=300, seed=42, training=True):
 # ---------------------------------------------------------------------
 
 @pytest.mark.parametrize("backend", available_lightchop_backends())
-def test_lightchop_rmode7_midpoints_are_adjacent_choices(backend):
+def test_lightchop_rmode10_midpoints_are_adjacent_choices(backend):
     x_mid, lower, upper = make_fp32_midpoints()
 
     outputs = run_lightchop_backend(
@@ -275,7 +275,7 @@ def test_lightchop_rmode7_midpoints_are_adjacent_choices(backend):
 
 
 @pytest.mark.parametrize("backend", available_lightchop_backends())
-def test_lightchop_rmode7_midpoints_see_both_directions(backend):
+def test_lightchop_rmode10_midpoints_see_both_directions(backend):
     x_mid, lower, upper = make_fp32_midpoints()
 
     outputs = run_lightchop_backend(
@@ -292,7 +292,7 @@ def test_lightchop_rmode7_midpoints_see_both_directions(backend):
 
 
 @pytest.mark.parametrize("backend", available_lightchop_backends())
-def test_lightchop_rmode7_distribution_reasonable(backend):
+def test_lightchop_rmode10_distribution_reasonable(backend):
     x_mid, lower, upper = make_fp32_midpoints()
 
     outputs = run_lightchop_backend(
@@ -307,7 +307,7 @@ def test_lightchop_rmode7_distribution_reasonable(backend):
 
 
 @pytest.mark.parametrize("backend", available_lightchop_backends())
-def test_lightchop_rmode7_exact_fp32_values_stable(backend):
+def test_lightchop_rmode10_exact_fp32_values_stable(backend):
     x = make_exact_fp32_values()
 
     outputs = run_lightchop_backend(
@@ -324,7 +324,7 @@ def test_lightchop_rmode7_exact_fp32_values_stable(backend):
 
 
 @pytest.mark.parametrize("backend", available_lightchop_backends())
-def test_lightchop_rmode7_random_state_advances(backend):
+def test_lightchop_rmode10_random_state_advances(backend):
     x_mid, _, _ = make_fp32_midpoints()
 
     outputs = run_lightchop_backend(
@@ -345,11 +345,53 @@ def test_lightchop_rmode7_random_state_advances(backend):
     assert nonzero_var > 0
 
 
+@pytest.mark.parametrize("backend", available_lightchop_backends())
+@pytest.mark.parametrize("rmode", [5, 6])
+def test_lightchop_stochastic_midpoints_are_unbiased(backend, rmode):
+    x_mid, lower, upper = make_fp32_midpoints()
+
+    outputs = run_lightchop_backend(
+        backend=backend,
+        x=x_mid,
+        ntrials=1000,
+        seed=2024,
+        rmode=rmode,
+    )
+
+    ulp = np.abs(upper - lower)
+    is_upper = np.abs(outputs - upper) <= np.maximum(ulp * 0.25, 0.0)
+    freq_upper = is_upper.mean(axis=0)
+
+    assert np.all(freq_upper > 0.40)
+    assert np.all(freq_upper < 0.60)
+
+
+@pytest.mark.parametrize("backend", available_lightchop_backends())
+def test_lightchop_stochastic_proportional_respects_fraction(backend):
+    _, lower, upper = make_fp32_midpoints()
+    x = lower + 0.25 * (upper - lower)
+
+    outputs = run_lightchop_backend(
+        backend=backend,
+        x=x,
+        ntrials=4000,
+        seed=2025,
+        rmode=5,
+    )
+
+    ulp = np.abs(upper - lower)
+    is_upper = np.abs(outputs - upper) <= np.maximum(ulp * 0.25, 0.0)
+    freq_upper = is_upper.mean(axis=0)
+
+    assert np.all(freq_upper > 0.20)
+    assert np.all(freq_upper < 0.30)
+
+
 # ---------------------------------------------------------------------
 # Tests for Torch LightChopSTE
 # ---------------------------------------------------------------------
 
-def test_lightchopste_torch_rmode7_midpoints_are_adjacent_choices():
+def test_lightchopste_torch_rmode10_midpoints_are_adjacent_choices():
     pytest.importorskip("torch")
 
     x_mid, lower, upper = make_fp32_midpoints()
@@ -365,7 +407,7 @@ def test_lightchopste_torch_rmode7_midpoints_are_adjacent_choices():
     assert_adjacent_choices(outputs, lower, upper)
 
 
-def test_lightchopste_torch_rmode7_midpoints_see_both_directions():
+def test_lightchopste_torch_rmode10_midpoints_see_both_directions():
     pytest.importorskip("torch")
 
     x_mid, lower, upper = make_fp32_midpoints()
@@ -383,7 +425,7 @@ def test_lightchopste_torch_rmode7_midpoints_see_both_directions():
     assert_both_directions_seen(outputs, lower, upper)
 
 
-def test_lightchopste_torch_rmode7_distribution_reasonable():
+def test_lightchopste_torch_rmode10_distribution_reasonable():
     pytest.importorskip("torch")
 
     x_mid, lower, upper = make_fp32_midpoints()
@@ -399,7 +441,7 @@ def test_lightchopste_torch_rmode7_distribution_reasonable():
     assert_reasonable_5050_distribution(outputs, lower, upper)
 
 
-def test_lightchopste_torch_rmode7_exact_fp32_values_stable():
+def test_lightchopste_torch_rmode10_exact_fp32_values_stable():
     pytest.importorskip("torch")
 
     x = make_exact_fp32_values()
@@ -417,7 +459,7 @@ def test_lightchopste_torch_rmode7_exact_fp32_values_stable():
     np.testing.assert_array_equal(outputs, np.broadcast_to(x, outputs.shape))
 
 
-def test_lightchopste_torch_rmode7_backward_ste_passes_gradient():
+def test_lightchopste_torch_rmode10_backward_ste_passes_gradient():
     """
     Check STE behavior: forward quantizes, backward passes a gradient.
     This does not assert exact gradient formula, only that backprop works.
@@ -429,7 +471,7 @@ def test_lightchopste_torch_rmode7_backward_ste_passes_gradient():
         ch = LightChopSTE(
             exp_bits=8,
             sig_bits=23,
-            rmode=7,
+            rmode=10,
             subnormal=True,
             random_state=42,
         )

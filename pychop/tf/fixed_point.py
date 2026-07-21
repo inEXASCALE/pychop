@@ -1,3 +1,5 @@
+"""TensorFlow fixed-point quantization backend."""
+
 import tensorflow as tf
 
 from ..np.fixed_point import FPRound_ as NPFPRound
@@ -20,6 +22,18 @@ _REDUCTION_METHODS = ['sum', 'prod', 'mean', 'std', 'var']
 
 
 class FPRound_:
+    """TensorFlow adapter for NumPy fixed-point quantization.
+
+    Parameters
+    ----------
+    ibits : int, default=4
+        Number of integer bits, including the sign range.
+    fbits : int, default=4
+        Number of fractional bits.
+    rmode : int or str, default=1
+        Rounding mode used when snapping to the fixed-point grid.
+    """
+
     def __init__(self, ibits=4, fbits=4, rmode=1):
         self.ibits = ibits
         self.fbits = fbits

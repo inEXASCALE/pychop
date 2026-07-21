@@ -1,3 +1,5 @@
+"""PyTorch bit-level floating-point chopping backend."""
+
 import torch
 
 class Bitchop(object):

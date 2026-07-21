@@ -1,3 +1,5 @@
+"""TensorFlow LightChop backend with Keras-compatible custom gradients."""
+
 import threading
 import numpy as np
 import tensorflow as tf
@@ -22,6 +24,24 @@ _REDUCTION_METHODS = ['sum', 'prod', 'mean', 'std', 'var']
 
 
 class LightChop_:
+    """TensorFlow adapter for the NumPy LightChop arithmetic simulator.
+
+    Parameters
+    ----------
+    exp_bits : int
+        Number of exponent bits in the simulated floating-point format.
+    sig_bits : int
+        Number of significand precision bits, including the implicit bit.
+    rmode : int, default=1
+        Rounding mode passed to the NumPy LightChop implementation.
+    subnormal : bool, default=True
+        Whether subnormal values are represented.
+    chunk_size : int, default=800
+        Chunk size used by the NumPy implementation.
+    random_state : int, default=42
+        Seed used for stochastic rounding modes.
+    """
+
     def __init__(self, exp_bits, sig_bits, rmode=1, subnormal=True, chunk_size=800, random_state=42):
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits

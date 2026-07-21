@@ -1,7 +1,23 @@
+"""NumPy integer quantization backend."""
+
 import numpy as np
 import warnings
 
 class Chopi_:
+    """Uniform integer quantizer for NumPy arrays.
+
+    Parameters
+    ----------
+    bits : int, default=8
+        Integer bit width used for the simulated quantized values.
+    symmetric : bool, default=False
+        Whether to use symmetric signed quantization around zero.
+    per_channel : bool, default=False
+        Whether to calibrate scale and zero point independently per channel.
+    axis : int, default=0
+        Channel axis used when ``per_channel=True``.
+    """
+
     def __init__(self, bits=8, symmetric=False, per_channel=False, axis=0):
         self.bits = bits
         self.symmetric = symmetric

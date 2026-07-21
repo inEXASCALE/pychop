@@ -1,3 +1,9 @@
+"""Scalar-oriented custom floating-point simulation utilities.
+
+This module contains the educational ``Simulate`` interface for experimenting
+with arbitrary radix, precision, exponent range, and rounding-mode settings.
+"""
+
 import numpy as np
 
 class Simulate():

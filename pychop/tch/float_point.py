@@ -1,3 +1,5 @@
+"""PyTorch floating-point chopping backend with stochastic and CADNA rounding."""
+
 import torch
 
 
@@ -5,6 +7,8 @@ from dataclasses import dataclass
 
 @dataclass
 class Options:
+    """Configuration snapshot for a PyTorch floating-point chopper."""
+
     t: int
     emax: int
     prec: int
@@ -823,6 +827,18 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p
 
 
 def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
+    """Round scaled mantissas to nearest with ties to even.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Scaled mantissa values.
+
+    Returns
+    -------
+    torch.Tensor
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n: torch.rand(n, device=x.device)
     
@@ -847,6 +863,18 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
 
 
 def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
+    """Round scaled mantissas toward positive infinity.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Scaled mantissa values.
+
+    Returns
+    -------
+    torch.Tensor
+        Rounded mantissas.
+    """
     y = torch.ceil(x)
     
     if flip:
@@ -863,6 +891,18 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
 
 
 def round_towards_minus_inf(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
+    """Round scaled mantissas toward negative infinity.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Scaled mantissa values.
+
+    Returns
+    -------
+    torch.Tensor
+        Rounded mantissas.
+    """
     y = torch.floor(x)
     
     if flip:
@@ -879,6 +919,18 @@ def round_towards_minus_inf(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
 
 
 def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
+    """Round scaled mantissas toward zero.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Scaled mantissa values.
+
+    Returns
+    -------
+    torch.Tensor
+        Rounded mantissas.
+    """
     y = ((x >= 0) | (x == float('-inf'))) * torch.floor(x) + ((x < 0) | (x == float('inf'))) * torch.ceil(x)
     
     if flip:
@@ -895,6 +947,18 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None, **kwargs):
 
 
 def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
+    """Stochastically round scaled mantissas with distance-proportional odds.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Scaled mantissa values.
+
+    Returns
+    -------
+    torch.Tensor
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n: torch.rand(n, device=x.device)
     
@@ -923,6 +987,18 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
     return y
 
 def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
+    """Stochastically round scaled mantissas with equal up/down odds.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Scaled mantissa values.
+
+    Returns
+    -------
+    torch.Tensor
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n: torch.rand(n, device=x.device)
     
@@ -952,12 +1028,12 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 # ============================================================
-# CADNA-style Random Rounding (rmode=7)
+# CADNA-style Random Rounding (rmode=10)
 # ============================================================
 
 def cadna_style_rounding(x, flip=0, p=0.5, t=24, randfunc=None, random_gen=None):
     """
-    CADNA-style stochastic rounding using sign-flip method (PyTorch version).
+    CADNA-style random directed rounding (PyTorch version).
     
     Parameters
     ----------
@@ -979,39 +1055,29 @@ def cadna_style_rounding(x, flip=0, p=0.5, t=24, randfunc=None, random_gen=None)
     torch.Tensor
         Rounded tensor
     """
-    from ..cadna_random import CADNARandomGenerator, torch_bit_flip
+    from ..cadna_random import CADNARandomGenerator
     
     if random_gen is None:
         random_gen = CADNARandomGenerator(backend="torch")
     
-    y = torch.abs(x)
-    frac = y - torch.floor(y)
-    
-    if not frac.any():
-        y = x
-    else:
+    random_bits_np = random_gen.random_bits(x.shape)
+    random_bits = torch.from_numpy(random_bits_np).to(device=x.device, dtype=torch.bool)
+
+    # CADNA random directed rounding chooses either predecessor or successor
+    # with equal probability in the scaled integer domain.
+    y = torch.where(random_bits, torch.floor(x), torch.ceil(x))
+    y = torch.where(torch.isfinite(x), y, x)
+
+    if flip:
         sign = lambda x: torch.sign(x) + (x == 0).float()
-        
-        # Generate random bits
-        random_bits_np = random_gen.random_bits(x.shape)
-        random_bits = torch.from_numpy(random_bits_np).to(x.device)
-        
-        # CADNA method: flip sign, round, flip back
-        y_flipped = torch_bit_flip(y, random_bits)
-        y_rounded = torch.round(y_flipped)
-        y_rounded = torch_bit_flip(y_rounded, random_bits)
-        
-        y = sign(x) * y_rounded
-        
-        if flip:
-            temp = torch.randint(0, 2, y.shape, device=x.device)
-            k = temp <= p
-            if k.any():
-                u = torch.abs(y[k])
-                b = torch.randint(1, t - 1, u.shape, device=x.device)
-                u = torch.bitwise_xor(u.to(torch.int32), 
-                                     torch.pow(2, b - 1).to(torch.int32)).float()
-                y[k] = sign(y[k]) * u
+        temp = torch.randint(0, 2, y.shape, device=x.device)
+        k = temp <= p
+        if k.any():
+            u = torch.abs(y[k])
+            b = torch.randint(1, t - 1, u.shape, device=x.device)
+            u = torch.bitwise_xor(u.to(torch.int32), 
+                                 torch.pow(2, b - 1).to(torch.int32)).float()
+            y[k] = sign(y[k]) * u
     
     return y
 
@@ -1074,6 +1140,20 @@ def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5,
 
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
+    """Apply a standalone rounding mode for implementation checks.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Scaled mantissa values.
+    rmode : int, default=1
+        Rounding mode to apply.
+
+    Returns
+    -------
+    torch.Tensor
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n: torch.randint(0, 2, (n,), device=x.device)
     
@@ -1123,4 +1203,16 @@ def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
     return y
 
 def return_column_order(arr):
+    """Return a flattened copy in column-major traversal order.
+
+    Parameters
+    ----------
+    arr : torch.Tensor
+        Input tensor.
+
+    Returns
+    -------
+    torch.Tensor
+        Flattened tensor using column-major ordering.
+    """
     return arr.T.reshape(-1)

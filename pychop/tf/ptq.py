@@ -1,3 +1,5 @@
+"""TensorFlow/Keras post-training quantization utilities."""
+
 import numpy as np
 import tensorflow as tf
 
@@ -152,11 +154,47 @@ def _collect_activation_samples(model, calibration_data):
 
 
 def post_quantization(model, chop, eval_mode=True, verbose=False):
+    """Quantize model weights after training.
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        Model to clone and quantize.
+    chop : callable
+        Quantizer applied to each weight tensor.
+    eval_mode : bool, default=True
+        Kept for API compatibility with other backends.
+    verbose : bool, default=False
+        Kept for API compatibility.
+
+    Returns
+    -------
+    tf.keras.Model
+        Cloned model with quantized weights.
+    """
     del eval_mode, verbose
     return _clone_with_quantized_weights(model, weight_chop=chop)
 
 
 def dynamic_post_quantization(model, chop, eval_mode=True, verbose=False):
+    """Apply weight PTQ and dynamic per-layer activation quantization.
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        Model to clone and quantize.
+    chop : callable
+        Quantizer applied to weights and target-layer activations.
+    eval_mode : bool, default=True
+        Kept for API compatibility with other backends.
+    verbose : bool, default=False
+        Whether to print a short PTQ status message.
+
+    Returns
+    -------
+    tf.keras.Model
+        Wrapper model that applies activation quantization during inference.
+    """
     del eval_mode
     quantized = _clone_with_quantized_weights(model, weight_chop=chop)
     if verbose:
@@ -186,6 +224,35 @@ def _collect_per_layer_activation_samples(model, calibration_data):
 
 def static_post_quantization(model, chop, calibration_data, calibration_method='minmax', percentile=99.99,
                              fuse_bn=True, eval_mode=True, verbose=False, model_apply_fn=None):
+    """Apply weight PTQ with calibrated per-layer activation clipping.
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        Model to clone and quantize.
+    chop : callable
+        Quantizer applied to weights and target-layer activations.
+    calibration_data : iterable
+        Input batches used to estimate activation ranges.
+    calibration_method : {'minmax', 'percentile', 'kl_divergence', 'mse'}, default='minmax'
+        Method used to compute activation clipping bounds.
+    percentile : float, default=99.99
+        Percentile used by percentile-like calibration methods.
+    fuse_bn : bool, default=True
+        Kept for API compatibility; TensorFlow batch-norm fusion is not applied.
+    eval_mode : bool, default=True
+        Kept for API compatibility with other backends.
+    verbose : bool, default=False
+        Whether to print calibration ranges.
+    model_apply_fn : callable, default=None
+        Kept for API compatibility.
+
+    Returns
+    -------
+    tf.keras.Model
+        Wrapper model with quantized weights, activation clipping, and activation
+        quantization.
+    """
     del fuse_bn, eval_mode, model_apply_fn
     quantized = _clone_with_quantized_weights(model, weight_chop=chop)
 
@@ -211,6 +278,35 @@ def static_post_quantization(model, chop, calibration_data, calibration_method='
 def mixed_post_quantization(model, weight_chop, activation_chop, calibration_data=None,
                             calibration_method='minmax', percentile=99.99,
                             dynamic=True, eval_mode=True, verbose=False):
+    """Apply separate quantizers for weights and activations.
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        Model to clone and quantize.
+    weight_chop : callable
+        Quantizer applied to model weights.
+    activation_chop : callable
+        Quantizer applied to target-layer activations. If ``None``, only weight
+        PTQ is applied.
+    calibration_data : iterable, default=None
+        Input batches required when ``dynamic=False``.
+    calibration_method : {'minmax', 'percentile', 'kl_divergence', 'mse'}, default='minmax'
+        Method used to compute activation clipping bounds.
+    percentile : float, default=99.99
+        Percentile used by percentile-like calibration methods.
+    dynamic : bool, default=True
+        Whether to skip static activation clipping calibration.
+    eval_mode : bool, default=True
+        Kept for API compatibility with other backends.
+    verbose : bool, default=False
+        Whether to print calibration ranges.
+
+    Returns
+    -------
+    tf.keras.Model
+        Wrapper model with the requested weight and activation quantization.
+    """
     del eval_mode
     quantized = _clone_with_quantized_weights(model, weight_chop=weight_chop)
 

@@ -1,3 +1,10 @@
+"""Backend-agnostic integer quantization front end.
+
+``Chopi`` dispatches symmetric or affine integer quantization to NumPy,
+PyTorch, JAX, or TensorFlow backends and preserves calibration state on the
+backend-specific implementation.
+"""
+
 import os
 from typing import Optional
 from .utils import *
@@ -170,5 +177,4 @@ class Chopi:
     def backend(self) -> Optional[str]:
         """Return current active backend."""
         return self._current_backend
-
 

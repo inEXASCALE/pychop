@@ -1,42 +1,26 @@
-"""
-Microscaling (MX) Formats - Backend Agnostic Entry Point
+"""Backend-agnostic entry point for OCP microscaling (MX) formats.
 
-OCP Microscaling format with automatic backend detection.
-Supports NumPy, JAX, and PyTorch backends.
+MX quantization groups values into fixed-size blocks, stores one unsigned
+power-of-two scale per block, and quantizes each scaled element to one of the
+predefined OCP MX element formats. The built-in registry includes
+``mxfp8_e5m2``, ``mxfp8_e4m3``, ``mxfp6_e3m2``, ``mxfp6_e2m3``,
+``mxfp4_e2m1``, and ``mxint8``.
 
-MX Format Structure:
-- Block of N elements (typically 32)
-- One shared scale factor (exponent) per block
-- Each element has its own exponent and mantissa
-- Significantly better dynamic range than BFP
+The front end supports NumPy, PyTorch, JAX, and TensorFlow. PyTorch, JAX, and
+TensorFlow quantizer wrappers expose straight-through-estimator behavior for
+training; NumPy is the reference implementation used for inference and tests.
 
-Reference:
-    OCP Microscaling Formats (MX) v1.0 Specification
-    https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf
+References
+----------
+OCP Microscaling Formats (MX) v1.0 Specification.
+https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf
 
-Usage:
-    >>> import pychop
-    >>> pychop.backend('auto')  # Auto-detect
-    >>> 
-    >>> # NumPy
-    >>> import numpy as np
-    >>> X = np.random.randn(1024, 768)
-    >>> X_q = mx_quantize(X, format='mxfp8_e4m3')
-    >>> 
-    >>> # PyTorch (with STE)
-    >>> import torch
-    >>> X = torch.randn(128, 768, requires_grad=True)
-    >>> X_q = mx_quantize(X, format='mxfp8_e4m3')
-    >>> loss = X_q.sum()
-    >>> loss.backward()  # Automatic STE!
-    >>> 
-    >>> # JAX
-    >>> import jax.numpy as jnp
-    >>> X = jnp.array(np.random.randn(512, 512))
-    >>> X_q = mx_quantize(X, format='mxfp8_e4m3')
-
-Author: Xinye Chen
-
+Examples
+--------
+>>> import numpy as np
+>>> from pychop import mx_quantize
+>>> x = np.random.randn(64)
+>>> x_q = mx_quantize(x, format="mxfp8_e4m3")
 """
 
 import os
@@ -49,7 +33,18 @@ from dataclasses import dataclass
 # ============================================================================
 
 def _detect_array_type(x: Any) -> str:
-    """Detect backend from input array type."""
+    """Detect the pychop backend implied by an input array.
+
+    Parameters
+    ----------
+    x : Any
+        Input array, tensor, or scalar.
+
+    Returns
+    -------
+    backend : str
+        One of ``"torch"``, ``"jax"``, ``"tensorflow"``, or ``"numpy"``.
+    """
     module = type(x).__module__
     
     if "torch" in module:
@@ -62,7 +57,7 @@ def _detect_array_type(x: Any) -> str:
 
 
 def _get_backend_env() -> str:
-    """Get backend from environment variable."""
+    """Return the backend name stored in ``chop_backend``."""
     return os.environ.get('chop_backend', 'auto')
 
 
@@ -73,26 +68,22 @@ def _get_backend_env() -> str:
 @dataclass
 class MXSpec:
     """
-    Microscaling format specification.
-    
-    MX format uses:
-    - Shared scale (exponent) for block of elements
-    - Individual exponent + mantissa for each element
+    Backend-independent OCP MX format specification.
     
     Attributes
     ----------
     name : str
-        Format name (e.g., 'MXFP8_E4M3')
+        Format name, for example ``"MXFP8_E4M3"``.
     exp_bits : int
         Element exponent bits
     sig_bits : int
-        Element significand bits (excluding implicit 1)
+        Element significand bits excluding the implicit leading bit.
     block_size : int
-        Elements per block
+        Number of elements sharing one scale.
     scale_exp_bits : int
-        Scale factor exponent bits
+        Scale exponent bits. OCP MX uses an E8M0 scale by default.
     scale_sig_bits : int
-        Scale factor significand bits
+        Scale significand bits. This is normally zero for E8M0 scales.
     """
     name: str
     exp_bits: int
@@ -103,25 +94,25 @@ class MXSpec:
     
     @property
     def element_bits(self) -> int:
-        """Total bits per element (1 sign + exp + sig)."""
+        """Total stored bits per element."""
         return 1 + self.exp_bits + self.sig_bits
     
     @property
     def total_bits_per_block(self) -> int:
-        """Total bits for entire block (elements + scale)."""
+        """Total stored bits for one MX block, including the shared scale."""
         element_bits = self.element_bits * self.block_size
         scale_bits = self.scale_exp_bits + self.scale_sig_bits
         return element_bits + scale_bits
     
     @property
     def compression_vs_fp32(self) -> float:
-        """Compression ratio vs FP32."""
+        """Compression ratio relative to a dense FP32 block."""
         fp32_bits = 32 * self.block_size
         return fp32_bits / self.total_bits_per_block
     
     @property
     def compression_vs_fp16(self) -> float:
-        """Compression ratio vs FP16."""
+        """Compression ratio relative to a dense FP16 block."""
         fp16_bits = 16 * self.block_size
         return fp16_bits / self.total_bits_per_block
     
@@ -155,7 +146,26 @@ def create_mx_spec(
     scale_exp_bits: int = 8,
     name: Optional[str] = None
 ) -> MXSpec:
-    """Create custom MX format specification."""
+    """Create a custom MX format specification.
+
+    Parameters
+    ----------
+    exp_bits : int
+        Number of element exponent bits.
+    sig_bits : int
+        Number of stored element significand bits.
+    block_size : int, default=32
+        Number of elements sharing one block scale.
+    scale_exp_bits : int, default=8
+        Number of exponent bits in the shared scale.
+    name : str, optional
+        Custom format name. If omitted, a name is derived from the bit widths.
+
+    Returns
+    -------
+    spec : MXSpec
+        Backend-independent MX format specification.
+    """
     if name is None:
         total_bits = 1 + exp_bits + sig_bits
         name = f"CUSTOM_MX{total_bits}_E{exp_bits}M{sig_bits}"
@@ -174,7 +184,18 @@ def create_mx_spec(
 # ============================================================================
 
 def _resolve_backend(X: Any = None) -> str:
-    """Resolve which backend to use."""
+    """Resolve the backend requested for an MX operation.
+
+    Parameters
+    ----------
+    X : Any, optional
+        Input object used for auto detection when ``chop_backend="auto"``.
+
+    Returns
+    -------
+    backend : str
+        Resolved backend name.
+    """
     env_backend = _get_backend_env()
     
     if env_backend == 'auto':
@@ -193,7 +214,18 @@ def _resolve_backend(X: Any = None) -> str:
 
 
 def _get_backend_module(backend: str):
-    """Get backend-specific MX implementation."""
+    """Import the backend-specific MX implementation module.
+
+    Parameters
+    ----------
+    backend : str
+        Backend name.
+
+    Returns
+    -------
+    module
+        Module implementing ``MXTensor_`` and ``mx_quantize`` for ``backend``.
+    """
     if backend == 'torch':
         try:
             from .tch import mx_formats as backend_module
@@ -238,14 +270,34 @@ def mx_quantize(
     scale_sig_bits: Optional[int] = None,
     backend: Optional[str] = None
 ) -> Any:
-    """
-    Quantize array to MX format.
-    
+    """Quantize an array or tensor to an OCP MX format.
+
+    Parameters
+    ----------
+    data : array-like
+        Input values. NumPy, PyTorch, JAX, and TensorFlow tensors are supported.
+    format : str, MXSpec, or tuple of int, default="mxfp8_e4m3"
+        Predefined format name, custom ``MXSpec``, or ``(exp_bits, sig_bits)``.
+    block_size : int, default=32
+        Number of elements sharing one scale.
+    scale_exp_bits : int, optional
+        Override for the shared scale exponent width.
+    scale_sig_bits : int, optional
+        Override for the shared scale significand width.
+    backend : str, optional
+        Backend override. If omitted, the active pychop backend or input type is
+        used.
+
+    Returns
+    -------
+    quantized : array-like
+        Quantized-dequantized values in the same backend family as ``data``.
+
     Examples
     --------
     >>> import numpy as np
-    >>> X = np.random.randn(1024, 768)
-    >>> X_q = mx_quantize(X, format='mxfp8_e4m3')
+    >>> x = np.random.randn(32)
+    >>> x_q = mx_quantize(x, format="mxfp8_e4m3")
     """
     # Resolve backend
     if backend is None:
@@ -265,7 +317,23 @@ def mx_quantize(
 
 
 class MXTensor:
-    """Backend-agnostic MX tensor wrapper."""
+    """Backend-agnostic MX tensor wrapper.
+
+    Parameters
+    ----------
+    data : array-like
+        Input values.
+    format : str, MXSpec, or tuple of int, default="mxfp8_e4m3"
+        MX format specification.
+    block_size : int, default=32
+        Number of elements sharing one scale.
+    scale_exp_bits : int, optional
+        Override for scale exponent bits.
+    scale_sig_bits : int, optional
+        Override for scale significand bits.
+    backend : str, optional
+        Backend override. If omitted, backend auto detection is used.
+    """
     
     def __init__(
         self,
@@ -295,11 +363,11 @@ class MXTensor:
         )
     
     def dequantize(self) -> Any:
-        """Dequantize to original data type."""
+        """Return quantized-dequantized values in the backend-native type."""
         return self._impl.dequantize()
     
     def statistics(self) -> dict:
-        """Get quantization statistics."""
+        """Return block count, compression, and range statistics."""
         return self._impl.statistics()
     
     def __repr__(self):
@@ -311,14 +379,24 @@ def compare_mx_formats(
     formats: Optional[list] = None,
     block_size: int = 32
 ) -> None:
-    """Compare different MX formats on same data."""
+    """Print a comparison of MX formats on the same data.
+
+    Parameters
+    ----------
+    data : array-like
+        Input values.
+    formats : list of str, optional
+        Format names to compare. If omitted, backend defaults are used.
+    block_size : int, default=32
+        Block size used for comparison.
+    """
     backend = _resolve_backend(data)
     backend_module = _get_backend_module(backend)
     backend_module.compare_mx_formats(data, formats=formats, block_size=block_size)
 
 
 def print_mx_format_table():
-    """Print table of predefined MX formats."""
+    """Print the predefined OCP MX format table."""
     print("="*100)
     print("OCP Microscaling (MX) Formats")
     print("="*100)

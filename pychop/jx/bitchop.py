@@ -1,3 +1,5 @@
+"""JAX bit-level floating-point chopping backend."""
+
 import jax
 import jax.numpy as jnp
 from jax import random, device_put

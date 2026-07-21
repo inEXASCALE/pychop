@@ -1,9 +1,24 @@
+"""JAX fixed-point quantization backend."""
+
 import jax.numpy as jnp
 import jax.random as random
 from typing import Tuple
 from jax import jit
 
 class FPRound_:
+    """Quantize JAX arrays to a signed fixed-point format.
+
+    Parameters
+    ----------
+    ibits : int
+        Number of integer bits, including the sign range.
+    fbits : int
+        Number of fractional bits.
+    rmode : int or str, default=1
+        Rounding mode used when snapping to the fixed-point grid. Stochastic
+        modes require a JAX PRNG key.
+    """
+
     def __init__(self, ibits: int, fbits: int, rmode: int=1):
         """
         Initialize fixed-point simulator.
@@ -41,13 +56,15 @@ class FPRound_:
         
         Parameters
         ----------  
-        x : torch.Tensor
-            Input tensor
+        x : jax.Array
+            Input array.
         
         Returns
         ----------  
-        sign: Tensor of signs (+1 or -1)
-            abs_x: Tensor of absolute values
+        sign : jax.Array
+            Signs of the input values.
+        abs_x : jax.Array
+            Absolute values of the input.
         """
         
         sign = jnp.sign(x)
@@ -64,19 +81,19 @@ class FPRound_:
         
         Parameters
         ----------  
-        x : torch.Tensor
-            Input tensor
+        x : jax.Array
+            Input array.
             
-        sign : torch.Tensor
-            Signs of input values
+        sign : jax.Array
+            Signs of input values.
             
-        abs_x : torch.Tensor
-            Absolute values of input
+        abs_x : jax.Array
+            Absolute values of input.
             
         Returns
         ----------  
-        result : torch.Tensor
-            Quantized tensor in fixed-point representation
+        result : jax.Array
+            Quantized array in fixed-point representation.
         """
         scaled = abs_x / self.resolution
 
@@ -121,18 +138,18 @@ class FPRound_:
     @jit
     def quantize(self, x: jnp.ndarray, key: random.PRNGKey = None) -> jnp.ndarray:
         """
-        Convert floating-point tensor to fixed-point representation with specified rounding method.
+        Convert a JAX array to the configured fixed-point representation.
         
         Parameters
         ----------  
-        x : torch.Tensor
-            Input tensor
+        x : jax.Array
+            Input array.
                         
         
         Returns
         ----------  
-        result : torch.Tensor
-            Quantized tensor in fixed-point representation
+        result : jax.Array
+            Quantized array in fixed-point representation.
         """
         sign, abs_x = self._to_fixed_point_components(x)
         return self._quantize(x, sign, abs_x, key)
@@ -186,18 +203,18 @@ class FPRound_:
 
     def quantize(self, x: jnp.ndarray, key: random.PRNGKey = None) -> jnp.ndarray:
         """
-        Convert floating-point tensor to fixed-point representation with specified rounding method.
+        Convert a JAX array to the configured fixed-point representation.
         
         Parameters
         ----------  
-        x : torch.Tensor
-            Input tensor
+        x : jax.Array
+            Input array.
 
         
         Returns
         ----------  
-        result : torch.Tensor
-            Quantized tensor in fixed-point representation
+        result : jax.Array
+            Quantized array in fixed-point representation.
         """
         
         sign, abs_x = self._to_fixed_point_components(x)
@@ -702,6 +719,7 @@ class FPRound_:
     
 # Test the implementation
 def test_fixed_point():
+    """Run the module's fixed-point smoke demonstration."""
     values = jnp.array([1.7641, 0.3097, -0.2021, 2.4700, 0.3300])
     fx_sim = FixedPointSimulator(4, 4)
     # Print format info

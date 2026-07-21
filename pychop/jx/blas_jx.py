@@ -1,3 +1,5 @@
+"""JAX BLAS-style routines with pychop quantization."""
+
 import jax.numpy as jnp
 import pychop
 import logging
@@ -19,6 +21,19 @@ precision_configs = {  # Precision configurations
 precision_fallback = ['q52', 'q43', 'bf16', 'half', 'tf32', 'fp32', 'fp64']
 
 def get_dtype(precision):
+    """Return native JAX dtypes for precisions handled without chopping.
+
+    Parameters
+    ----------
+    precision : str or dict
+        Precision name or a custom LightChop configuration.
+
+    Returns
+    -------
+    tuple
+        Pair ``(real_dtype, complex_dtype)``. ``None`` entries indicate that
+        the precision must be simulated by pychop rather than native casting.
+    """
     if isinstance(precision, dict):
         return None, None
     d = {

@@ -1,3 +1,5 @@
+"""PyTorch helpers for squeezing values into reduced floating-point formats."""
+
 import torch
 
 def calc_float_max(exp_bits, sig_bits):

@@ -1,7 +1,21 @@
+"""PyTorch fixed-point quantization backend."""
+
 import torch
 from typing import Tuple
 
 class FPRound_:
+    """Quantize PyTorch tensors to a signed fixed-point format.
+
+    Parameters
+    ----------
+    ibits : int, default=4
+        Number of integer bits, including the sign range.
+    fbits : int, default=4
+        Number of fractional bits.
+    rmode : int or str, default=1
+        Rounding mode used when snapping to the fixed-point grid.
+    """
+
     def __init__(self, ibits: int=4, fbits: int=4, rmode: int=1):
         """
         Initialize fixed-point simulator.

@@ -8,7 +8,7 @@ print("最终 CADNA 测试")
 print("=" * 60)
 
 # 创建 Chop_ 实例
-ch = Chop_(prec='h', rmode=7, random_state=42)
+ch = Chop_(prec='h', rmode=10, random_state=42)
 
 print(f"\nChop_ 实例信息:")
 print(f"  rmode: {ch.rmode}")
@@ -17,7 +17,7 @@ print(f"  _cadna_gen: {ch._cadna_gen}")
 if ch._cadna_gen is None:
     print("\n❌ _cadna_gen 未初始化！")
     print("   检查 __init__ 方法中是否添加了:")
-    print("   if rmode == 7:")
+    print("   if rmode == 10:")
     print("       from ..cadna_random import CADNARandomGenerator")
     print("       self._cadna_gen = CADNARandomGenerator(...)")
     exit(1)

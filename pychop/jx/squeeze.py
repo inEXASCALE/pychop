@@ -1,3 +1,5 @@
+"""JAX helpers for squeezing values into reduced floating-point formats."""
+
 import jax
 import jax.numpy as jnp
 

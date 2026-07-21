@@ -1,10 +1,8 @@
-"""
-Block Floating Point (BFP) - NumPy Backend Implementation
+"""NumPy reference backend for BFP and Flexpoint quantization.
 
-Pure NumPy implementation of BFP quantization.
-No automatic differentiation, suitable for inference and analysis.
-
-Author: Xinye Chen
+This module implements shared-exponent block quantization with signed
+fixed-point mantissas. It is the reference implementation wrapped by the JAX
+and TensorFlow BFP front ends.
 """
 
 import numpy as np
@@ -29,11 +27,7 @@ def _shared_exponent_bounds(exponent_bits: int) -> Tuple[int, int]:
 # ============================================================================
 
 class BFPBlock_:
-    """
-    NumPy implementation of single BFP block.
-    
-    Pure NumPy, no autograd.
-    """
+    """Single BFP block with one shared exponent and signed mantissas."""
     
     def __init__(self, data: np.ndarray, spec: BFPSpec):
         if data.ndim != 1:
@@ -100,9 +94,7 @@ class BFPBlock_:
 # ============================================================================
 
 class BFPTensor_:
-    """
-    NumPy implementation of multi-block BFP tensor.
-    """
+    """Multi-block BFP tensor using the NumPy reference implementation."""
     
     def __init__(
         self,

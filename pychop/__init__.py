@@ -35,7 +35,7 @@ from .layers import ChopSTE, ChopfSTE, ChopiSTE
 from .math_func import *
 
 
-__version__ = '0.5.8'  
+__version__ = '0.5.9'  
 
 import os
 if 'chop_backend' not in os.environ:
@@ -71,6 +71,8 @@ from . import ptq
 
 @dataclass
 class Customs:
+    """Custom scalar floating-point format parameters for classic ``Chop_`` APIs."""
+
     emax: Optional[int] = None # the maximum value of the exponent.
     t: Optional[int] = None # the number of bits in the significand (including the hidden bit)
     exp_bits: Optional[int] = None # the exponent bits
@@ -79,6 +81,8 @@ class Customs:
 
 @dataclass
 class Options:
+    """Classic floating-point simulation options bundle."""
+
     t: int
     emax: int
     prec: int
@@ -87,4 +91,3 @@ class Options:
     flip: bool
     explim: bool
     p: float
-

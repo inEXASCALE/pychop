@@ -1,3 +1,12 @@
+"""Backend-dispatched bit-level floating-point chopping.
+
+This module exposes :func:`Bitchop`, a front-end factory that selects the
+NumPy, PyTorch, JAX, or TensorFlow bit-level simulator according to the active
+``pychop.backend`` setting. The simulator is intended for educational or
+fault-injection-style experiments where bit-level behavior matters more than
+throughput.
+"""
+
 import os
 import numpy as np
 

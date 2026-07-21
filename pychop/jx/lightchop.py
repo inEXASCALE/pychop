@@ -1,3 +1,5 @@
+"""JAX LightChop backend for fast custom floating-point quantization."""
+
 import jax
 import jax.numpy as jnp
 from jax import jit

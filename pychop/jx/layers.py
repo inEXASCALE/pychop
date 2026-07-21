@@ -509,7 +509,7 @@ def mixed_post_quantization(
     
     # Step 1: Quantize weights (if weight_chop is provided)
     if weight_chop is not None:
-        # 使用 tree_util.tree_map
+        # Use tree_util.tree_map.
         q_params = tree_util.tree_map(
             lambda x: weight_chop(x) if isinstance(x, jnp.ndarray) else x,
             params
@@ -532,7 +532,7 @@ def mixed_post_quantization(
         activation_stats = {}
         
         for batch in calibration_data:
-            # 构建完整的 variables 字典
+            # Build the complete variables dictionary.
             variables = {'params': q_params}
             if batch_stats is not None:
                 variables['batch_stats'] = batch_stats
@@ -613,7 +613,7 @@ def static_post_quantization(
     """
     import jax
     import jax.numpy as jnp
-    from jax import tree_util  # 使用 tree_util
+    from jax import tree_util  # Use tree_util.
     from flax.core import freeze, unfreeze
     
     # Get model variables (params + batch_stats)
@@ -639,7 +639,7 @@ def static_post_quantization(
     
     # Step 2: Collect activation statistics (calibration)
     for batch in calibration_data:
-        # 构建完整的 variables 字典
+        # Build the complete variables dictionary.
         variables = {'params': q_params}
         if batch_stats is not None:
             variables['batch_stats'] = batch_stats
@@ -698,7 +698,7 @@ def dynamic_post_quantization(
     """
     import jax
     import jax.numpy as jnp
-    from jax import tree_util  # 使用 tree_util
+    from jax import tree_util  # Use tree_util.
     from flax.core import freeze, unfreeze
     
     # Get model variables
@@ -3591,6 +3591,8 @@ class IQuantizedConv2d(nn.Module):
 # Similar for other IQuantized layers - they all wrap the corresponding
 # Quantized* layer with ChopiSTE
 class IQuantizedConv1d(nn.Module):
+    """Integer-quantized 1-D convolution layer for Flax models."""
+
     features: int
     kernel_size: int
     bits: int = 8
@@ -3613,6 +3615,8 @@ class IQuantizedConv1d(nn.Module):
 
 
 class IQuantizedConv3d(nn.Module):
+    """Integer-quantized 3-D convolution layer for Flax models."""
+
     features: int
     kernel_size: Union[int, Tuple[int, int, int]]
     bits: int = 8

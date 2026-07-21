@@ -1,3 +1,5 @@
+"""PyTorch integer quantization backend."""
+
 import torch
 import warnings
 import torch.nn as nn

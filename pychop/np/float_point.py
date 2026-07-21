@@ -1,3 +1,5 @@
+"""NumPy floating-point chopping backend with deterministic and stochastic modes."""
+
 import numpy as np
 import gc
    
@@ -960,6 +962,13 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0,
 
 
 def raise_value_error(msg):
+    """Raise ``ValueError`` with a backend-compatible helper signature.
+
+    Parameters
+    ----------
+    msg : str
+        Error message to report.
+    """
     raise ValueError(msg)
 
 
@@ -970,6 +979,24 @@ def raise_value_error(msg):
 
                       
 def round_to_nearest(x, flip=0, p=0.5, t=24, **kwargs):
+    """Round scaled mantissas to nearest with ties to even.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Scaled mantissa values.
+    flip : bool or int, default=0
+        Whether to apply the optional soft-error bit flip.
+    p : float, default=0.5
+        Bit-flip probability when ``flip`` is enabled.
+    t : int, default=24
+        Significand precision used to select a flippable bit.
+
+    Returns
+    -------
+    numpy.ndarray
+        Rounded mantissas.
+    """
     y = np.abs(x)
     inds = (y - (2 * np.floor(y / 2))) == 0.5
     y[inds] = y[inds] - 1
@@ -993,6 +1020,24 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, **kwargs):
 
 
 def round_towards_plus_inf(x, flip=0, p=0.5, t=24, **kwargs):
+    """Round scaled mantissas toward positive infinity.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Scaled mantissa values.
+    flip : bool or int, default=0
+        Whether to apply the optional soft-error bit flip.
+    p : float, default=0.5
+        Bit-flip probability when ``flip`` is enabled.
+    t : int, default=24
+        Significand precision used to select a flippable bit.
+
+    Returns
+    -------
+    numpy.ndarray
+        Rounded mantissas.
+    """
     y = np.ceil(x)
             
     if flip:
@@ -1011,6 +1056,24 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, **kwargs):
 
 
 def round_towards_minus_inf(x, flip=0, p=0.5, t=24, **kwargs):
+    """Round scaled mantissas toward negative infinity.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Scaled mantissa values.
+    flip : bool or int, default=0
+        Whether to apply the optional soft-error bit flip.
+    p : float, default=0.5
+        Bit-flip probability when ``flip`` is enabled.
+    t : int, default=24
+        Significand precision used to select a flippable bit.
+
+    Returns
+    -------
+    numpy.ndarray
+        Rounded mantissas.
+    """
     y = np.floor(x)
             
     if flip:
@@ -1028,6 +1091,24 @@ def round_towards_minus_inf(x, flip=0, p=0.5, t=24, **kwargs):
 
 
 def round_towards_zero(x, flip=0, p=0.5, t=24, **kwargs):
+    """Round scaled mantissas toward zero.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Scaled mantissa values.
+    flip : bool or int, default=0
+        Whether to apply the optional soft-error bit flip.
+    p : float, default=0.5
+        Bit-flip probability when ``flip`` is enabled.
+    t : int, default=24
+        Significand precision used to select a flippable bit.
+
+    Returns
+    -------
+    numpy.ndarray
+        Rounded mantissas.
+    """
     y = ((x >= 0) | (x == -np.inf)) * np.floor(x) + ((x < 0) | (x == np.inf)) * np.ceil(x)
             
     if flip:
@@ -1046,6 +1127,26 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, **kwargs):
 
 
 def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
+    """Stochastically round scaled mantissas with distance-proportional odds.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Scaled mantissa values.
+    flip : bool or int, default=0
+        Whether to apply the optional soft-error bit flip.
+    p : float, default=0.5
+        Bit-flip probability when ``flip`` is enabled.
+    t : int, default=24
+        Significand precision used to select a flippable bit.
+    randfunc : callable
+        Function returning uniform random values in ``[0, 1)``.
+
+    Returns
+    -------
+    numpy.ndarray
+        Rounded mantissas.
+    """
     y = np.abs(x)
     frac = y - np.floor(y)
  
@@ -1076,6 +1177,26 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None):
 
 
 def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
+    """Stochastically round scaled mantissas with equal up/down odds.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Scaled mantissa values.
+    flip : bool or int, default=0
+        Whether to apply the optional soft-error bit flip.
+    p : float, default=0.5
+        Bit-flip probability when ``flip`` is enabled.
+    t : int, default=24
+        Significand precision used to select a flippable bit.
+    randfunc : callable
+        Function returning uniform random values in ``[0, 1)``.
+
+    Returns
+    -------
+    numpy.ndarray
+        Rounded mantissas.
+    """
     y = np.abs(x)
     frac = y - np.floor(y)
     
@@ -1105,7 +1226,7 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None):
 
 # ============================================================
 # CADNA-style Random Rounding via true sign-bit flip trick
-# rmode=7
+# rmode=10
 # ============================================================
 
 import numpy as np
@@ -1261,7 +1382,7 @@ def _chop_cadna_rounding(
     """
     CADNA-style random rounding for floating-point simulation.
 
-    This rmode=7 implementation uses the true CADNA sign-bit flip trick
+    This rmode=10 implementation uses the true CADNA sign-bit flip trick
     inside cadna_style_rounding():
 
         bit=0 -> upward rounding
@@ -1390,6 +1511,28 @@ def _chop_cadna_rounding(
 
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
+    """Apply a standalone rounding mode for implementation checks.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Scaled mantissa values.
+    rmode : int, default=1
+        Rounding mode to apply.
+    flip : bool or int, default=0
+        Whether to apply the optional soft-error bit flip.
+    p : float, default=0.5
+        Bit-flip probability when ``flip`` is enabled.
+    t : int, default=24
+        Significand precision used to select a flippable bit.
+    randfunc : callable, default=None
+        Optional random-number function used by stochastic modes.
+
+    Returns
+    -------
+    numpy.ndarray
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n: np.random.randint(0, 1, n)
             
@@ -1472,4 +1615,16 @@ def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):
     
     
 def return_column_order(arr):
+    """Return a flattened copy in column-major traversal order.
+
+    Parameters
+    ----------
+    arr : numpy.ndarray
+        Input array.
+
+    Returns
+    -------
+    numpy.ndarray
+        Flattened array using column-major ordering.
+    """
     return arr.T.reshape(-1)

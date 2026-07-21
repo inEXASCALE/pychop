@@ -1,3 +1,5 @@
+"""Demonstration script for harmonic-sum experiments with pychop."""
+
 import numpy as np
 from . import customs
 from .chop import chop
@@ -8,6 +10,7 @@ np.random.seed(1)
 
 
 def main():
+    """Run the harmonic-sum rounding demonstration."""
     print('---------------------------------------------')
     print('Format  Round mode     Sum      No. terms')
     print('---------------------------------------------')

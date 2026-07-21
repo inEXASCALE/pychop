@@ -271,59 +271,214 @@ def _check_nonzero(xp, x, y=None):
 # Trigonometric
 # ---------------------------------------------------------------------
 
-def sin(x, chop): return _unary_math(chop, x, "sin")
-def cos(x, chop): return _unary_math(chop, x, "cos")
-def tan(x, chop): return _unary_math(chop, x, "tan")
-def arcsin(x, chop): return _unary_math(chop, x, "arcsin", _check_abs_le_one)
-def arccos(x, chop): return _unary_math(chop, x, "arccos", _check_abs_le_one)
-def arctan(x, chop): return _unary_math(chop, x, "arctan")
+def sin(x, chop):
+    """Compute sine with chopped input and output.
+
+    Parameters
+    ----------
+    x : array-like
+        Input values.
+    chop : callable
+        Quantizer applied before and after the backend operation.
+
+    Returns
+    -------
+    y : array-like
+        Chopped sine values.
+    """
+    return _unary_math(chop, x, "sin")
+
+
+def cos(x, chop):
+    """Compute cosine with chopped input and output."""
+    return _unary_math(chop, x, "cos")
+
+
+def tan(x, chop):
+    """Compute tangent with chopped input and output."""
+    return _unary_math(chop, x, "tan")
+
+
+def arcsin(x, chop):
+    """Compute inverse sine with chopped input and output."""
+    return _unary_math(chop, x, "arcsin", _check_abs_le_one)
+
+
+def arccos(x, chop):
+    """Compute inverse cosine with chopped input and output."""
+    return _unary_math(chop, x, "arccos", _check_abs_le_one)
+
+
+def arctan(x, chop):
+    """Compute inverse tangent with chopped input and output."""
+    return _unary_math(chop, x, "arctan")
 
 # Hyperbolic
-def sinh(x, chop): return _unary_math(chop, x, "sinh")
-def cosh(x, chop): return _unary_math(chop, x, "cosh")
-def tanh(x, chop): return _unary_math(chop, x, "tanh")
-def arcsinh(x, chop): return _unary_math(chop, x, "arcsinh")
-def arccosh(x, chop): return _unary_math(chop, x, "arccosh", _check_nonnegative)
-def arctanh(x, chop): return _unary_math(chop, x, "arctanh", _check_abs_lt_one)
+def sinh(x, chop):
+    """Compute hyperbolic sine with chopped input and output."""
+    return _unary_math(chop, x, "sinh")
+
+
+def cosh(x, chop):
+    """Compute hyperbolic cosine with chopped input and output."""
+    return _unary_math(chop, x, "cosh")
+
+
+def tanh(x, chop):
+    """Compute hyperbolic tangent with chopped input and output."""
+    return _unary_math(chop, x, "tanh")
+
+
+def arcsinh(x, chop):
+    """Compute inverse hyperbolic sine with chopped input and output."""
+    return _unary_math(chop, x, "arcsinh")
+
+
+def arccosh(x, chop):
+    """Compute inverse hyperbolic cosine with chopped input and output."""
+    return _unary_math(chop, x, "arccosh", _check_nonnegative)
+
+
+def arctanh(x, chop):
+    """Compute inverse hyperbolic tangent with chopped input and output."""
+    return _unary_math(chop, x, "arctanh", _check_abs_lt_one)
 
 # Exponential / Log
-def exp(x, chop): return _unary_math(chop, x, "exp")
-def expm1(x, chop): return _unary_math(chop, x, "expm1")
-def log(x, chop): return _unary_math(chop, x, "log", _check_positive)
-def log10(x, chop): return _unary_math(chop, x, "log10", _check_positive)
-def log2(x, chop): return _unary_math(chop, x, "log2", _check_positive)
-def log1p(x, chop): return _unary_math(chop, x, "log1p")
+def exp(x, chop):
+    """Compute exponential with chopped input and output."""
+    return _unary_math(chop, x, "exp")
+
+
+def expm1(x, chop):
+    """Compute ``exp(x) - 1`` with chopped input and output."""
+    return _unary_math(chop, x, "expm1")
+
+
+def log(x, chop):
+    """Compute natural logarithm with chopped input and output."""
+    return _unary_math(chop, x, "log", _check_positive)
+
+
+def log10(x, chop):
+    """Compute base-10 logarithm with chopped input and output."""
+    return _unary_math(chop, x, "log10", _check_positive)
+
+
+def log2(x, chop):
+    """Compute base-2 logarithm with chopped input and output."""
+    return _unary_math(chop, x, "log2", _check_positive)
+
+
+def log1p(x, chop):
+    """Compute ``log(1 + x)`` with chopped input and output."""
+    return _unary_math(chop, x, "log1p")
 
 # Power / Roots
-def sqrt(x, chop): return _unary_math(chop, x, "sqrt", _check_nonnegative)
-def square(x, chop): return _unary_math(chop, x, "square")
-def power(x, y, chop): return _binary_math(chop, x, y, "power")
+def sqrt(x, chop):
+    """Compute square root with chopped input and output."""
+    return _unary_math(chop, x, "sqrt", _check_nonnegative)
+
+
+def square(x, chop):
+    """Compute elementwise square with chopped input and output."""
+    return _unary_math(chop, x, "square")
+
+
+def power(x, y, chop):
+    """Compute elementwise power with chopped inputs and output."""
+    return _binary_math(chop, x, y, "power")
 
 # Arithmetic
-def add(x, y, chop): return _binary_math(chop, x, y, "add")
-def subtract(x, y, chop): return _binary_math(chop, x, y, "subtract")
-def multiply(x, y, chop): return _binary_math(chop, x, y, "multiply")
-def divide(x, y, chop): return _binary_math(chop, x, y, "divide", _check_nonzero)
-def floor_divide(x, y, chop): return _binary_math(chop, x, y, "floor_divide", _check_nonzero)
-def mod(x, y, chop): return _binary_math(chop, x, y, "mod", _check_nonzero)
+def add(x, y, chop):
+    """Add two inputs after chopping them and chop the result."""
+    return _binary_math(chop, x, y, "add")
+
+
+def subtract(x, y, chop):
+    """Subtract two inputs after chopping them and chop the result."""
+    return _binary_math(chop, x, y, "subtract")
+
+
+def multiply(x, y, chop):
+    """Multiply two inputs after chopping them and chop the result."""
+    return _binary_math(chop, x, y, "multiply")
+
+
+def divide(x, y, chop):
+    """Divide two inputs after chopping them and chop the result."""
+    return _binary_math(chop, x, y, "divide", _check_nonzero)
+
+
+def floor_divide(x, y, chop):
+    """Floor-divide two inputs after chopping them and chop the result."""
+    return _binary_math(chop, x, y, "floor_divide", _check_nonzero)
+
+
+def mod(x, y, chop):
+    """Compute elementwise remainder after chopping inputs and output."""
+    return _binary_math(chop, x, y, "mod", _check_nonzero)
 
 # Linear algebra
-def dot(x, y, chop): return _binary_math(chop, x, y, "dot")
-def matmul(x, y, chop): return _binary_math(chop, x, y, "matmul")
+def dot(x, y, chop):
+    """Compute dot product with chopped inputs and output."""
+    return _binary_math(chop, x, y, "dot")
+
+
+def matmul(x, y, chop):
+    """Compute matrix product with chopped inputs and output."""
+    return _binary_math(chop, x, y, "matmul")
 
 # Reductions
-def sum(x, chop, axis=None): return _reduction_math(chop, x, "sum", axis=axis)
-def prod(x, chop, axis=None): return _reduction_math(chop, x, "prod", axis=axis)
-def mean(x, chop, axis=None): return _reduction_math(chop, x, "mean", axis=axis)
-def std(x, chop, axis=None): return _reduction_math(chop, x, "std", axis=axis)
-def var(x, chop, axis=None): return _reduction_math(chop, x, "var", axis=axis)
+def sum(x, chop, axis=None):
+    """Compute chopped sum over an optional axis."""
+    return _reduction_math(chop, x, "sum", axis=axis)
+
+
+def prod(x, chop, axis=None):
+    """Compute chopped product over an optional axis."""
+    return _reduction_math(chop, x, "prod", axis=axis)
+
+
+def mean(x, chop, axis=None):
+    """Compute chopped arithmetic mean over an optional axis."""
+    return _reduction_math(chop, x, "mean", axis=axis)
+
+
+def std(x, chop, axis=None):
+    """Compute chopped standard deviation over an optional axis."""
+    return _reduction_math(chop, x, "std", axis=axis)
+
+
+def var(x, chop, axis=None):
+    """Compute chopped variance over an optional axis."""
+    return _reduction_math(chop, x, "var", axis=axis)
 
 # Rounding
-def floor(x, chop): return _unary_math(chop, x, "floor")
-def ceil(x, chop): return _unary_math(chop, x, "ceil")
-def round(x, chop): return _unary_math(chop, x, "round")
-def sign(x, chop): return _unary_math(chop, x, "sign")
+def floor(x, chop):
+    """Compute elementwise floor with chopped input and output."""
+    return _unary_math(chop, x, "floor")
+
+
+def ceil(x, chop):
+    """Compute elementwise ceil with chopped input and output."""
+    return _unary_math(chop, x, "ceil")
+
+
+def round(x, chop):
+    """Round values with chopped input and output."""
+    return _unary_math(chop, x, "round")
+
+
+def sign(x, chop):
+    """Compute elementwise sign with chopped input and output."""
+    return _unary_math(chop, x, "sign")
 
 # Cumulative
-def cumsum(x, chop, axis=None): return _reduction_math(chop, x, "cumsum", axis=axis)
-def cumprod(x, chop, axis=None): return _reduction_math(chop, x, "cumprod", axis=axis)
+def cumsum(x, chop, axis=None):
+    """Compute chopped cumulative sum over an optional axis."""
+    return _reduction_math(chop, x, "cumsum", axis=axis)
+
+
+def cumprod(x, chop, axis=None):
+    """Compute chopped cumulative product over an optional axis."""
+    return _reduction_math(chop, x, "cumprod", axis=axis)

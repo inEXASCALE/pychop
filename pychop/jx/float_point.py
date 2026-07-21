@@ -1,30 +1,31 @@
+"""JAX floating-point chopping backend with stochastic and CADNA rounding."""
+
 import jax
 import jax.numpy as jnp
 from jax import random
-import numpy as np  # 用于初始化
+import numpy as np  # Used to initialize the CADNA-compatible generator.
 
 
 class CADNARandomGeneratorJAX:
+    """JAX-compatible CADNA random bit generator.
+
+    The generator follows CADNA's Tausworthe-times-three plus LCG construction
+    and returns JAX arrays for use in the JAX backend.
     """
-    JAX-compatible CADNA random number generator.
     
-    使用与 CADNA 相同的算法：Tausworthe × 3 + LCG
-    但实现为 JAX 兼容的纯函数形式。
-    """
-    
-    # Tausworthe 参数（与 CADNA 一致）
+    # Tausworthe parameters matching CADNA.
     TAUS1_S1, TAUS1_S2, TAUS1_S3, TAUS1_M = 13, 19, 12, 4294967294
     TAUS2_S1, TAUS2_S2, TAUS2_S3, TAUS2_M = 2, 25, 4, 4294967288
     TAUS3_S1, TAUS3_S2, TAUS3_S3, TAUS3_M = 3, 11, 17, 4294967280
     
-    # LCG 参数
+    # LCG parameters.
     LCG_A, LCG_C = 1664525, 1013904223
     
     def __init__(self, seed: int = 0):
-        """初始化生成器种子"""
+        """Initialize the generator seeds."""
         np.random.seed(seed)
-        
-        # 初始化四个生成器的种子（使用 NumPy 生成后转为 uint32）
+
+        # Initialize the four generator seeds with NumPy, then store uint32.
         self.z1 = np.uint32(np.random.randint(128, 2**32 - 1))
         self.z2 = np.uint32(np.random.randint(128, 2**32 - 1))
         self.z3 = np.uint32(np.random.randint(128, 2**32 - 1))
@@ -34,18 +35,18 @@ class CADNARandomGeneratorJAX:
         self._cache_counter = 0
     
     def _tausworthe_step(self, z: np.uint32, S1: int, S2: int, S3: int, M: int) -> np.uint32:
-        """Tausworthe 生成器步骤"""
+        """Advance one Tausworthe generator state."""
         b = np.uint32(((z << S1) ^ z) >> S2)
         z = np.uint32(((z & M) << S3) ^ b)
         return z
     
     def _lcg_step(self) -> np.uint32:
-        """LCG 生成器步骤"""
+        """Advance the LCG state."""
         self.z4 = np.uint32((self.LCG_A * self.z4 + self.LCG_C))
         return self.z4
     
     def _generate_batch(self) -> np.uint32:
-        """一次生成 32 个随机位"""
+        """Generate a batch of 32 random bits."""
         self.z1 = self._tausworthe_step(self.z1, self.TAUS1_S1, self.TAUS1_S2, 
                                          self.TAUS1_S3, self.TAUS1_M)
         self.z2 = self._tausworthe_step(self.z2, self.TAUS2_S1, self.TAUS2_S2, 
@@ -57,7 +58,7 @@ class CADNARandomGeneratorJAX:
         return np.uint32(self.z1 ^ self.z2 ^ self.z3 ^ lcg_val)
     
     def random_bit(self) -> int:
-        """生成单个随机位（0 或 1）"""
+        """Generate one random bit, either 0 or 1."""
         if self._cache_counter % 32 == 0:
             self._cache = self._generate_batch()
             self._cache_counter = 0
@@ -69,104 +70,100 @@ class CADNARandomGeneratorJAX:
         return bit
     
     def random_bits_array(self, shape: tuple) -> jnp.ndarray:
-        """
-        生成 JAX 数组的随机位
+        """Generate random bits as a JAX array.
         
         Parameters
         ----------
         shape : tuple
-            输出数组形状
+            Output array shape.
             
         Returns
         -------
         jnp.ndarray
-            随机位数组 (0 或 1)，dtype=uint8
+            Random bit array with values 0 or 1 and dtype ``uint8``.
         """
         size = int(np.prod(shape))
-        # 使用 NumPy 生成，然后转为 JAX 数组
+        # Generate with NumPy, then convert to a JAX array.
         bits = np.array([self.random_bit() for _ in range(size)], dtype=np.uint8)
         return jnp.array(bits.reshape(shape))
 
 
 # ============================================================
-# JAX 位翻转函数
+# JAX sign-bit flipping helpers.
 # ============================================================
 
 def jax_bit_flip_float32(x: jnp.ndarray, random_bits: jnp.ndarray) -> jnp.ndarray:
-    """
-    翻转 float32 的符号位
+    """Flip the sign bit of float32 values.
     
     Parameters
     ----------
     x : jnp.ndarray
-        输入数组，dtype=float32
+        Input array with dtype ``float32``.
     random_bits : jnp.ndarray
-        随机位数组 (0 或 1)
+        Random bit array with values 0 or 1.
         
     Returns
     -------
     jnp.ndarray
-        符号位翻转后的数组
+        Array after sign-bit flips.
     """
-    # 将 float32 转换为 uint32 进行位操作
+    # View float32 as uint32 for bit manipulation.
     x_int = x.view(jnp.uint32)
     
-    # 符号位是第 31 位
+    # The sign bit is bit 31.
     sign_bit = jnp.uint32(1) << 31
     
-    # XOR 翻转符号位
+    # XOR flips the sign bit where random_bits is 1.
     mask = random_bits.astype(jnp.uint32) * sign_bit
     x_int_flipped = x_int ^ mask
     
-    # 转回 float32
+    # View back as float32.
     return x_int_flipped.view(jnp.float32)
 
 
 def jax_bit_flip_float64(x: jnp.ndarray, random_bits: jnp.ndarray) -> jnp.ndarray:
-    """
-    翻转 float64 的符号位
+    """Flip the sign bit of float64 values.
     
     Parameters
     ----------
     x : jnp.ndarray
-        输入数组，dtype=float64
+        Input array with dtype ``float64``.
     random_bits : jnp.ndarray
-        随机位数组 (0 或 1)
+        Random bit array with values 0 or 1.
         
     Returns
     -------
     jnp.ndarray
-        符号位翻转后的数组
+        Array after sign-bit flips.
     """
-    # 将 float64 转换为 uint64 进行位操作
+    # View float64 as uint64 for bit manipulation.
     x_int = x.view(jnp.uint64)
     
-    # 符号位是第 63 位
+    # The sign bit is bit 63.
     sign_bit = jnp.uint64(1) << 63
     
-    # XOR 翻转符号位
+    # XOR flips the sign bit where random_bits is 1.
     mask = random_bits.astype(jnp.uint64) * sign_bit
     x_int_flipped = x_int ^ mask
     
-    # 转回 float64
+    # View back as float64.
     return x_int_flipped.view(jnp.float64)
 
 
 def jax_bit_flip(x: jnp.ndarray, random_bits: jnp.ndarray) -> jnp.ndarray:
-    """
-    根据 dtype 自动选择位翻转函数
+    """Flip sign bits using the implementation matching ``x.dtype``.
     
     Parameters
     ----------
     x : jnp.ndarray
-        输入数组
+        Input array.
     random_bits : jnp.ndarray
-        随机位数组
+        Random bit array with values 0 or 1.
         
     Returns
     -------
     jnp.ndarray
-        翻转后的数组
+        Array after sign-bit flips.
     """
     if x.dtype == jnp.float32:
         return jax_bit_flip_float32(x, random_bits)
@@ -1130,38 +1127,41 @@ def _chop_stochastic_rounding_equal(x, t, emax, subnormal=1, flip=0, explim=1, p
     return x
 
 
-def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5, 
+def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5,
                          randfunc=None, key=None, cadna_gen=None, *argv, **kwargs):
-    """
-    CADNA 风格的随机舍入（主函数）
+    """Apply CADNA-style random directed rounding to a JAX array.
+
+    The mantissa is rounded by randomly choosing the upward or downward
+    directed result. The downward branch is implemented with the CADNA sign-bit
+    flip trick.
     
     Parameters
     ----------
     x : jnp.ndarray
-        输入数组
+        Input array.
     t : int
-        尾数位数（含隐藏位）
+        Significand precision, including the hidden bit.
     emax : int
-        最大指数
+        Maximum exponent.
     subnormal : int
-        是否支持次正规数
+        Whether subnormal numbers are supported.
     flip : int
-        是否应用位翻转
+        Whether to apply the optional soft-error bit flip.
     explim : int
-        是否应用指数限制
+        Whether to apply exponent limits.
     p : float
-        位翻转概率
+        Bit-flip probability when ``flip`` is enabled.
     randfunc : callable
-        随机函数（未使用）
+        Random function kept for API compatibility.
     key : jax.random.PRNGKey
-        JAX 随机密钥
+        JAX random key.
     cadna_gen : CADNARandomGeneratorJAX
-        CADNA 随机数生成器
+        CADNA-style random bit generator.
         
     Returns
     -------
     jnp.ndarray
-        舍入后的数组
+        Rounded array.
     """
     if cadna_gen is None:
         cadna_gen = CADNARandomGeneratorJAX()
@@ -1169,19 +1169,19 @@ def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5,
     if key is None:
         key = random.PRNGKey(0)
     
-    # 预计算常量
+    # Precompute constants.
     emin = 1 - emax
     xmin = 2 ** emin
     emins = emin + 1 - t
     xmins = 2 ** emins
     xmax = 2 ** emax * (2 - 2 ** (1 - t))
     
-    # 计算指数
+    # Compute exponents.
     abs_x = jnp.abs(x)
     e = jnp.floor(jnp.log2(abs_x)).astype(jnp.int32)
     ktemp = (e < emin) & (e >= emins)
     
-    # 确定正规数和次正规数区域
+    # Determine normal and subnormal regions.
     if explim:
         k_sub = ktemp
         k_norm = ~ktemp
@@ -1189,21 +1189,21 @@ def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5,
         k_sub = jnp.zeros_like(ktemp, dtype=jnp.bool_)
         k_norm = jnp.ones_like(ktemp, dtype=jnp.bool_)
     
-    # 处理正规数范围
+    # Handle the normal range.
     if jnp.any(k_norm):
         w = jnp.power(2.0, t - 1 - e[k_norm].astype(jnp.float32))
         x_norm = x[k_norm] * w
         
-        # 应用 CADNA 舍入
+        # Apply CADNA-style rounding.
         x_norm_rounded = cadna_style_rounding(x_norm, flip=flip, p=p, t=t, 
                                               randfunc=randfunc, key=key, 
                                               cadna_gen=cadna_gen)
         x_norm_rounded = x_norm_rounded * (1 / w)
         
-        # 更新数组（JAX 不可变数组）
+        # Update the immutable JAX array.
         x = x.at[k_norm].set(x_norm_rounded)
     
-    # 处理次正规数范围
+    # Handle the subnormal range.
     if jnp.any(k_sub):
         temp = emin - e[k_sub]
         t1 = t - jnp.maximum(temp, jnp.zeros_like(temp))
@@ -1211,23 +1211,23 @@ def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5,
         w_sub = jnp.power(2.0, t1 - 1 - e[k_sub].astype(jnp.float32))
         x_sub = x[k_sub] * w_sub
         
-        # 应用 CADNA 舍入
+        # Apply CADNA-style rounding.
         key, subkey = random.split(key)
         x_sub_rounded = cadna_style_rounding(x_sub, flip=flip, p=p, t=t, 
                                             randfunc=randfunc, key=subkey, 
                                             cadna_gen=cadna_gen)
         x_sub_rounded = x_sub_rounded * jnp.power(2.0, e[k_sub].astype(jnp.float32) - (t1 - 1))
         
-        # 更新数组
+        # Update the array.
         x = x.at[k_sub].set(x_sub_rounded)
     
-    # 边界处理
+    # Boundary handling.
     if explim:
-        # 溢出处理
+        # Overflow handling.
         x = jnp.where((x > xmax) & (x != jnp.inf), xmax, x)
         x = jnp.where((x < -xmax) & (x != -jnp.inf), -xmax, x)
         
-        # 下溢处理
+        # Underflow handling.
         min_rep = xmin if subnormal == 0 else xmins
         k_small = jnp.abs(x) < min_rep
         x = jnp.where(k_small, 0, x)
@@ -1236,6 +1236,18 @@ def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5,
 
 
 def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kwargs):
+    """Round scaled mantissas to nearest with ties to even.
+
+    Parameters
+    ----------
+    x : jax.Array
+        Scaled mantissa values.
+
+    Returns
+    -------
+    jax.Array
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n, key: random.uniform(key, (n,))
     if key is None:
@@ -1263,6 +1275,18 @@ def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kwargs):
     return y
 
 def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kwargs):
+    """Round scaled mantissas toward positive infinity.
+
+    Parameters
+    ----------
+    x : jax.Array
+        Scaled mantissa values.
+
+    Returns
+    -------
+    jax.Array
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n, key: random.uniform(key, (n,))
     if key is None:
@@ -1285,6 +1309,18 @@ def round_towards_plus_inf(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kw
     return y
 
 def round_towards_minus_inf(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kwargs):
+    """Round scaled mantissas toward negative infinity.
+
+    Parameters
+    ----------
+    x : jax.Array
+        Scaled mantissa values.
+
+    Returns
+    -------
+    jax.Array
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n, key: random.uniform(key, (n,))
     if key is None:
@@ -1307,6 +1343,18 @@ def round_towards_minus_inf(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **k
     return y
 
 def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kwargs):
+    """Round scaled mantissas toward zero.
+
+    Parameters
+    ----------
+    x : jax.Array
+        Scaled mantissa values.
+
+    Returns
+    -------
+    jax.Array
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n, key: random.uniform(key, (n,))
     if key is None:
@@ -1329,6 +1377,20 @@ def round_towards_zero(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kwargs
     return y
 
 def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None, key=None):
+    """Stochastically round scaled mantissas with distance-proportional odds.
+
+    Parameters
+    ----------
+    x : jax.Array
+        Scaled mantissa values.
+    key : jax.random.PRNGKey, default=None
+        Random key for stochastic rounding and optional bit flips.
+
+    Returns
+    -------
+    jax.Array
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n, key: random.uniform(key, (n,))
     if key is None:
@@ -1361,6 +1423,20 @@ def stochastic_rounding(x, flip=0, p=0.5, t=24, randfunc=None, key=None):
     return y
 
 def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None, key=None):
+    """Stochastically round scaled mantissas with equal up/down odds.
+
+    Parameters
+    ----------
+    x : jax.Array
+        Scaled mantissa values.
+    key : jax.random.PRNGKey, default=None
+        Random key for stochastic rounding and optional bit flips.
+
+    Returns
+    -------
+    jax.Array
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n, key: random.uniform(key, (n,))
     if key is None:
@@ -1394,88 +1470,85 @@ def stochastic_rounding_equal(x, flip=0, p=0.5, t=24, randfunc=None, key=None):
 
 
 # ============================================================
-# CADNA-style Random Rounding (rmode=7)
+# CADNA-style Random Rounding (rmode=10)
 # ============================================================
 
 def cadna_style_rounding(x, flip=0, p=0.5, t=24, randfunc=None, key=None, cadna_gen=None):
-    """
-    CADNA 风格的随机舍入（JAX 版本）
-    
-    使用符号位翻转法实现随机舍入：
-    1. 随机翻转符号位: x' = (-1)^r * x
-    2. 标准舍入到最近整数
-    3. 翻转回来: result = (-1)^r * round(x')
+    """Round scaled mantissas with CADNA-style random directed rounding.
+
+    A random bit chooses upward rounding or simulated downward rounding through
+    a sign-bit flip.
     
     Parameters
     ----------
     x : jnp.ndarray
-        输入数组
+        Input array.
     flip : int
-        是否应用额外的位翻转（软错误模拟）
+        Whether to apply the optional soft-error bit flip.
     p : float
-        位翻转概率
+        Bit-flip probability when ``flip`` is enabled.
     t : int
-        尾数位数
+        Significand precision.
     randfunc : callable
-        随机函数（未使用，保持接口一致）
+        Random function kept for API compatibility.
     key : jax.random.PRNGKey
-        JAX 随机密钥（用于 flip）
+        JAX random key used by optional bit flips.
     cadna_gen : CADNARandomGeneratorJAX
-        CADNA 随机数生成器
+        CADNA-style random bit generator.
         
     Returns
     -------
     jnp.ndarray
-        舍入后的数组
+        Rounded mantissas.
     """
     if cadna_gen is None:
         cadna_gen = CADNARandomGeneratorJAX()
     
-    y = jnp.abs(x)
-    frac = y - jnp.floor(y)
-    
-    # 如果没有小数部分，直接返回
-    if not jnp.any(frac):
-        y = x
-    else:
+    random_bits = cadna_gen.random_bits_array(x.shape).astype(jnp.bool_)
+
+    # CADNA random directed rounding chooses either predecessor or successor
+    # with equal probability in the scaled integer domain.
+    y = jnp.where(random_bits, jnp.floor(x), jnp.ceil(x))
+    y = jnp.where(jnp.isfinite(x), y, x)
+
+    # Optional soft-error bit flipping.
+    if flip:
         sign = lambda x: jnp.sign(x) + (x == 0).astype(jnp.float32)
+        if key is None:
+            key = random.PRNGKey(0)
         
-        # 步骤 1: 生成随机位
-        random_bits = cadna_gen.random_bits_array(x.shape)
+        key, subkey = random.split(key)
+        temp = random.randint(subkey, x.shape, 0, 2)
+        k = temp <= p
         
-        # 步骤 2: 翻转符号位
-        y_flipped = jax_bit_flip(y, random_bits)
-        
-        # 步骤 3: 舍入到最近整数
-        y_rounded = jnp.round(y_flipped)
-        
-        # 步骤 4: 翻转回来
-        y_rounded = jax_bit_flip(y_rounded, random_bits)
-        
-        # 步骤 5: 恢复原始符号
-        y = sign(x) * y_rounded
-        
-        # 可选：额外的位翻转（软错误模拟）
-        if flip:
-            if key is None:
-                key = random.PRNGKey(0)
-            
+        if jnp.any(k):
+            u = jnp.abs(y[k])
             key, subkey = random.split(key)
-            temp = random.randint(subkey, x.shape, 0, 2)
-            k = temp <= p
-            
-            if jnp.any(k):
-                u = jnp.abs(y[k])
-                key, subkey = random.split(key)
-                b = random.randint(subkey, u.shape, 1, t - 1)
-                u = jnp.bitwise_xor(u.astype(jnp.int32), 
-                                   jnp.power(2, b - 1).astype(jnp.int32)).astype(jnp.float32)
-                y = y.at[k].set(sign(y[k]) * u)
+            b = random.randint(subkey, u.shape, 1, t - 1)
+            u = jnp.bitwise_xor(u.astype(jnp.int32), 
+                               jnp.power(2, b - 1).astype(jnp.int32)).astype(jnp.float32)
+            y = y.at[k].set(sign(y[k]) * u)
     
     return y
 
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None, key=None):
+    """Apply a standalone rounding mode for implementation checks.
+
+    Parameters
+    ----------
+    x : jax.Array
+        Scaled mantissa values.
+    rmode : int, default=1
+        Rounding mode to apply.
+    key : jax.random.PRNGKey, default=None
+        Random key used by stochastic modes and optional bit flips.
+
+    Returns
+    -------
+    jax.Array
+        Rounded mantissas.
+    """
     if randfunc is None:
         randfunc = lambda n, key: random.randint(key, (n,), 0, 2)
     if key is None:
@@ -1530,4 +1603,16 @@ def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None, key=None):
     return y
 
 def return_column_order(arr):
+    """Return a flattened copy in column-major traversal order.
+
+    Parameters
+    ----------
+    arr : jax.Array
+        Input array.
+
+    Returns
+    -------
+    jax.Array
+        Flattened array using column-major ordering.
+    """
     return arr.T.reshape(-1)

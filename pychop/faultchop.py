@@ -1,3 +1,10 @@
+"""Backend-dispatched floating-point chopping with optional bit-flip faults.
+
+``FaultChop`` selects the NumPy, PyTorch, JAX, or TensorFlow backend and
+combines floating-point quantization with optional significand bit flips for
+soft-error simulation.
+"""
+
 import os
 from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array, to_tensorflow_tensor
 
@@ -223,6 +230,5 @@ class FaultChop:
                   f"""Call the LightChop instance with an array to determine the backend and initialize the implementation.""")
 
         return getattr(self._impl, name)
-
 
 

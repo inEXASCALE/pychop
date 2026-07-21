@@ -1,5 +1,5 @@
 """
-Test CADNA-style random rounding (rmode=7) across all backends.
+Test CADNA-style random rounding (rmode=10) across all backends.
 
 Run directly:
     python tests/test_cadna_rounding.py
@@ -66,11 +66,11 @@ def test_cadna_rounding_numpy():
     """Test CADNA rounding with NumPy backend."""
     from pychop.np.float_point import Chop_
 
-    ch = Chop_(prec="h", rmode=7, random_state=42)
+    ch = Chop_(prec="h", rmode=10, random_state=42)
 
     x = np.array([1.234, -5.678, 0.999, -0.001], dtype=np.float64)
 
-    print("Testing NumPy Chop_ with rmode=7")
+    print("Testing NumPy Chop_ with rmode=10")
     if hasattr(ch, "_cadna_gen"):
         print(f"  Generator: {ch._cadna_gen}")
         print(f"  Initial counter: {getattr(ch._cadna_gen, '_cache_counter', None)}")
@@ -94,7 +94,7 @@ def test_cadna_rounding_numpy():
     print(f"  Variances: {variances}")
     print(f"  Nonzero variances: {np.count_nonzero(variances > 0)} / {variances.size}")
 
-    assert np.any(variances > 0), "CADNA rmode=7 should produce some varying results"
+    assert np.any(variances > 0), "CADNA rmode=10 should produce some varying results"
 
     print("✓ CADNA rounding NumPy test passed")
 
@@ -107,7 +107,7 @@ def test_cadna_rounding_torch():
     except ImportError:
         pytest.skip("PyTorch not available")
 
-    ch = Chop_(prec="h", rmode=7, random_state=42)
+    ch = Chop_(prec="h", rmode=10, random_state=42)
 
     x = torch.tensor([1.234, -5.678, 0.999, -0.001], dtype=torch.float64)
 
@@ -119,11 +119,11 @@ def test_cadna_rounding_torch():
     results_tensor = torch.stack(results)
     variances = results_tensor.var(dim=0)
 
-    print("PyTorch rmode=7 variances:")
+    print("PyTorch rmode=10 variances:")
     print(f"  {variances}")
 
     assert torch.all(torch.isfinite(results_tensor))
-    assert torch.any(variances > 0), "CADNA rmode=7 should produce some varying results"
+    assert torch.any(variances > 0), "CADNA rmode=10 should produce some varying results"
 
     print("✓ CADNA rounding PyTorch test passed")
 
@@ -136,7 +136,7 @@ def test_cadna_rounding_jax():
     except ImportError:
         pytest.skip("JAX not available")
 
-    ch = Chop_(prec="h", rmode=7, random_state=42)
+    ch = Chop_(prec="h", rmode=10, random_state=42)
 
     x = jnp.array([1.234, -5.678, 0.999, -0.001], dtype=jnp.float64)
 
@@ -148,18 +148,18 @@ def test_cadna_rounding_jax():
     results_array = jnp.stack(results)
     variances = jnp.var(results_array, axis=0)
 
-    print("JAX rmode=7 variances:")
+    print("JAX rmode=10 variances:")
     print(f"  {variances}")
 
     assert bool(jnp.all(jnp.isfinite(results_array)))
-    assert bool(jnp.any(variances > 0)), "CADNA rmode=7 should produce some varying results"
+    assert bool(jnp.any(variances > 0)), "CADNA rmode=10 should produce some varying results"
 
     print("✓ CADNA rounding JAX test passed")
 
 
 def test_cadna_vs_standard_rounding():
     """
-    Compare CADNA-style rmode=7 with standard stochastic rmode=5.
+    Compare CADNA-style rmode=10 with standard stochastic rmode=5.
 
     This test deliberately does NOT require every coordinate to have nonzero
     variance. With finite random trials, some coordinates may remain unchanged,
@@ -170,7 +170,7 @@ def test_cadna_vs_standard_rounding():
 
     rng = np.random.default_rng(123)
 
-    ch_cadna = Chop_(prec="s", rmode=7, random_state=42)
+    ch_cadna = Chop_(prec="s", rmode=10, random_state=42)
     ch_stoc = Chop_(prec="s", rmode=5, random_state=42)
 
     x = rng.normal(loc=0.0, scale=1.0, size=100).astype(np.float64)
@@ -202,7 +202,7 @@ def test_cadna_vs_standard_rounding():
     np.testing.assert_allclose(mean_stoc, x, rtol=0.1, atol=1e-6)
 
     # Stochasticity check: at least some coordinates should vary.
-    assert np.any(var_cadna > 0), "CADNA rmode=7 should produce some varying results"
+    assert np.any(var_cadna > 0), "CADNA rmode=10 should produce some varying results"
     assert np.any(var_stoc > 0), "Standard stochastic rmode=5 should produce some varying results"
 
     # Stronger but still realistic. Do not use np.all(var > 0).
@@ -222,7 +222,7 @@ def test_stochastic_rounding_midpoints_have_variance():
     """
     from pychop.np.float_point import Chop_
 
-    ch_cadna = Chop_(prec="s", rmode=7, random_state=42)
+    ch_cadna = Chop_(prec="s", rmode=10, random_state=42)
     ch_stoc = Chop_(prec="s", rmode=5, random_state=42)
 
     base = np.array(
@@ -249,7 +249,7 @@ def test_stochastic_rounding_midpoints_have_variance():
     print(f"  CADNA nonzero: {np.count_nonzero(var_cadna > 0)} / {var_cadna.size}")
     print(f"  STOC  nonzero: {np.count_nonzero(var_stoc > 0)} / {var_stoc.size}")
 
-    assert np.all(var_cadna > 0), "Midpoint CADNA rmode=7 should vary for every element"
+    assert np.all(var_cadna > 0), "Midpoint CADNA rmode=10 should vary for every element"
     assert np.all(var_stoc > 0), "Midpoint standard stochastic rmode=5 should vary for every element"
 
     print("✓ Midpoint variance test passed")

@@ -1,10 +1,9 @@
-"""
-Microscaling (MX) Formats - NumPy Backend Implementation
+"""NumPy reference backend for OCP MX quantization.
 
-Pure NumPy implementation of OCP MX formats.
-No automatic differentiation, suitable for inference and analysis.
-
-Author: Xinye Chen
+This module implements the OCP MX forward semantics used by all wrappers:
+E8M0-style block scale selection, round-to-nearest ties-to-even element
+quantization, finite saturation, FP subnormal support where defined, and
+two's-complement scaled-integer behavior for ``mxint8``.
 """
 
 
@@ -143,12 +142,18 @@ def _resolve_spec(
 # ============================================================================
 
 class MXBlock_:
-    """
-    NumPy implementation of single MX block.
+    """Single OCP MX block quantized with the NumPy reference implementation.
     
-    MX Block structure:
-    - Shared scale (exponent) for entire block
-    - Each element: sign + exponent + mantissa
+    Parameters
+    ----------
+    data : numpy.ndarray
+        One-dimensional block data.
+    spec : MXSpec
+        MX element and scale specification.
+    scale_exp_bits : int, optional
+        Override for shared scale exponent bits.
+    scale_sig_bits : int, optional
+        Override for shared scale significand bits.
     """
     
     def __init__(
@@ -242,9 +247,7 @@ class MXBlock_:
 # ============================================================================
 
 class MXTensor_:
-    """
-    NumPy implementation of multi-block MX tensor.
-    """
+    """Multi-block OCP MX tensor using the NumPy reference implementation."""
     
     def __init__(
         self,

@@ -1,8 +1,24 @@
+"""NumPy fixed-point quantization backend."""
+
 import numpy as np
 from typing import Tuple
 
 
 class FPRound_:
+    """Quantize NumPy arrays to a signed fixed-point format.
+
+    Parameters
+    ----------
+    ibits : int
+        Number of integer bits, including the sign range.
+    fbits : int
+        Number of fractional bits.
+    rmode : int or str, default=1
+        Rounding mode. Supported values are nearest-even, directed rounding
+        toward positive infinity, negative infinity, or zero, and the two
+        stochastic modes.
+    """
+
     def __init__(self, ibits: int, fbits: int, rmode: int=1):
         """
         Initialize fixed-point simulator.

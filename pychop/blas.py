@@ -1,3 +1,9 @@
+"""Backend-dispatched BLAS-style routines with pychop quantization.
+
+The functions in this module route BLAS-like operations to the active backend
+and apply the requested low-precision arithmetic.
+"""
+
 from pychop import LightChop
 import torch
 import pychop
@@ -33,6 +39,20 @@ def chop(x, precision_idx=0):
     return chop(x, precision_idx + 1)
 
 def rounding(x, precision):
+    """Round an input tensor to one of the configured BLAS precisions.
+
+    Parameters
+    ----------
+    x : array-like or torch.Tensor
+        Input values to round.
+    precision : str
+        Precision name in ``precision_fallback``.
+
+    Returns
+    -------
+    torch.Tensor
+        Rounded values.
+    """
     return chop(x, precision_idx=precision_fallback.index(precision))
     
 def mixed_precision_op(op, x, precision, y=None):

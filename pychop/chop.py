@@ -1,3 +1,11 @@
+"""Backend-agnostic floating-point quantization front end.
+
+``Chop`` dispatches to NumPy, PyTorch, JAX, or TensorFlow ``LightChop_``
+implementations based on ``pychop.backend`` or input-array auto detection.
+It supports deterministic IEEE-style rounding modes, stochastic rounding, and
+CADNA-style random directed rounding.
+"""
+
 import os
 from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array, to_tensorflow_tensor
 

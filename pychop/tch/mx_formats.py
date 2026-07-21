@@ -1,10 +1,8 @@
-"""
-Microscaling (MX) Formats - PyTorch Backend with STE
+"""PyTorch backend for OCP MX quantization.
 
-PyTorch implementation with Straight-Through Estimator for QAT.
-Enables training neural networks with MX quantization.
-
-Author: Xinye Chen
+Forward quantization delegates to the NumPy reference implementation and
+returns PyTorch tensors on the original device. Autograd wrappers use an
+identity straight-through estimator in the backward pass for QAT workflows.
 """
 
 import torch
@@ -25,12 +23,7 @@ from mx_formats import MXSpec, MX_FORMATS, create_mx_spec
 # ============================================================================
 
 class MXQuantizeSTE(Function):
-    """
-    Straight-Through Estimator for MX quantization.
-    
-    Forward: Real MX quantization
-    Backward: Gradient passes straight through (identity)
-    """
+    """Autograd function for MX quantization with identity STE backward."""
     
     @staticmethod
     def forward(
@@ -72,11 +65,7 @@ class MXQuantizeSTE(Function):
 # ============================================================================
 
 class MXTensor_:
-    """
-    PyTorch implementation of MX tensor.
-    
-    Wraps NumPy implementation but returns PyTorch tensors.
-    """
+    """PyTorch MX tensor wrapper backed by the NumPy reference quantizer."""
     
     def __init__(
         self,

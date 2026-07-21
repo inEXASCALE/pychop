@@ -1,3 +1,5 @@
+"""NumPy bit-level floating-point chopping backend."""
+
 import numpy as np
 import struct
 
@@ -219,4 +221,3 @@ if __name__ == "__main__":
     bf_float64 = bitchop(exp_bits=exponent_bits, sig_bits=significand_bits, rmode=1)
     emulated_values = bf_float64(values_float64)
     print("Float64 emulated input:", emulated_values)
-  

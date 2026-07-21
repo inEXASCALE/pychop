@@ -1,3 +1,5 @@
+"""TensorFlow floating-point chopping backend implemented via NumPy callbacks."""
+
 import tensorflow as tf
 
 from ..np.float_point import Chop_ as NPChop
@@ -20,6 +22,33 @@ _REDUCTION_METHODS = ['sum', 'prod', 'mean', 'std', 'var']
 
 
 class Chop_:
+    """TensorFlow adapter for pychop floating-point chopping.
+
+    Parameters
+    ----------
+    prec : str, default='h'
+        Named floating-point format, such as ``'half'``, ``'bf16'``,
+        ``'fp32'``, or ``'fp8-e4m3'``.
+    subnormal : bool, default=None
+        Whether subnormal values are represented. ``None`` uses the NumPy
+        backend default for the chosen precision.
+    rmode : int, default=1
+        Rounding mode. Modes 5 and 6 are stochastic; mode 10 is CADNA-style
+        random directed rounding.
+    flip : bool, default=False
+        Whether to apply optional soft-error bit flipping after rounding.
+    explim : bool, default=True
+        Whether to enforce exponent limits for the target format.
+    p : float, default=0.5
+        Bit-flip probability when ``flip`` is enabled.
+    randfunc : callable, default=None
+        Random function forwarded to the NumPy backend.
+    customs : Customs, default=None
+        Custom floating-point format definition.
+    random_state : int, default=0
+        Seed used by stochastic rounding modes.
+    """
+
     def __init__(self, prec='h', subnormal=None, rmode=1, flip=False, explim=1,
                  p=0.5, randfunc=None, customs=None, random_state=0):
         self.prec = prec

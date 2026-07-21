@@ -1,3 +1,5 @@
+"""TensorFlow/Keras quantization-aware layers and PTQ helpers."""
+
 import tensorflow as tf
 
 from ..chop import Chop
@@ -12,14 +14,20 @@ from .ptq import (
 
 
 class ChopSTE(Chop):
+    """Floating-point quantizer wrapper for TensorFlow QAT with STE behavior."""
+
     pass
 
 
 class ChopfSTE(Chopf):
+    """Fixed-point quantizer wrapper for TensorFlow QAT with STE behavior."""
+
     pass
 
 
 class ChopiSTE(Chopi):
+    """Integer fake-quantization wrapper for TensorFlow QAT with STE behavior."""
+
     pass
 
 
@@ -44,6 +52,8 @@ class _QuantizedLayerMixin:
 
 
 class QuantizedLinear(_QuantizedLayerMixin, tf.keras.layers.Dense):
+    """Dense layer with optional pychop quantization of inputs, outputs, and weights."""
+
     def call(self, inputs):
         x = self._prepare_inputs(inputs)
         kernel = self._apply_chop(self.kernel) if self.quantize_weights else self.kernel
@@ -57,6 +67,8 @@ class QuantizedLinear(_QuantizedLayerMixin, tf.keras.layers.Dense):
 
 
 class QuantizedConv1d(_QuantizedLayerMixin, tf.keras.layers.Conv1D):
+    """1-D convolution layer with optional pychop quantization."""
+
     def call(self, inputs):
         x = self._prepare_inputs(inputs)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -74,6 +86,8 @@ class QuantizedConv1d(_QuantizedLayerMixin, tf.keras.layers.Conv1D):
 
 
 class QuantizedConv2d(_QuantizedLayerMixin, tf.keras.layers.Conv2D):
+    """2-D convolution layer with optional pychop quantization."""
+
     def call(self, inputs):
         x = self._prepare_inputs(inputs)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -91,6 +105,8 @@ class QuantizedConv2d(_QuantizedLayerMixin, tf.keras.layers.Conv2D):
 
 
 class QuantizedConv3d(_QuantizedLayerMixin, tf.keras.layers.Conv3D):
+    """3-D convolution layer with optional pychop quantization."""
+
     def call(self, inputs):
         x = self._prepare_inputs(inputs)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -108,6 +124,8 @@ class QuantizedConv3d(_QuantizedLayerMixin, tf.keras.layers.Conv3D):
 
 
 class QuantizedConvTranspose1d(_QuantizedLayerMixin, tf.keras.layers.Conv1DTranspose):
+    """1-D transposed convolution layer with optional pychop quantization."""
+
     def call(self, inputs):
         x = self._prepare_inputs(inputs)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -125,6 +143,8 @@ class QuantizedConvTranspose1d(_QuantizedLayerMixin, tf.keras.layers.Conv1DTrans
 
 
 class QuantizedConvTranspose2d(_QuantizedLayerMixin, tf.keras.layers.Conv2DTranspose):
+    """2-D transposed convolution layer with optional pychop quantization."""
+
     def call(self, inputs):
         x = self._prepare_inputs(inputs)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -142,6 +162,8 @@ class QuantizedConvTranspose2d(_QuantizedLayerMixin, tf.keras.layers.Conv2DTrans
 
 
 class QuantizedConvTranspose3d(_QuantizedLayerMixin, tf.keras.layers.Conv3DTranspose):
+    """3-D transposed convolution layer with optional pychop quantization."""
+
     def call(self, inputs):
         x = self._prepare_inputs(inputs)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -159,6 +181,8 @@ class QuantizedConvTranspose3d(_QuantizedLayerMixin, tf.keras.layers.Conv3DTrans
 
 
 class QuantizedRNN(_QuantizedLayerMixin, tf.keras.layers.SimpleRNN):
+    """Simple RNN layer with optional pychop quantization."""
+
     def call(self, sequences, initial_state=None, mask=None, training=False):
         x = self._prepare_inputs(sequences)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -180,6 +204,8 @@ class QuantizedRNN(_QuantizedLayerMixin, tf.keras.layers.SimpleRNN):
 
 
 class QuantizedLSTM(_QuantizedLayerMixin, tf.keras.layers.LSTM):
+    """LSTM layer with optional pychop quantization."""
+
     def call(self, sequences, initial_state=None, mask=None, training=False):
         x = self._prepare_inputs(sequences)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -201,6 +227,8 @@ class QuantizedLSTM(_QuantizedLayerMixin, tf.keras.layers.LSTM):
 
 
 class QuantizedGRU(_QuantizedLayerMixin, tf.keras.layers.GRU):
+    """GRU layer with optional pychop quantization."""
+
     def call(self, sequences, initial_state=None, mask=None, training=False):
         x = self._prepare_inputs(sequences)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -222,36 +250,50 @@ class QuantizedGRU(_QuantizedLayerMixin, tf.keras.layers.GRU):
 
 
 class QuantizedMaxPool1d(_QuantizedLayerMixin, tf.keras.layers.MaxPooling1D):
+    """1-D max pooling layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedMaxPool2d(_QuantizedLayerMixin, tf.keras.layers.MaxPooling2D):
+    """2-D max pooling layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedMaxPool3d(_QuantizedLayerMixin, tf.keras.layers.MaxPooling3D):
+    """3-D max pooling layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedAvgPool1d(_QuantizedLayerMixin, tf.keras.layers.AveragePooling1D):
+    """1-D average pooling layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedAvgPool2d(_QuantizedLayerMixin, tf.keras.layers.AveragePooling2D):
+    """2-D average pooling layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedAvgPool3d(_QuantizedLayerMixin, tf.keras.layers.AveragePooling3D):
+    """3-D average pooling layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedAdaptiveAvgPool2d(_QuantizedLayerMixin, tf.keras.layers.Layer):
+    """Adaptive 2-D average pooling implemented with area resize and quantization."""
+
     def __init__(self, output_size, *args, chop=None, **kwargs):
         super().__init__(*args, chop=chop, **kwargs)
         if isinstance(output_size, int):
@@ -265,6 +307,8 @@ class QuantizedAdaptiveAvgPool2d(_QuantizedLayerMixin, tf.keras.layers.Layer):
 
 
 class QuantizedBatchNorm1d(_QuantizedLayerMixin, tf.keras.layers.BatchNormalization):
+    """Batch normalization layer with optional pychop quantization."""
+
     def call(self, inputs, training=False):
         x = self._prepare_inputs(inputs)
         if self.chop is not None and self.quantize_weights and self.built and self.scale:
@@ -282,14 +326,20 @@ class QuantizedBatchNorm1d(_QuantizedLayerMixin, tf.keras.layers.BatchNormalizat
 
 
 class QuantizedBatchNorm2d(QuantizedBatchNorm1d):
+    """2-D batch normalization alias using TensorFlow BatchNormalization."""
+
     pass
 
 
 class QuantizedBatchNorm3d(QuantizedBatchNorm1d):
+    """3-D batch normalization alias using TensorFlow BatchNormalization."""
+
     pass
 
 
 class QuantizedLayerNorm(_QuantizedLayerMixin, tf.keras.layers.LayerNormalization):
+    """Layer normalization with optional pychop quantization."""
+
     def call(self, inputs):
         x = self._prepare_inputs(inputs)
         if self.chop is not None and self.quantize_weights and self.built:
@@ -313,22 +363,32 @@ class QuantizedLayerNorm(_QuantizedLayerMixin, tf.keras.layers.LayerNormalizatio
 
 
 class QuantizedInstanceNorm1d(QuantizedLayerNorm):
+    """Instance-normalization-style 1-D alias backed by LayerNormalization."""
+
     pass
 
 
 class QuantizedInstanceNorm2d(QuantizedLayerNorm):
+    """Instance-normalization-style 2-D alias backed by LayerNormalization."""
+
     pass
 
 
 class QuantizedInstanceNorm3d(QuantizedLayerNorm):
+    """Instance-normalization-style 3-D alias backed by LayerNormalization."""
+
     pass
 
 
 class QuantizedGroupNorm(QuantizedLayerNorm):
+    """Group-normalization-style alias backed by LayerNormalization."""
+
     pass
 
 
 class QuantizedMultiheadAttention(_QuantizedLayerMixin, tf.keras.layers.MultiHeadAttention):
+    """Multi-head attention layer with optional pychop quantization."""
+
     def call(self, query, value=None, key=None, training=False, **kwargs):
         query = self._prepare_inputs(query)
         value = self._prepare_inputs(value if value is not None else query)
@@ -355,11 +415,15 @@ class QuantizedMultiheadAttention(_QuantizedLayerMixin, tf.keras.layers.MultiHea
 
 
 class QuantizedReLU(_QuantizedLayerMixin, tf.keras.layers.ReLU):
+    """ReLU activation layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedSigmoid(_QuantizedLayerMixin, tf.keras.layers.Activation):
+    """Sigmoid activation layer with optional input and output quantization."""
+
     def __init__(self, *args, chop=None, **kwargs):
         super().__init__('sigmoid', *args, chop=chop, **kwargs)
 
@@ -368,6 +432,8 @@ class QuantizedSigmoid(_QuantizedLayerMixin, tf.keras.layers.Activation):
 
 
 class QuantizedTanh(_QuantizedLayerMixin, tf.keras.layers.Activation):
+    """Tanh activation layer with optional input and output quantization."""
+
     def __init__(self, *args, chop=None, **kwargs):
         super().__init__('tanh', *args, chop=chop, **kwargs)
 
@@ -376,16 +442,22 @@ class QuantizedTanh(_QuantizedLayerMixin, tf.keras.layers.Activation):
 
 
 class QuantizedLeakyReLU(_QuantizedLayerMixin, tf.keras.layers.LeakyReLU):
+    """LeakyReLU activation layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedSoftmax(_QuantizedLayerMixin, tf.keras.layers.Softmax):
+    """Softmax activation layer with optional input and output quantization."""
+
     def call(self, inputs, mask=None):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs), mask=mask))
 
 
 class QuantizedGELU(_QuantizedLayerMixin, tf.keras.layers.Activation):
+    """GELU activation layer with optional input and output quantization."""
+
     def __init__(self, *args, chop=None, **kwargs):
         super().__init__(tf.nn.gelu, *args, chop=chop, **kwargs)
 
@@ -394,16 +466,22 @@ class QuantizedGELU(_QuantizedLayerMixin, tf.keras.layers.Activation):
 
 
 class QuantizedELU(_QuantizedLayerMixin, tf.keras.layers.ELU):
+    """ELU activation layer with optional input and output quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedPReLU(_QuantizedLayerMixin, tf.keras.layers.PReLU):
+    """PReLU activation layer with optional input, output, and weight quantization."""
+
     def call(self, inputs):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs)))
 
 
 class QuantizedSiLU(_QuantizedLayerMixin, tf.keras.layers.Activation):
+    """SiLU activation layer with optional input and output quantization."""
+
     def __init__(self, *args, chop=None, **kwargs):
         super().__init__(tf.nn.silu, *args, chop=chop, **kwargs)
 
@@ -412,11 +490,15 @@ class QuantizedSiLU(_QuantizedLayerMixin, tf.keras.layers.Activation):
 
 
 class QuantizedDropout(_QuantizedLayerMixin, tf.keras.layers.Dropout):
+    """Dropout layer with optional input and output quantization."""
+
     def call(self, inputs, training=False):
         return self._finalize_outputs(super().call(self._prepare_inputs(inputs), training=training))
 
 
 class QuantizedEmbedding(_QuantizedLayerMixin, tf.keras.layers.Embedding):
+    """Embedding layer with optional pychop quantization of embedding weights."""
+
     def call(self, inputs):
         if self.chop is not None and self.quantize_weights and self.built:
             orig_val = self._embeddings.numpy()

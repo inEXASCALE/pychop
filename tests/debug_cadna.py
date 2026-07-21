@@ -91,7 +91,7 @@ from pychop import Chop
 
 pychop.backend('numpy')
 
-ch = Chop(exp_bits=5, sig_bits=10, rmode=7, random_state=42)
+ch = Chop(exp_bits=5, sig_bits=10, rmode=10, random_state=42)
 
 print(f"Chop 实例创建成功")
 print(f"rmode: {ch.rmode}")
@@ -180,7 +180,7 @@ def traced_cadna_round(x, flip=0, p=0.5, t=24, randfunc=None, random_gen=None):
 fp_module.cadna_style_rounding = traced_cadna_round
 
 print("运行带追踪的 Chop:")
-ch_traced = Chop(exp_bits=5, sig_bits=10, rmode=7, random_state=99)
+ch_traced = Chop(exp_bits=5, sig_bits=10, rmode=10, random_state=99)
 x_test = np.array([1.234, -5.678])
 print(f"\n输入: {x_test}")
 result_traced = ch_traced(x_test.copy())

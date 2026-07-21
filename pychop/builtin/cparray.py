@@ -1,3 +1,5 @@
+"""NumPy ndarray subclass that preserves chopped precision after operations."""
+
 import numpy as np
 
 

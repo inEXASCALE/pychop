@@ -1,3 +1,10 @@
+"""Backend-dispatched quantization-aware layer and PTQ front end.
+
+This module provides factories that route quantized layers, STE quantizers,
+and post-training quantization helpers to the active PyTorch, JAX, or
+TensorFlow backend.
+"""
+
 import os
 
 def _get_backend():

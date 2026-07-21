@@ -1,3 +1,10 @@
+"""TensorFlow wrappers for OCP MX quantization.
+
+Forward quantization delegates to the NumPy reference implementation through
+``tf.numpy_function``. ``MXQuantizerSTE`` exposes an identity custom gradient
+for floating-point inputs.
+"""
+
 import tensorflow as tf
 from typing import Union, Tuple, Optional
 
@@ -7,6 +14,8 @@ from .common import unary_numpy_op
 
 
 class MXTensor_:
+    """TensorFlow MX tensor wrapper backed by the NumPy reference quantizer."""
+
     def __init__(self, data, format: Union[str, MXSpec, Tuple[int, int]] = 'mxfp8_e4m3', block_size: int = 32,
                  scale_exp_bits: Optional[int] = None, scale_sig_bits: Optional[int] = None):
         if isinstance(format, str):
@@ -37,6 +46,8 @@ class MXTensor_:
 
 
 class MXQuantizerSTE(tf.keras.layers.Layer):
+    """Keras layer that applies MX quantization with an identity STE gradient."""
+
     def __init__(self, format: Union[str, MXSpec, Tuple[int, int]] = 'mxfp8_e4m3', block_size: int = 32,
                  scale_exp_bits: Optional[int] = None, scale_sig_bits: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
@@ -63,6 +74,7 @@ class MXQuantizerSTE(tf.keras.layers.Layer):
 
 def mx_quantize(data, format: Union[str, MXSpec, Tuple[int, int]] = 'mxfp8_e4m3', block_size: int = 32,
                 scale_exp_bits: Optional[int] = None, scale_sig_bits: Optional[int] = None, backend: Optional[str] = None):
+    """Quantize a TensorFlow tensor to an OCP MX format."""
     return MXQuantizerSTE(
         format=format,
         block_size=block_size,

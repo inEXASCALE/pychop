@@ -1,3 +1,5 @@
+"""PyTorch LightChop backend with optional STE support for training."""
+
 import torch
 from typing import Tuple
 import torch.nn as nn
@@ -156,8 +158,8 @@ class LightChop_:
         floor_val = torch.floor(val)
         ceil_val = torch.ceil(val)
 
-        # bit=0: upward   => sign>0 选 ceil, sign<=0 选 floor
-        # bit=1: downward => sign>0 选 floor, sign<=0 选 ceil
+        # bit=0: upward   => sign>0 chooses ceil, sign<=0 chooses floor
+        # bit=1: downward => sign>0 chooses floor, sign<=0 chooses ceil
         choose_floor = bits == (sign > 0)
 
         return torch.where(choose_floor, floor_val, ceil_val)
@@ -245,14 +247,7 @@ class LightChop_:
             normal_mask = (exponent > self.exp_min) & (exponent < self.exp_max)
             sig_q = sig_q_int * inv_sig_steps
 
-        elif self.rmode == 7:  # CADNA random directed rounding
-            sig_q = self._cadna_directed_round(sig_scaled, sign) * inv_sig_steps
-
-            if self.subnormal:
-                sig_q_sub = self._cadna_directed_round(sub_scaled, sign) * inv_sig_steps
-                sig_q = torch.where(subnormal_mask, sig_q_sub, sig_q)
-
-        elif self.rmode == 8:  # Nearest, ties to zero
+        elif self.rmode == 7:  # Nearest, ties to zero
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val, floor_val + 1), 
@@ -264,7 +259,7 @@ class LightChop_:
                                 torch.where(sub_is_half, torch.where(sign >= 0, sub_floor, sub_floor + 1),
                                             torch.round(sub_scaled)) * inv_sig_steps, sig_q)
             
-        elif self.rmode == 9:  # Nearest, ties away
+        elif self.rmode == 8:  # Nearest, ties away
             floor_val = torch.floor(sig_scaled)
             is_half = torch.abs(sig_scaled - floor_val - 0.5) < 1e-6
             sig_q = torch.where(is_half, torch.where(sign >= 0, floor_val + 1, floor_val), 
@@ -276,7 +271,7 @@ class LightChop_:
                                 torch.where(sub_is_half, torch.where(sign >= 0, sub_floor + 1, sub_floor),
                                             torch.round(sub_scaled)) * inv_sig_steps, sig_q)
         
-        elif self.rmode == 10:  # Round-to-Odd
+        elif self.rmode == 9:  # Round-to-Odd
             rounded = torch.round(sig_scaled)
             sig_q = torch.where(rounded % 2 == 0, 
                                 rounded + torch.where(sig_scaled >= rounded, 1, -1), 
@@ -288,6 +283,13 @@ class LightChop_:
                                                 sub_rounded + torch.where(sub_scaled >= sub_rounded, 1, -1),
                                                 sub_rounded) * inv_sig_steps,
                                     sig_q)
+
+        elif self.rmode == 10:  # CADNA random directed rounding
+            sig_q = self._cadna_directed_round(sig_scaled, sign) * inv_sig_steps
+
+            if self.subnormal:
+                sig_q_sub = self._cadna_directed_round(sub_scaled, sign) * inv_sig_steps
+                sig_q = torch.where(subnormal_mask, sig_q_sub, sig_q)
         
         else:
             raise ValueError(f"Unsupported rounding mode: {self.rmode}")
@@ -829,8 +831,8 @@ class LightChopSTE(nn.Module):
         floor_val = torch.floor(val)
         ceil_val = torch.ceil(val)
 
-        # bit=0: upward   => sign>0 选 ceil, sign<=0 选 floor
-        # bit=1: downward => sign>0 选 floor, sign<=0 选 ceil
+        # bit=0: upward   => sign>0 chooses ceil, sign<=0 chooses floor
+        # bit=1: downward => sign>0 chooses floor, sign<=0 chooses ceil
         choose_floor = bits == (sign > 0)
 
         return torch.where(choose_floor, floor_val, ceil_val)

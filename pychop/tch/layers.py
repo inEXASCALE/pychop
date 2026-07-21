@@ -1,3 +1,5 @@
+"""PyTorch quantization-aware layers and PTQ helpers."""
+
 import torch
 import torch.nn as nn
 from typing import Optional, Union, Tuple, Any, List
@@ -350,7 +352,7 @@ def mixed_post_quantization(
             if isinstance(module, target_layers):
                 def act_hook(module, input, output):
                     if isinstance(activation_chop, Chopi):
-                        # 量化后反量化
+                        # Quantize and dequantize.
                         q = activation_chop.quantize(output)
                         return activation_chop.dequantize(q)
                     return activation_chop(output)
@@ -411,7 +413,7 @@ def mixed_post_quantization(
                 def make_static_hook(min_v, max_v):
                     def act_hook(module, input, output):
                         if isinstance(activation_chop, Chopi):
-                            # 量化后反量化
+                            # Quantize and dequantize.
                             q = activation_chop.quantize(output)
                             return activation_chop.dequantize(q)
                         return activation_chop(torch.clamp(output, min_v, max_v))
@@ -530,7 +532,7 @@ def static_post_quantization(
             def make_quant_hook(min_v, max_v):
                 def static_hook(module, input, output):
                     if isinstance(chop, Chopi):
-                        # 量化后立即反量化，保持浮点类型
+                        # Immediately dequantize after quantization to keep a floating dtype.
                         q = chop.quantize(output)
                         dq = chop.dequantize(q)
                         return dq
@@ -603,7 +605,7 @@ def dynamic_post_quantization(
         if isinstance(module, target_layers):
             def dynamic_hook(module, input, output):
                 if isinstance(chop, Chopi):
-                    # 量化后立即反量化，保持浮点类型
+                    # Immediately dequantize after quantization to keep a floating dtype.
                     q = chop.quantize(output)
                     dq = chop.dequantize(q)
                     return dq

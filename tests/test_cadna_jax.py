@@ -5,7 +5,8 @@ import jax.numpy as jnp
 from jax import random
 import numpy as np
 
-# 假设上面的代码已经添加到 float_point.py
+from pychop.jx.float_point import CADNARandomGeneratorJAX, Chop_, jax_bit_flip
+
 
 def test_cadna_random_generator():
     """测试 CADNA 随机数生成器"""
@@ -67,7 +68,7 @@ def test_cadna_rounding_basic():
     print("=" * 60)
     
     # 创建 Chop 实例
-    ch = Chop_(prec='h', rmode=7, random_state=42)
+    ch = Chop_(prec='h', rmode=10, random_state=42)
     
     # 测试数据
     x = jnp.array([1.23456789, -2.34567890, 3.45678901, -4.56789012])
@@ -93,12 +94,12 @@ def test_cadna_rounding_basic():
 
 
 def test_cadna_vs_standard():
-    """对比 CADNA (rmode=7) 和标准随机舍入 (rmode=5)"""
+    """对比 CADNA (rmode=10) 和标准随机舍入 (rmode=5)"""
     print("=" * 60)
     print("测试 4: CADNA vs 标准随机舍入")
     print("=" * 60)
     
-    ch_cadna = Chop_(prec='s', rmode=7, random_state=42)
+    ch_cadna = Chop_(prec='s', rmode=10, random_state=42)
     ch_stoc = Chop_(prec='s', rmode=5, random_state=42)
     
     x = jnp.linspace(0, 10, 100)
@@ -140,7 +141,7 @@ def test_all_rounding_modes():
         4: "Round towards zero",
         5: "Stochastic (proportional)",
         6: "Stochastic (uniform)",
-        7: "CADNA"
+        10: "CADNA"
     }
     
     for mode, name in modes.items():
@@ -166,7 +167,7 @@ def test_performance():
     modes = {
         5: "Stochastic (proportional)",
         6: "Stochastic (uniform)",
-        7: "CADNA"
+        10: "CADNA"
     }
     
     num_runs = 50

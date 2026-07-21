@@ -1,3 +1,5 @@
+"""Array backend detection and conversion helpers used by pychop front ends."""
+
 from __future__ import annotations
 __all__ = ['detect_array_type', 'to_numpy_array', 'to_torch_tensor', 'to_jax_array', 'to_tensorflow_tensor']
 import warnings

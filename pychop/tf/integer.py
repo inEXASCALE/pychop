@@ -1,3 +1,5 @@
+"""TensorFlow integer quantization backend."""
+
 import tensorflow as tf
 
 from ..np.integer import Chopi_ as NPChopi
@@ -13,6 +15,22 @@ _BITS_TO_DTYPE = {
 
 
 class Chopi_:
+    """TensorFlow adapter for NumPy uniform integer quantization.
+
+    Parameters
+    ----------
+    bits : int, default=8
+        Integer bit width used for simulated quantized values.
+    symmetric : bool, default=False
+        Whether to use symmetric signed quantization around zero.
+    per_channel : bool, default=False
+        Whether to calibrate scale and zero point independently per channel.
+    axis : int, default=0
+        Channel axis used when ``per_channel=True``.
+    verbose : bool, default=False
+        Kept for API compatibility.
+    """
+
     def __init__(self, bits=8, symmetric=False, per_channel=False, axis=0, verbose=False):
         self.bits = bits
         self.symmetric = symmetric

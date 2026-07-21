@@ -1,3 +1,5 @@
+"""JAX integer quantization backend."""
+
 import jax.numpy as jnp
 import warnings
 

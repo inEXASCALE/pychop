@@ -1,10 +1,8 @@
-"""
-Block Floating Point (BFP) - PyTorch Backend with STE
+"""PyTorch backend for BFP and Flexpoint quantization.
 
-PyTorch implementation with Straight-Through Estimator for QAT.
-Enables training neural networks with BFP quantization.
-
-Author: Xinye Chen
+Forward quantization delegates to the NumPy reference implementation and
+returns PyTorch tensors on the original device. Autograd wrappers use an
+identity straight-through estimator in the backward pass for QAT workflows.
 """
 
 import torch
@@ -25,12 +23,7 @@ from bfp_formats import BFPSpec, BFP_FORMATS, create_bfp_spec
 # ============================================================================
 
 class BFPQuantizeSTE(Function):
-    """
-    Straight-Through Estimator for BFP quantization.
-    
-    Forward: Real BFP quantization
-    Backward: Gradient passes straight through (identity)
-    """
+    """Autograd function for BFP quantization with identity STE backward."""
     
     @staticmethod
     def forward(ctx, input: torch.Tensor, spec: BFPSpec) -> torch.Tensor:
@@ -61,11 +54,7 @@ class BFPQuantizeSTE(Function):
 # ============================================================================
 
 class BFPTensor_:
-    """
-    PyTorch implementation of BFP tensor.
-    
-    Wraps NumPy implementation but returns PyTorch tensors.
-    """
+    """PyTorch BFP tensor wrapper backed by the NumPy reference quantizer."""
     
     def __init__(
         self,

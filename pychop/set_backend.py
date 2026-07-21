@@ -1,3 +1,5 @@
+"""Global backend selection utilities for pychop."""
+
 import os
 
 _VALID_BACKENDS = ('numpy', 'jax', 'torch', 'tensorflow', 'tf', 'auto')

@@ -1,3 +1,10 @@
+"""TensorFlow wrappers for BFP and Flexpoint quantization.
+
+Forward quantization delegates to the NumPy reference implementation through
+``tf.numpy_function``. ``BFPQuantizerSTE`` exposes an identity custom gradient
+for floating-point inputs.
+"""
+
 import tensorflow as tf
 from typing import Union, Tuple, Optional
 
@@ -7,6 +14,8 @@ from .common import unary_numpy_op
 
 
 class BFPTensor_:
+    """TensorFlow BFP tensor wrapper backed by the NumPy reference quantizer."""
+
     def __init__(self, data, format: Union[str, BFPSpec, Tuple[int, int]] = 'bfp8'):
         if isinstance(format, str):
             self.spec = BFP_FORMATS[format.lower()]
@@ -30,6 +39,8 @@ class BFPTensor_:
 
 
 class BFPQuantizerSTE(tf.keras.layers.Layer):
+    """Keras layer that applies BFP quantization with an identity STE gradient."""
+
     def __init__(self, format: Union[str, BFPSpec, Tuple[int, int]] = 'bfp8', **kwargs):
         super().__init__(**kwargs)
         self._original_format = format
@@ -52,4 +63,5 @@ class BFPQuantizerSTE(tf.keras.layers.Layer):
 
 
 def bfp_quantize(data, format: Union[str, BFPSpec, Tuple[int, int]] = 'bfp8', backend: Optional[str] = None):
+    """Quantize a TensorFlow tensor to a BFP or Flexpoint format."""
     return BFPQuantizerSTE(format=format)(data)

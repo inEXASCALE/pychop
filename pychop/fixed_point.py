@@ -1,3 +1,10 @@
+"""Backend-agnostic fixed-point quantization front end.
+
+``Chopf`` dispatches fixed-point quantization to NumPy, PyTorch, JAX, or
+TensorFlow implementations according to ``pychop.backend`` or input-array
+auto detection.
+"""
+
 import os
 from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array, to_tensorflow_tensor
 

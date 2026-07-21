@@ -1,3 +1,9 @@
+"""JAX backend implementations for pychop quantizers and simulators.
+
+Array-level quantizers can be imported without Flax. Flax is required only for
+JAX neural-network layer wrappers and PTQ helpers that instantiate Flax modules.
+"""
+
 from .integer import *
 from .fixed_point import *
 from .bitchop import Bitchop

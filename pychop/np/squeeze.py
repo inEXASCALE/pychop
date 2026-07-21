@@ -1,3 +1,5 @@
+"""NumPy helpers for squeezing values into reduced floating-point formats."""
+
 import numpy as np
 
 def calc_float_max(exp_bits, sig_bits):
@@ -114,6 +116,22 @@ def two_sided_diagonal_scaling_sym(A, tol=1e-6, max_iter=100):
 
 
 def squeeze_fp16(A, theta=0.8):
+    """Scale and cast a dense matrix to fp16.
+
+    Parameters
+    ----------
+    A : numpy.ndarray
+        Input matrix.
+    theta : float, default=0.8
+        Safety factor applied to the fp16 maximum before scaling.
+
+    Returns
+    -------
+    rounded_A : numpy.ndarray
+        Scaled matrix stored in ``numpy.float16``.
+    params : dict
+        Scaling vectors and scalar needed by :func:`desqueeze`.
+    """
     params = {}
     
     exp_bits=5
@@ -131,6 +149,24 @@ def squeeze_fp16(A, theta=0.8):
 
 
 def squeeze_sym_fp16(A, tol=0.1, theta=0.8):
+    """Scale a symmetric matrix and cast it to fp16.
+
+    Parameters
+    ----------
+    A : numpy.ndarray
+        Input symmetric matrix.
+    tol : float, default=0.1
+        Convergence tolerance for symmetric diagonal scaling.
+    theta : float, default=0.8
+        Safety factor applied to the fp16 maximum before scaling.
+
+    Returns
+    -------
+    rounded_A : numpy.ndarray
+        Scaled matrix stored in ``numpy.float16``.
+    params : dict
+        Scaling vectors and scalar needed by :func:`desqueeze`.
+    """
     params = {}
 
     exp_bits=5
@@ -146,6 +182,20 @@ def squeeze_sym_fp16(A, tol=0.1, theta=0.8):
 
 
 def desqueeze(rounded_A, params):
+    """Undo the matrix scaling produced by ``squeeze_fp16`` helpers.
+
+    Parameters
+    ----------
+    rounded_A : numpy.ndarray
+        Matrix returned by :func:`squeeze_fp16` or :func:`squeeze_sym_fp16`.
+    params : dict
+        Scaling metadata returned with ``rounded_A``.
+
+    Returns
+    -------
+    numpy.ndarray
+        Matrix mapped back to the original scale.
+    """
     return np.diag(1/params["R"]) @(rounded_A / params["mu"]) @ np.diag(1/params["S"])
 
 
