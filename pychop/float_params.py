@@ -14,7 +14,17 @@ import math
 from typing import Any, Dict, Iterable, Mapping, Optional, Tuple
 
 import numpy as np
-import pandas as pd
+
+pd = None
+
+
+def _import_pandas():
+    """Import pandas only when a DataFrame result is requested."""
+    global pd
+    if pd is None:
+        import pandas as _pd
+        pd = _pd
+    return pd
 
 
 @dataclass(frozen=True)
@@ -455,7 +465,8 @@ def _all_format_rows(binary: bool) -> pd.DataFrame:
             )
         )
 
-    return pd.DataFrame(rows, columns=_TABLE_COLUMNS)
+    pandas = _import_pandas()
+    return pandas.DataFrame(rows, columns=_TABLE_COLUMNS)
 
 
 def float_params(prec: Optional[str] = None, binary: bool = False, *argv: Any):

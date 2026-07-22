@@ -5,51 +5,84 @@ __all__ = ['detect_array_type', 'to_numpy_array', 'to_torch_tensor', 'to_jax_arr
 import warnings
 import numpy as np
 import importlib.util
+import sys
 
 
 # Optional dependencies
-has_pandas = False
-try:
-    import pandas as pd
-    has_pandas = True
-except ImportError:
-    pass
+has_pandas = importlib.util.find_spec("pandas") is not None
+has_torch = importlib.util.find_spec("torch") is not None
+has_jax = importlib.util.find_spec("jax") is not None
+has_tensorflow = importlib.util.find_spec("tensorflow") is not None
 
-has_torch = False
-TorchTensor = None
-if importlib.util.find_spec("torch") is not None:
-    try:
-        import torch
-        TorchTensor = torch.Tensor
-        has_torch = True
-    except ImportError:
-        pass
-
-has_jax = False
-JaxArray = None
+pd = None
+torch = None
+jax = None
 jnp = None
-
-if importlib.util.find_spec("jax") is not None:
-    try:
-        import jax
-        from jax import Array as JaxArray
-        import jax.numpy as jnp
-        has_jax = True
-        has_jnp = True
-    except ImportError:
-        pass
-
-has_tensorflow = False
-TensorFlowTensor = tuple()
 tf = None
 
-if importlib.util.find_spec("tensorflow") is not None:
-    try:
-        import tensorflow as tf
-        TensorFlowTensor = (tf.Tensor, tf.Variable)
-        has_tensorflow = True
-    except ImportError:
-        pass
+
+def _type_module(arr) -> str:
+    """Return the module path for an object's concrete type."""
+    return type(arr).__module__
+
+
+def _is_pandas_object(arr) -> bool:
+    """Check for pandas objects without importing pandas during pychop import."""
+    module = _type_module(arr)
+    if not module.startswith("pandas."):
+        return False
+
+    pandas_module = sys.modules.get("pandas")
+    if pandas_module is None:
+        return True
+
+    return isinstance(arr, (pandas_module.DataFrame, pandas_module.Series))
+
+
+def _import_pandas():
+    """Import pandas only when a conversion actually needs it."""
+    global pd, has_pandas
+    if pd is None:
+        if not has_pandas:
+            raise ImportError("Pandas is not available.")
+        import pandas as _pd
+        pd = _pd
+    return pd
+
+
+def _import_torch():
+    """Import PyTorch only when a conversion actually needs it."""
+    global torch, has_torch
+    if torch is None:
+        if not has_torch:
+            raise ImportError("PyTorch is not available.")
+        import torch as _torch
+        torch = _torch
+    return torch
+
+
+def _import_jax():
+    """Import JAX only when a conversion actually needs it."""
+    global jax, jnp, has_jax
+    if jax is None or jnp is None:
+        if not has_jax:
+            raise ImportError("JAX is not available.")
+        import jax as _jax
+        import jax.numpy as _jnp
+        jax = _jax
+        jnp = _jnp
+    return jax, jnp
+
+
+def _import_tensorflow():
+    """Import TensorFlow only when a conversion actually needs it."""
+    global tf, has_tensorflow
+    if tf is None:
+        if not has_tensorflow:
+            raise ImportError("TensorFlow is not available.")
+        import tensorflow as _tf
+        tf = _tf
+    return tf
 
 
 def detect_array_type(arr, verbose=False) -> str:
@@ -100,7 +133,7 @@ def detect_array_type(arr, verbose=False) -> str:
             print("Detected type: list/tuple")
         return 'list'
     
-    if has_pandas and isinstance(arr, (pd.DataFrame, pd.Series)):
+    if has_pandas and _is_pandas_object(arr):
         if verbose:
             print("Detected type: pandas DataFrame/Series")
         return 'numpy'
@@ -110,17 +143,19 @@ def detect_array_type(arr, verbose=False) -> str:
             print("Detected type: numpy ndarray")
         return 'numpy'
     
-    if has_torch and isinstance(arr, TorchTensor):
+    module = _type_module(arr)
+
+    if has_torch and module.startswith("torch"):
         if verbose:
             print("Detected type: torch Tensor")
         return 'torch'
     
-    if has_jax and isinstance(arr, JaxArray):
+    if has_jax and "jax" in module:
         if verbose:
             print("Detected type: jax Array")
         return 'jax'
 
-    if has_tensorflow and tf.is_tensor(arr):
+    if has_tensorflow and "tensorflow" in module:
         if verbose:
             print("Detected type: tensorflow Tensor")
         return 'tensorflow'
@@ -172,7 +207,10 @@ def to_numpy_safe(arr) -> np.ndarray:
     np.ndarray
         NumPy array view/copy of the input.
     """
-    if has_pandas and isinstance(arr, (pd.DataFrame, pd.Series)):
+    if has_pandas and _is_pandas_object(arr):
+        pandas_module = _import_pandas()
+        if not isinstance(arr, (pandas_module.DataFrame, pandas_module.Series)):
+            raise TypeError(f"Unsupported pandas object for safe numpy conversion: {type(arr)}")
         return arr.to_numpy(copy=False)
     
     if isinstance(arr, np.ndarray):
@@ -229,6 +267,8 @@ def to_numpy_array(arr) -> np.ndarray:
             raise ImportError("PyTorch is required for this conversion.")
         if arr.device.type != 'cpu':
             warnings.warn(f"Copying tensor from {arr.device} to CPU.", UserWarning)
+        if hasattr(arr, "detach"):
+            arr = arr.detach()
         return arr.cpu().numpy()
     
     if arr_type == 'jax':
@@ -282,6 +322,7 @@ def to_torch_tensor(arr) -> torch.Tensor:
     """
     if not has_torch:
         raise ImportError("PyTorch is not available.")
+    torch_module = _import_torch()
     
     arr_type = detect_array_type(arr)
     
@@ -290,20 +331,20 @@ def to_torch_tensor(arr) -> torch.Tensor:
     
     if arr_type == 'numpy':
         np_arr = to_numpy_safe(arr)
-        return torch.from_numpy(np_arr)
+        return torch_module.from_numpy(np_arr)
     
     if arr_type == 'list':
         np_arr = _try_convert_list_to_numpy(arr)
-        return torch.from_numpy(np_arr)
+        return torch_module.from_numpy(np_arr)
     
     if arr_type == 'jax':
         warnings.warn("Converting JAX to PyTorch involves copy via NumPy intermediate.", UserWarning)
         np_arr = np.asarray(arr)
-        return torch.from_numpy(np_arr)
+        return torch_module.from_numpy(np_arr)
 
     if arr_type == 'tensorflow':
         warnings.warn("Converting TensorFlow to PyTorch involves copy via NumPy intermediate.", UserWarning)
-        return torch.from_numpy(arr.numpy())
+        return torch_module.from_numpy(arr.numpy())
     
     raise TypeError(f"Cannot convert type '{arr_type}' to PyTorch tensor.")
 
@@ -344,6 +385,7 @@ def to_jax_array(arr) -> jax.Array:
     """
     if not has_jax:
         raise ImportError("JAX is not available.")
+    _, jnp_module = _import_jax()
     
     arr_type = detect_array_type(arr)
     
@@ -356,18 +398,20 @@ def to_jax_array(arr) -> jax.Array:
         else:
             np_arr = to_numpy_safe(arr)
         warnings.warn("Converting to JAX array involves data copy to default JAX device.", UserWarning)
-        return jnp.array(np_arr)
+        return jnp_module.array(np_arr)
     
     if arr_type == 'torch':
         warnings.warn("Converting PyTorch to JAX involves copy via NumPy intermediate.", UserWarning)
         if arr.device.type != 'cpu':
             warnings.warn(f"Additional copy from {arr.device} to CPU.", UserWarning)
+        if hasattr(arr, "detach"):
+            arr = arr.detach()
         np_arr = arr.cpu().numpy()
-        return jnp.array(np_arr)
+        return jnp_module.array(np_arr)
 
     if arr_type == 'tensorflow':
         warnings.warn("Converting TensorFlow to JAX involves copy via NumPy intermediate.", UserWarning)
-        return jnp.array(arr.numpy())
+        return jnp_module.array(arr.numpy())
     
     raise TypeError(f"Cannot convert type '{arr_type}' to JAX array.")
 
@@ -455,6 +499,7 @@ def to_tensorflow_tensor(arr):
     """
     if not has_tensorflow:
         raise ImportError("TensorFlow is not available.")
+    tf_module = _import_tensorflow()
 
     arr_type = detect_array_type(arr)
 
@@ -462,17 +507,19 @@ def to_tensorflow_tensor(arr):
         return arr
 
     if arr_type == 'numpy':
-        return tf.convert_to_tensor(to_numpy_safe(arr))
+        return tf_module.convert_to_tensor(to_numpy_safe(arr))
 
     if arr_type == 'list':
-        return tf.convert_to_tensor(_try_convert_list_to_numpy(arr))
+        return tf_module.convert_to_tensor(_try_convert_list_to_numpy(arr))
 
     if arr_type == 'torch':
         warnings.warn("Converting PyTorch to TensorFlow involves copy via NumPy intermediate.", UserWarning)
-        return tf.convert_to_tensor(arr.detach().cpu().numpy())
+        if hasattr(arr, "detach"):
+            arr = arr.detach()
+        return tf_module.convert_to_tensor(arr.cpu().numpy())
 
     if arr_type == 'jax':
         warnings.warn("Converting JAX to TensorFlow involves copy via NumPy intermediate.", UserWarning)
-        return tf.convert_to_tensor(np.asarray(arr))
+        return tf_module.convert_to_tensor(np.asarray(arr))
 
     raise TypeError(f"Cannot convert type '{arr_type}' to TensorFlow tensor.")
