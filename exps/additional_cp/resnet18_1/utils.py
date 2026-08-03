@@ -1,13 +1,46 @@
+import os
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
+import random
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet18, ResNet18_Weights
-import os
 
 from pychop import ChopSTE
 from pychop import Chop
 
-torch.manual_seed(42)
+SEED = 42
+
+
+def seed_everything(seed=SEED):
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    try:
+        torch.use_deterministic_algorithms(True, warn_only=True)
+    except TypeError:
+        torch.use_deterministic_algorithms(True)
+
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    random.seed(worker_seed)
+    np.random.seed(worker_seed)
+    torch.manual_seed(worker_seed)
+
+
+def seeded_generator(seed=SEED):
+    return torch.Generator().manual_seed(seed)
+
+
+seed_everything()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.makedirs("class_images", exist_ok=True)
 os.makedirs("qat_models", exist_ok=True)  

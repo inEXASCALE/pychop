@@ -2,7 +2,6 @@ import torch
 
 import sys
 # appending a path
-sys.path.append('../')
 import pychop
 from pychop import Chop
 
@@ -275,7 +274,7 @@ def plot_detection_all(images, outputs, targets, prefix="detection"):
     for i in range(num_images, 8):
         axes[i].axis("off")
 
-    filename = f"obj_images/{prefix}.png"
+    filename = f"obj_images/{prefix}.jpg"
     plt.savefig(filename, bbox_inches='tight', dpi=400)
     plt.close(fig) 
 

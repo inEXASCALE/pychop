@@ -114,7 +114,7 @@ def load_train_test(dataset_name):
             train_size = int(0.7 * L)
             val_size = int(0.15 * L)
             test_size = L - train_size - val_size
-            generator = torch.Generator().manual_seed(42)
+            generator = seeded_generator()
             train_split, val_split, test_split = torch.utils.data.random_split(
                 full_dataset, [train_size, val_size, test_size], generator=generator)
 
@@ -131,8 +131,22 @@ def load_train_test(dataset_name):
             num_classes = 37
             input_channels = 3
 
-    trainloader = DataLoader(trainset, batch_size=64, shuffle=True, num_workers=2)
-    testloader = DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
+    trainloader = DataLoader(
+        trainset,
+        batch_size=64,
+        shuffle=True,
+        num_workers=2,
+        worker_init_fn=seed_worker,
+        generator=seeded_generator(),
+    )
+    testloader = DataLoader(
+        testset,
+        batch_size=64,
+        shuffle=False,
+        num_workers=2,
+        worker_init_fn=seed_worker,
+        generator=seeded_generator(),
+    )
     return trainloader, testloader, num_classes, input_channels
 
 # ------------------ QAT Training ------------------
@@ -267,7 +281,7 @@ def run_and_save_results(dataset, float_type_dict, rounding_modes, epochs_dict):
 
 # ===================== Main =====================
 if __name__ == "__main__":
-    torch.manual_seed(42)
+    seed_everything()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     from pychop import Chop  # Ensure pychop is imported
