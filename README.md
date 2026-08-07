@@ -15,15 +15,15 @@
 Lower-precision floating-point arithmetic is becoming more often used in recently growing hardware, moving beyond the usual IEEE 64-bit double-precision and 32-bit single-precision formats. Today, hardware accelerators and software simulations often, in one or other ways, use reduced-precision formats, such as 16-bit half-precision (e.g., brain floating point), which are widely used in scientific computing and deep learning applications. These formats, if used properly, improve speed performance, reduce data transfer between memory and processors, and use less energy, while retaining the target accuracy. These benefits are most important with large datasets or real-time applications. 
 However, one never realizes how much reduced precision is needed in their applications or certain computational steps, unless via rigorous error analysis, a program precision tuning tool, or trial and error. 
 
-Inspired by MATLAB’s well-known chop function by Nick Higham, to support both practical and theoretical floating point analysis, ``Pychop`` features the efficient low-precision emulation for Python, with an easy extension to MATLAB, without relying on hardware. This library lets you quickly and reliably convert single- or double-precision numbers into any low-bitwidth format. It is flexible, so you can set up custom floating-point formats by choosing the number of exponent and significand bits, or pick fixed-point or integer quantization. This gives you control to match numerical precision and range to your algorithm, simulation, or hardware needs. It combines advanced features with ease of use. It includes many rounding modes, both deterministic and stochastic, and can handle denormal numbers as soft errors for accurate hardware emulation. The library is built for speed using vectorized operations for emulation. It also integrates directly with NumPy arrays, PyTorch tensors, and JAX arrays, so you can quantize data within your current workflow without extra conversions or performance loss.
+Inspired by MATLAB’s well-known chop function by Nick Higham, to support both practical and theoretical floating point analysis, ``pychop`` features the efficient low-precision emulation for Python, with an easy extension to MATLAB, without relying on hardware. This library lets you quickly and reliably convert single- or double-precision numbers into any low-bitwidth format. It is flexible, so you can set up custom floating-point formats by choosing the number of exponent and significand bits, or pick fixed-point or integer quantization. This gives you control to match numerical precision and range to your algorithm, simulation, or hardware needs. It combines advanced features with ease of use. It includes many rounding modes, both deterministic and stochastic, and can handle denormal numbers as soft errors for accurate hardware emulation. The library is built for speed using vectorized operations for emulation. It also integrates directly with NumPy arrays, PyTorch tensors, and JAX arrays, so you can quantize data within your current workflow without extra conversions or performance loss.
 
-``Pychop`` enables one to emulate low-precision arithmetic in a regular high-precision environment, so you do not need special hardware. This makes it easy to study how quantization affects stability, convergence, accuracy, and efficiency on your laptop or server. ``Pychop``works well for academic research needing careful control over numbers, and for software development where you want to quickly test different bit-widths to find the best balance between speed, memory use, and model quality. ``Pychop``offers a comprehensive solution.
+``pychop`` enables one to emulate low-precision arithmetic in a regular high-precision environment, so you do not need special hardware. This makes it easy to study how quantization affects stability, convergence, accuracy, and efficiency on your laptop or server. ``pychop``works well for academic research needing careful control over numbers, and for software development where you want to quickly test different bit-widths to find the best balance between speed, memory use, and model quality. ``pychop``offers a comprehensive solution.
 
 
 
 ## Install
 
-The proper running environment of ``Pychop``  should by Python 3, which relies on the following dependencies: python > 3.8, numpy >=1.7.3, pandas >=2.0, torch, jax. 
+The proper running environment of ``pychop``  should by Python 3, which relies on the following dependencies: python > 3.8, numpy >=1.7.3, pandas >=2.0, torch, jax. 
 
 To install the current current release via PIP manager use:
 
@@ -63,7 +63,7 @@ mamba search pychop --channel conda-forge
 ```
 
 ## Features
-The ``Pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
+The ``pychop`` class offers several key advantages that make it a powerful tool for developers, researchers, and engineers working with numerical computations:
 
 * Customizable Precision
 * Multiple Rounding Modes
@@ -92,7 +92,7 @@ The supported floating point arithmetic formats include:
 
 
 
-``Pychop`` support arbitrarily built-in reduced-precision types for scalar, array, and tensor. See here for detail [doc](https://pychop.readthedocs.io/en/latest/builtin.html). A simple example for scalar is as follows:
+``pychop`` support arbitrarily built-in reduced-precision types for scalar, array, and tensor. See here for detail [doc](https://pychop.readthedocs.io/en/latest/builtin.html). A simple example for scalar is as follows:
 
 ```python
 from pychop import Chop
@@ -154,7 +154,7 @@ mx_tensor = MXTensor(X, format=(1, 1), block_size=16)
 
 
 ### Examples
-We will go through the main functionality of ``Pychop``; for details refer to the documentation. 
+We will go through the main functionality of ``pychop``; for details refer to the documentation. 
 
 #### (I). Floating point quantization
 Users can specify the number of exponent (exp_bits) and significand (sig_bits) bits, enabling precise control over the trade-off between range and precision. 
@@ -162,7 +162,7 @@ For example, setting exp_bits=5 and sig_bits=4 creates a compact 10-bit format (
 
 Rounding the values with specified precision format:
 
-``Pychop`` supports faster low-precision floating point quantization and also enables GPU emulation (simply move the input to GPU device), with different rounding functions:
+``pychop`` supports faster low-precision floating point quantization and also enables GPU emulation (simply move the input to GPU device), with different rounding functions:
 
 ```Python
 import pychop
@@ -184,7 +184,7 @@ print(X_q[:10, 0])
 
 If one is not seeking optimized performance and more emulation supports, one can use the following example. 
 
-``Pychop`` also provides same functionalities just like Higham's chop [1] that supports soft error simulation (by setting ``flip=True``), but with relatively degraded speed:
+``pychop`` also provides same functionalities just like Higham's chop [1] that supports soft error simulation (by setting ``flip=True``), but with relatively degraded speed:
 
 ```Python
 from pychop import FaultChop
@@ -261,7 +261,7 @@ The code example can be found on the [guidance1](https://github.com/chenxinye/py
 
 Integer quantization is another important feature of pychop. It intention is to convert the floating point number into a low bit-width integer, which speeds up the computations in certain computing hardware. It performs quantization with user-defined bitwidths. The following example illustrates the usage of the method.
 
-The integer arithmetic emulation of ``Pychop`` is implemented by the interface Chopi. It can be used in many circumstances, and offers flexible options for users, such as symmetric or unsymmetric quantization and the number of bits to use. The usage is illustrated as below:
+The integer arithmetic emulation of ``pychop`` is implemented by the interface Chopi. It can be used in many circumstances, and offers flexible options for users, such as symmetric or unsymmetric quantization and the number of bits to use. The usage is illustrated as below:
 
 
 ```Python
@@ -284,7 +284,7 @@ If you use Python virtual environments in MATLAB, ensure MATLAB detects it:
 pe = pyenv('Version', 'your_env\python.exe'); % or simply pe = pyenv();
 ```
 
-To use ``Pychop`` in your MATLAB environment, similarly, simply load the ``Pychop``module:
+To use ``pychop`` in your MATLAB environment, similarly, simply load the ``pychop``module:
 
 ```MATLAB
 pc = py.importlib.import_module('pychop');
@@ -329,11 +329,11 @@ expressed are those of the authors only and do not necessarily reflect those of 
 
 ## Citations
 
-If you use ``Pychop`` in your research or simulations, cite:
+If you use ``pychop`` in your research or simulations, cite:
 
 ```bibtex
 @misc{carson2025,
-      title={Pychop: Emulating Low-Precision Arithmetic in Numerical Methods and Neural Networks}, 
+      title={pychop: Emulating Low-Precision Arithmetic in Numerical Methods and Neural Networks}, 
       author={Erin Carson and Xinye Chen},
       year={2025},
       eprint={2504.07835},
