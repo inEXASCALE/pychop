@@ -1,7 +1,7 @@
 <div align="center">
 <img src="docs/imgs/pychop_logo.png" width="330">
 
-# Pychop: efficient reduced-precision quantization library 
+# pychop: efficient reduced-precision quantization library 
 
 [![All platforms](https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/pychop-feedstock?branchName=main)]([https://anaconda.org/conda-forge/pychop](https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=26671&branchName=main))
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/pychop/badges/license.svg)](https://anaconda.org/conda-forge/pychop)
