@@ -1,4 +1,4 @@
-Pychop: reduced-precision arithmetic
+pychop: reduced-precision arithmetic
 ====================================
 
 .. image:: ../imgs/pychop_logo.png
