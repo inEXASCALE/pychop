@@ -1,72 +1,87 @@
-Quick start
-=====================================================
+Installation and first computation
+==================================
 
-The main function of the ``Pychop`` is the method ``Chop``, which is loaded by 
+Install a released package with ``python -m pip install pychop``. To use changes
+in a local checkout (including the new P3109 and time-series APIs), run from its
+root:
 
-.. code:: python
+.. code-block:: bash
 
-    from pychop import Chop
+   python -m venv .venv
+   source .venv/bin/activate
+   python -m pip install -e .
 
+On Windows activate with ``.venv\Scripts\activate``. The package metadata declares
+Python >=3.8. Dependency resolvers select compatible NumPy, pandas, SciPy,
+scikit-learn and Dask versions. New examples use NumPy; optional frameworks are
+not imported merely by importing Pychop.
 
+Install only the extra needed for your application:
 
-    
-``Pychop`` supports NumPy (default), JAX, Torch, and TensorFlow as backend for simulation. Before performing the quantization, to set backend:
+.. code-block:: bash
 
-.. code:: python
+   python -m pip install -e '.[torch]'
+   # Other choices: .[jax], .[tensorflow], .[all]
 
-    pychop.backend('numpy') # use NumPy as backend, other options: 'torch', 'jax', and 'tensorflow'
+First quantization
+------------------
 
+.. code-block:: python
 
+   import numpy as np
+   import pychop
+   from pychop import Chop
 
-.. note::
+   pychop.backend("numpy")
+   quantize = Chop(exp_bits=5, sig_bits=10, rmode=1)
+   x = np.array([0.1, -0.3, 1.1], dtype=np.float64)
+   y = quantize(x)
+   print(y)
+   print("absolute error:", np.abs(y - x))
 
-    Users do not need to specify the backend for precision emulation. By using ``pychop.backend("auto")`` (which is the default setting), ``Pychop`` will automatically detect the required backend
+``sig_bits`` counts trailing fraction bits; total precision includes one additional
+implicit bit. ``rmode=1`` means nearest, ties to even. Use integer rounding modes
+with ``Chop``; string modes belong to the separate :doc:`p3109` API.
 
-    The difference between setting backend and without setting backend is that the speed of the first run is different, others are almost identical:
+Choose rounding boundaries explicitly
+-------------------------------------
 
-    .. code-block:: python
+.. code-block:: python
 
-        import pychop
-        from pychop import Chop
-        import numpy as np
-        from time import time
+   import numpy as np
+   from pychop import Chop
 
-        pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
-        np.random.seed(0)
-        X = np.random.randn(5000, 5000) 
+   q = Chop(exp_bits=5, sig_bits=10)
+   a = q(np.array([0.1, 0.2]))
+   b = q(np.array([0.3, 0.4]))
+   rounded_once = q(np.dot(a, b))
+   products = q(a * b)
+   rounded_each_step = q(q(products[0]) + products[1])
+   print(rounded_once, rounded_each_step)
 
-        ch = Chop(exp_bits=5, sig_bits=10, rmode=3) # half precision
+A matrix multiplication followed by a quantizer rounds the output; it does not
+emulate every multiply and accumulator update. :doc:`builtin` provides wrappers
+that apply quantization after supported operations. :doc:`linalg` discusses
+algorithms with explicit precision transitions.
 
-        st = time()
-        X_q = ch(X)
-        et = time()
+Backend selection
+-----------------
 
-        print("runtime: ", et - st)
-        
-    .. code-block:: bash
+The default is ``pychop.backend("auto")``: the input array type selects the
+backend at call time. Explicit selection is process-global. Keep a quantizer
+instance to preserve its random-number sequence. Recreating it with the same
+``random_state`` restarts that sequence. Backend-specific random generators need
+not produce identical sequences for the same seed.
 
-        Load NumPy backend.
-        runtime:  0.65281081199646
+P3109 automatically dispatches on NumPy, Torch, TensorFlow and JAX inputs,
+independently of this global setting. It preserves the tensor backend and offers
+explicit STE training gradients. The time-series calibration API remains NumPy
+CPU; convert device data explicitly before using it.
 
-    .. code-block:: python
+Next steps
+----------
 
-        import pychop
-        from pychop import Chop
-        import numpy as np
-        from time import time
-
-        X = np.random.randn(5000, 5000) 
-
-        ch = Chop(exp_bits=5, sig_bits=10, rmode=3) # half precision
-
-        st = time()
-        X_q = ch(X)
-        et = time()
-
-        print("runtime: ", et - st)
-        print(X_q[:10, 0])
-
-
-    .. code-block:: bash
-
-        runtime:  0.9031667709350586
+* :doc:`p3109`: format selection, rounding, encode/decode and policy export.
+* :doc:`timeseries`: fit, symbolize, reconstruct and reload calibration.
+* :doc:`examples`: runnable quantized models and saved results.
+* :doc:`validation`: correctness tests and reproducible CPU benchmarks.

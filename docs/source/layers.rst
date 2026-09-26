@@ -8,8 +8,10 @@ Quantized layers module
 This module provides **drop-in quantized layer replacements** for PyTorch and TensorFlow models
 to support both floating-point and integer **quantization-aware training (QAT)**.
 
-For PyTorch, all classes follow the same API as their original :mod:`torch.nn` counterparts.
-For TensorFlow, all classes follow the same API as their original :mod:`tf.keras.layers` counterparts.
+Factories dispatch to backend-specific classes. Set ``pychop.backend("torch")``
+or ``pychop.backend("tensorflow")`` before constructing layers. Constructor
+arguments and layer coverage differ by backend; consult the selected backend
+implementation and the PTQ examples. JAX/Flax layers have their own interfaces.
 When a ``Pychop`` quantizer (with STE) is provided, weights and activations are
 fake-quantized during the forward pass while gradients flow through unchanged
 (Straight-Through Estimator).
@@ -38,14 +40,8 @@ STE quantizers (core)
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: FakeQuantizeSTE
-   :members:
 
-.. autoclass:: FakeFQuantizeSTE
-   :members:
 
-.. autoclass:: FakeIQuantizeSTE
-   :members:
 
 Utility Functions
 -----------------
@@ -53,7 +49,7 @@ Utility Functions
 .. autofunction:: post_quantization
 
 Floating-point / Fixed-point quantized layers
-=====================================
+=============================================
 
 These layers use ``ChopSTE`` (or ``Chop``) for **floating-point QAT**.
 
@@ -167,8 +163,6 @@ Activation & Regularization Layers (Floating-Point)
 .. autoclass:: QuantizedELU
    :members:
 
-.. autoclass:: QuantizedSiLU
-   :members:
 
 .. autoclass:: QuantizedPReLU
    :members:

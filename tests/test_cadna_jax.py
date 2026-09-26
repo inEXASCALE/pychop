@@ -1,6 +1,7 @@
 # test_cadna_jax.py
 
-import jax
+import pytest
+jax = pytest.importorskip("jax")
 import jax.numpy as jnp
 from jax import random
 import numpy as np

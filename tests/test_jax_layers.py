@@ -10,7 +10,10 @@ This script demonstrates:
 """
 
 import os
-os.environ["chop_backend"] = "jax"  # Set backend before importing pychop
+import pytest
+pytest.importorskip("jax")
+pytest.importorskip("flax")
+pytest.importorskip("optax")
 
 import jax
 import jax.numpy as jnp
@@ -448,6 +451,7 @@ def train_model(model, state, batch_stats, train_images, train_labels,
 # ===================================================================
 
 def main():
+    pychop.backend("jax")
     """Main test function for PTQ and QAT."""
     
     print("\n" + "="*70)

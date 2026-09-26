@@ -4,24 +4,12 @@ import numpy as np
 
 
 class CPArray(np.ndarray):
-    """
-    A NumPy array subclass that maintains chopped precision after arithmetic ops.
+    """NumPy array that quantizes construction and supported operation results.
 
-    Key behaviors:
-    - Construction chops the input immediately.
-    - NumPy ufuncs (+, -, *, /, etc.) are intercepted via __array_ufunc__:
-        compute on base ndarrays -> chop result -> wrap as CPArray.
-    - Matrix multiplication (@) is intercepted via __matmul__/__rmatmul__:
-        compute with np.matmul on base ndarrays -> wrap (constructor chops).
-    - NumPy high-level functions (including np.linalg.*) are intercepted via
-      __array_function__:
-        unwrap CPArray inputs to base ndarrays -> call func -> wrap numeric ndarray
-        outputs back to CPArray and chop numeric scalar outputs.
-
-    Important safety notes:
-    - __array_function__ MUST be conservative to avoid breaking NumPy internals
-      (printing/formatting, string/object dtypes, etc.).
-    - We only chop/wrap numeric ndarrays (dtype.kind in "biufc") and numeric scalars.
+    Ufuncs and matrix multiplication compute on base arrays, then quantize and
+    wrap numeric results. High-level functions unwrap inputs and wrap supported
+    numeric outputs conservatively to preserve NumPy formatting and metadata.
+    A callable ``chopper`` is required. Host arithmetic is used inside operations.
     """
 
     def __new__(cls, input_array, chopper=None):

@@ -1,3 +1,5 @@
+.. _fixed_point:
+
 Fixed point quantization
 =====================================================
 

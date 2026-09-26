@@ -20,7 +20,7 @@ class Chop:
         Bitwidth for exponent of binary floating point numbers.
 
     sig_bits: int,
-        Bitwidth for significand of binary floating point numbers.
+        Number of trailing fraction bits, excluding the implicit leading bit.
         
     rmode : int, default=1
         Rounding mode to use when quantizing the significand. Options are:
@@ -47,7 +47,7 @@ class Chop:
         the granular unit of work Dask manages, balancing 
         computation efficiency and memory constraints. 
 
-    random_state : int, default=0
+    random_state : int, default=42
         Random seed set for stochastic rounding settings.
 
     verbose : int | bool, defaul=0
@@ -131,34 +131,21 @@ class Chop:
         backend_env = os.environ.get('chop_backend', 'auto')
         if backend_env == 'auto':
             # sanity check for supported array types
-            backend =  detect_array_type(X, verbose=self.verbose)  
-            self._impl = None 
-
+            backend = detect_array_type(X, verbose=self.verbose)
+            if backend in ("list", "unknown"):
+                import numpy as np
+                X = np.asarray(X)
+                backend = "numpy"
+            if self._impl is None or self._impl_backend != backend:
+                self._get_impl(backend)
             if backend == "torch":
-                X = to_torch_tensor(X)  
-                from .tch.lightchop import LightChop_ as _LightChopImpl
+                X = to_torch_tensor(X)
             elif backend == "jax":
-                X = to_jax_array(X) 
-                from .jx.lightchop import LightChop_ as _LightChopImpl
+                X = to_jax_array(X)
             elif backend == "tensorflow":
                 X = to_tensorflow_tensor(X)
-                from .tf.lightchop import LightChop_ as _LightChopImpl
-            elif backend == "numpy":
-                X = to_numpy_array(X)  
-                from .np.lightchop import LightChop_ as _LightChopImpl
             else:
-                from .np.lightchop import LightChop_ as _LightChopImpl
-
-            self._impl = _LightChopImpl(
-                self.exp_bits,
-                self.sig_bits,
-                self.rmode,
-                self.subnormal,
-                self.chunk_size,
-                self.random_state,
-            )
-            self._impl.u = self.u
-            self._impl_backend = backend
+                X = to_numpy_array(X)
         elif self._impl is None or self._impl_backend != backend_env:
             self._get_impl(backend_env)
 

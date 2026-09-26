@@ -1,0 +1,43 @@
+name: Numerical core and documentation
+on: [push, pull_request]
+jobs:
+  core:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.10', '3.12']
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      chop_backend: numpy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e . pytest gfloat==0.5.2
+      - run: python -m pytest tests/test_p3109.py tests/test_timeseries.py tests/test_p3109_examples.py tests/test_chop_backend_reuse.py tests/test_documentation_examples.py tests/test_import_laziness.py tests/test_float_params.py -q
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . -r docs/requirements.txt
+      - run: python -m sphinx -b html -W --keep-going docs/source docs/_build/html
+  tensor-backends:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        backend: [torch, tensorflow, jax]
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      TF_CPP_MIN_LOG_LEVEL: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e ".[${{ matrix.backend }}]" pytest
+      - run: python -m pytest tests/test_p3109_backends.py tests/test_import_laziness.py -q

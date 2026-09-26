@@ -1,0 +1,252 @@
+IEEE P3109 draft-format emulation
+=================================
+
+Reference and scope
+-------------------
+
+This module follows scalar format encoding and projection in the IEEE WG P3109
+Interim Report v4.1, 14 September 2026, sections 3.1 and 4.7.2--4.7.6. The public
+repository revision used is ``2d45cf2fe0314d32251f5439d9d3ed078f93fbb9``.
+It is an unapproved draft, not a conformance or compliance target.
+
+* `IEEE project status <https://standards.ieee.org/ieee/3109/11165/>`_
+* `Pinned public materials <https://github.com/P3109/Public/tree/2d45cf2fe0314d32251f5439d9d3ed078f93fbb9>`_
+* `gfloat reference <https://github.com/graphcore-research/gfloat>`_
+
+The implementation provides scalar-format quantization and code conversion on
+NumPy arrays, dense PyTorch tensors, TensorFlow tensors and JAX arrays. Tensor inputs
+use native framework operations on their device; no NumPy callback performs the
+quantization. An explicit straight-through gradient is available for training.
+It does not implement the complete draft's operation library, block formats,
+exception flags or correctly rounded real-valued arithmetic. Existing BFP/MX
+APIs are separate formats.
+
+Choose a format
+---------------
+
+.. code-block:: python
+
+   import numpy as np
+   from pychop import P3109, P3109Format
+
+   fmt = P3109Format(k=8, precision=4, signed=True, domain="extended")
+   q = P3109(fmt)
+   x = np.array([0., .1, 1.0625, 2., 224., 240., np.inf, np.nan])
+   print(q(x))
+   print(q.encode(x))  # [0, 37, 64, 72, 126, 127, 127, 128]
+   np.testing.assert_array_equal(q.decode(q.encode(x)), q(x))
+
+``k`` is the total bitwidth. ``precision`` includes the implicit leading bit;
+it differs from ``Chop.sig_bits``. Signed formats require ``1 <= precision < k``;
+unsigned formats allow ``precision == k``. This implementation supports
+``3 <= k <= 32`` and at most 10 exponent bits. Formats outside that host-safe
+range raise ``ValueError`` rather than silently losing representable values.
+P3109 has a different exponent bias and special-value encoding from IEEE 754;
+``Chop(4, 3)`` is not equivalent to ``P3109Format(8, 4)``.
+
+For NumPy, input values are converted to float64, and quantization/decode return a new
+float64 ndarray with the same shape (a 0-D array for scalar input). Float16/32/64
+and integer inputs are accepted. Large integers first undergo ordinary float64
+conversion; exact integer-to-target rounding beyond 53 bits is not promised.
+Complex, boolean, string and object inputs are rejected. Inputs are not modified;
+empty arrays, read-only views and strided arrays are supported.
+
+Rounding and saturation
+-----------------------
+
+.. list-table:: Rounding modes
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Name
+     - Meaning
+   * - ``nearest_even``
+     - Nearest; midpoint ties select an even code point (default).
+   * - ``nearest_away``
+     - Nearest; midpoint ties round away from zero.
+   * - ``toward_zero``
+     - Truncation toward zero.
+   * - ``toward_positive`` / ``toward_negative``
+     - Directed rounding toward the indicated infinity.
+   * - ``to_odd``
+     - Inexact results select an odd code point; this is not nearest-ties-to-odd.
+   * - ``stochastic_a`` / ``stochastic_b`` / ``stochastic_c``
+     - Draft stochastic A/B/C algorithms, using supplied random integers.
+
+The one-bit-precision case uses exponent-code parity for ties. There is only one
+zero: input negative zero and underflow to zero become positive zero. NaNs are
+canonicalized, with no payload preservation.
+
+``saturate=False`` (or ``"none"``) applies the draft's SatNone policy: nearest
+positive overflow becomes infinity in an extended format and NaN in a finite
+format. Directed rounding toward the finite interval clamps finite overflow.
+Negative values that remain negative after rounding cannot be represented by an
+unsigned format: SatNone returns NaN, except inward directed rounding returns
+zero. A tiny negative input that rounds to zero remains zero.
+
+``saturate=True`` (or ``"finite"``) clips all overflow and infinities to the
+finite interval. ``"propagate"`` clips finite overflow but preserves representable
+infinities in extended formats. NaNs propagate under every policy. Saturation
+is applied after rounding, not before it.
+
+Reproducible stochastic rounding
+--------------------------------
+
+.. code-block:: python
+
+   import numpy as np
+   from pychop import P3109, P3109Format
+
+   q = P3109(P3109Format(8, 4), rounding="stochastic_c")
+   x = np.full(16, 1.0625)
+   rng = np.random.default_rng(2026)
+   bits = rng.integers(0, 256, size=x.shape, dtype=np.uint32)
+   y = q(x, srbits=bits, srnumbits=8)
+   np.testing.assert_array_equal(y, q(x, srbits=bits, srnumbits=8))
+
+Random bits are explicit, integer-valued, broadcastable to the input shape, and
+must lie in ``[0, 2**srnumbits)``; ``srnumbits`` is in 1..32. No global RNG state
+is consumed. Reusing bits reproduces an operation; generate fresh bits for a new
+operation. A saved policy does not save the generator state or random bits.
+
+Native tensor backends and training
+-----------------------------------
+
+``P3109`` and the functional APIs automatically dispatch from the input type.
+They do not use the process-global ``pychop.backend`` setting. Optional frameworks
+are loaded lazily; importing Pychop does not load Torch, TensorFlow or JAX.
+
+Tensor quantization preserves float32 or float64. Float16, bfloat16 and integer
+tensors are promoted to float32. For exact integer input conversion, cast to
+float64 first when necessary. The input is never modified. A target format must
+fit the computation dtype: its precision cannot exceed the host precision, its
+smallest quantum must be at least twice the smallest host normal, and its maximum
+exponent must be below the host's maximum normal exponent. Otherwise a
+``ValueError`` asks for float64; Pychop never enables JAX x64 globally for you.
+
+These bounds let the kernels avoid dependence on device subnormal arithmetic.
+Host subnormal *inputs* are still handled through their IEEE bits, including
+correct directed rounding. Typical Binary8p3/Binary8p4 formats work with float32.
+For wide-exponent formats use float64 and, for JAX, enable x64 before creating
+arrays. Hardware must support the selected dtype (Apple MPS, for example, does
+not support float64).
+
+PyTorch example:
+
+.. code-block:: python
+
+   import torch
+   from pychop import P3109, P3109Format
+
+   device = "cuda" if torch.cuda.is_available() else "cpu"
+   x = torch.tensor([.1, 1.0625, -1.1], device=device, requires_grad=True)
+   q = P3109(P3109Format(8, 4), saturate=True)
+   y = q(x, ste=True)
+   y.sum().backward()
+   print(y, x.grad)  # identity surrogate gradient
+   codes = q.encode(x)
+   restored = q.decode(codes, dtype="float32")
+   torch.testing.assert_close(restored, q(x))
+
+TensorFlow example:
+
+.. code-block:: python
+
+   import tensorflow as tf
+   from pychop import P3109
+
+   q = P3109(saturate=True)
+   x = tf.Variable([.1, 1.0625, -1.1], dtype=tf.float32)
+   forward = tf.function(lambda a: q(a, ste=True), autograph=False)
+   with tf.GradientTape() as tape:
+       loss = tf.reduce_sum(forward(x))
+   print(forward(x), tape.gradient(loss, x))
+
+JAX example:
+
+.. code-block:: python
+
+   import jax
+   import jax.numpy as jnp
+   from pychop import P3109
+
+   q = P3109(saturate=True)
+   x = jnp.array([.1, 1.0625, -1.1], dtype=jnp.float32)
+   forward = jax.jit(lambda a: q(a, ste=True))
+   print(forward(x), jax.grad(lambda a: forward(a).sum())(x))
+   codes = jax.jit(q.encode)(x)
+   restored = jax.jit(lambda c: q.decode(c, check=False, dtype="float32"))(codes)
+   print(restored)
+
+Default tensor outputs are detached/stopped from automatic differentiation.
+``ste=True`` gives an identity surrogate derivative with respect to floating-point
+inputs, including clipped values; it is not the derivative of true rounding.
+Integer encodings have no gradient. The custom gradients return the quantized
+forward values directly, avoiding the Inf-minus-Inf problem of arithmetic STE
+expressions. ``ste`` is a per-call training option and is not stored in the
+versioned numeric format policy.
+
+Compilation and random-bit validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+JAX supports ``jit`` and ``vmap``; TensorFlow supports ``tf.function``. PyTorch
+supports ``torch.compile``; compiler/backend/device availability depends on the
+installed framework. Compile a closure over the immutable format policy. The
+library does not silently JIT the first call. See the native backend benchmark
+for warm-up and synchronization rules.
+
+For stochastic tensor rounding, supply integer bits broadcastable *to* the input
+shape. Float32 computations support ``srnumbits`` up to 23; float64 supports up to
+32. This prevents integer thresholds from losing precision in floating-point
+comparisons. NumPy retains its original 1..32 range.
+
+``check=True`` is the default for code ranges and random-bit validation. Eager
+Torch/JAX validation can synchronize the device; TensorFlow uses native graph
+assertions. For JAX tracing and portable compiled stochastic/decode paths, first
+validate external data eagerly, then pass ``check=False`` inside the compiled
+function. Shape, dtype and format validation still apply. Invalid code/random-bit
+elements produce NaN with ``check=False`` rather than valid-looking values.
+Ordinary deterministic quantization and encoding require no runtime range check.
+NumPy always performs its existing range validation even with ``check=False``.
+
+Tensor encodings use int64 on Torch and TensorFlow and int64/int32 on JAX according
+to its x64 setting, for portable bit operations. They contain the same code values
+as NumPy, but are not compact storage. Cast validated codes to a suitable unsigned
+storage dtype when exporting. Decode defaults to float64 on Torch/TensorFlow and
+to the enabled default precision on JAX; ``dtype="float32"`` or ``"float64"`` makes
+the requested precision explicit. This is useful on devices without float64.
+
+Code points and model parameter export
+--------------------------------------
+
+``encode`` performs quantization before encoding. For NumPy it returns uint8 for widths up
+to 8, uint16 up to 16, and uint32 otherwise. Values occupy one integer element
+each; widths such as 3 or 6 are not bit-packed. ``decode`` accepts integer codes
+only and validates that every code is in ``[0, 2**k)``.
+
+.. code-block:: python
+
+   import json
+   from pathlib import Path
+   import numpy as np
+   from pychop import P3109, P3109Format
+
+   q = P3109(P3109Format(8, 4), saturate=True)
+   weights = np.array([[.1, -.3], [.7, 1.2]])
+   Path("quantizer.json").write_text(json.dumps(q.to_dict(), indent=2))
+   np.save("weight_codes.npy", q.encode(weights), allow_pickle=False)
+
+   restored = P3109.from_dict(json.loads(Path("quantizer.json").read_text()))
+   weights_q = restored.decode(np.load("weight_codes.npy", allow_pickle=False))
+   prediction = restored(weights_q @ restored([.25, .75]))
+   print(prediction)
+
+The versioned JSON stores format, rounding and saturation. NPY/NPZ stores shape,
+integer dtype and code arrays. Keep both together: codes alone do not identify
+a format. The example uses host accumulation then one output rounding.
+
+API
+---
+
+.. automodule:: pychop.p3109
+   :members:

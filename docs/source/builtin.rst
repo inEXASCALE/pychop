@@ -33,7 +33,8 @@ Quick import
 
    import pychop
    from pychop import Chop
-   from pychop.builtin import CPFloat, CPArray, CPJaxArray, CPTensor, cast_precision
+   from pychop.builtin import CPFloat, CPArray, cast_precision
+   # Import CPTensor or CPJaxArray only after installing the corresponding backend.
 
    pychop.backend('torch') # use 'numpy', 'jax', or 'torch' for the matching container
 
@@ -81,10 +82,9 @@ Scalar – :class:`CPFloat`
 PyTorch – :class:`CPTensor`
 ============================
 
-.. autoclass:: pychop.builtin.CPTensor
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. py:class:: pychop.builtin.CPTensor(data, chopper)
+
+   Optional framework container. Install its backend before importing this class.
 
 **Example**
 
@@ -162,10 +162,9 @@ NumPy – :class:`CPArray`
 JAX – :class:`CPJaxArray`
 =========================
 
-.. autoclass:: pychop.builtin.CPJaxArray
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. py:class:: pychop.builtin.CPJaxArray(data, chopper)
+
+   Optional framework container. Install its backend before importing this class.
 
 **Example**
 
@@ -279,7 +278,7 @@ Performance tip
 * Use the **TensorFlow** backend (``pychop.backend('tensorflow')``) for TensorFlow/Keras
   workflows with STE-based gradient support. TensorFlow does not currently have
   a built-in ``CP*`` wrapper type.
-* Use the **NumPy** backend (default) for pure-CPU workloads.
+* Use the **NumPy** backend for NumPy inputs (auto dispatch is the default) for pure-CPU workloads.
 
 That’s it, simply drop the imports into your code and you get
 **type-preserving low-precision arithmetic** for scalars, NumPy arrays, JAX

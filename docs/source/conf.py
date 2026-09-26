@@ -1,7 +1,7 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 project = 'pychop'
 copyright = '2026, InEXASCALE computing'
@@ -10,6 +10,7 @@ release = '0.6.1'
 
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
@@ -34,3 +35,6 @@ html_theme_options = {
 
 
 html_static_path = []
+
+# Document attributes once, through autodoc members.
+napoleon_use_ivar = True

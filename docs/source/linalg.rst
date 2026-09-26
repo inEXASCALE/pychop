@@ -82,7 +82,7 @@ API reference
 -------------
 
 Eigen / decompositions
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 - ``eig(A, ...)``
 - ``eigvals(A, ...)``
@@ -237,7 +237,7 @@ Troubleshooting
 ---------------
 
 1. Host fallback returns NumPy arrays instead of CP wrappers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If a host fallback call returns ``numpy.ndarray``, ensure that the code path wraps
 SciPy outputs using the backend spec with the known ``A.chopper`` (i.e., via

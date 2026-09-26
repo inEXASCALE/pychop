@@ -3,19 +3,19 @@
 
 # pychop: efficient reduced-precision quantization library 
 
-[![All platforms](https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/pychop-feedstock?branchName=main)](https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=26671&branchName=main)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/pychop/badges/license.svg)](https://anaconda.org/conda-forge/pychop)
-[![Codecov](https://github.com/inEXASCALE/pychop/actions/workflows/codecov.yml/badge.svg)](https://github.com/inEXASCALE/pychop/actions/workflows/codecov.yml) [![!pypi](https://img.shields.io/pypi/v/pychop?color=greem)](https://pypi.org/project/pychop/) [![Conda Version](https://img.shields.io/conda/vn/conda-forge/pychop.svg)](https://anaconda.org/conda-forge/pychop)
-[![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.python.org/pypi/pychop/)
-[![Download Status](https://img.shields.io/pypi/dm/pychop.svg?label=PyPI%20downloads)](https://pypi.org/project/pychop)
-[![Documentation Status](https://readthedocs.org/projects/pychop/badge/?version=latest)](https://pychop.readthedocs.io/en/latest/?badge=latest)
-[![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/pychop.svg)](https://anaconda.org/conda-forge/pychop)
+[![PyPI](https://img.shields.io/pypi/v/pychop?color=3776AB&logo=pypi&logoColor=white)](https://pypi.org/project/pychop/)
+[![Python](https://img.shields.io/pypi/pyversions/pychop?logo=python&logoColor=white)](https://pypi.org/project/pychop/)
+[![Tests](https://github.com/inEXASCALE/pychop/actions/workflows/numerical-core.yml/badge.svg)](https://github.com/inEXASCALE/pychop/actions/workflows/numerical-core.yml)
+[![Docs](https://readthedocs.org/projects/pychop/badge/?version=latest)](https://pychop.readthedocs.io/en/latest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22A06B.svg)](LICENSE)
+[![Conda](https://img.shields.io/conda/vn/conda-forge/pychop?logo=anaconda)](https://anaconda.org/conda-forge/pychop)
+[![P3109](https://img.shields.io/badge/P3109-draft%20emulation-6F42C1)](docs/source/p3109.rst)
 </div>
       
 Lower-precision floating-point arithmetic is becoming more often used in recently growing hardware, moving beyond the usual IEEE 64-bit double-precision and 32-bit single-precision formats. Today, hardware accelerators and software simulations often, in one way or another, use reduced-precision formats, such as 16-bit half-precision (e.g., brain floating point), which are widely used in scientific computing and deep learning applications. These formats, if used properly, improve speed performance, reduce data transfer between memory and processors, and use less energy, while retaining the target accuracy. These benefits are most important with large datasets or real-time applications. 
 However, one never realizes how much reduced precision is needed in their applications or certain computational steps, unless via rigorous error analysis, a program precision tuning tool, or trial and error. 
 
-Inspired by MATLAB’s well-known chop function by Nick Higham, to support both practical and theoretical floating-point analysis, ``pychop`` features efficient low-precision emulation for Python, with an easy extension to MATLAB, without relying on hardware. This library lets you quickly and reliably convert single- or double-precision numbers into any low-bitwidth format. It is flexible, so you can set up custom floating-point formats by choosing the number of exponent and significand bits, or pick fixed-point or integer quantization. This gives you control to match numerical precision and range to your algorithm, simulation, or hardware needs. It combines advanced features with ease of use. It includes many rounding modes, both deterministic and stochastic, and can handle denormal numbers as soft errors for accurate hardware emulation. The library is built for speed using vectorized operations for emulation. It also integrates directly with NumPy arrays, PyTorch tensors, and JAX arrays, so you can quantize data within your current workflow without extra conversions or performance loss.
+Inspired by MATLAB’s well-known chop function by Nick Higham, to support both practical and theoretical floating-point analysis, ``pychop`` features efficient low-precision emulation for Python, with an easy extension to MATLAB, without relying on hardware. This library lets you quickly and reliably convert single- or double-precision numbers into any low-bitwidth format. It is flexible, so you can set up custom floating-point formats by choosing the number of exponent and significand bits, or pick fixed-point or integer quantization. This gives you control to match numerical precision and range to your algorithm, simulation, or hardware needs. It combines advanced features with ease of use. It includes many rounding modes, both deterministic and stochastic, and supports subnormal numbers and, separately, optional bit-flip fault injection. The library is built for speed using vectorized operations for emulation. It also integrates directly with NumPy arrays, PyTorch tensors, and JAX arrays, so you can quantize data within your current workflow through backend-specific implementations.
 
 ``pychop`` enables one to emulate low-precision arithmetic in a regular high-precision environment, so you do not need special hardware. This makes it easy to study how quantization affects stability, convergence, accuracy, and efficiency on your laptop or server. ``pychop``works well for academic research needing careful control over numbers, and for software development where you want to quickly test different bit-widths to find the best balance between speed, memory use, and model quality. ``pychop``offers a comprehensive solution.
 
@@ -65,6 +65,48 @@ or with `mamba`:
 ```
 mamba search pychop --channel conda-forge
 ```
+
+## P3109 emulation and time-series workflows
+
+The local source includes NumPy, PyTorch, TensorFlow and JAX emulation of the **P3109 v4.1 public draft**,
+with validated formats, nine rounding modes, three saturation policies, integer
+code export and reproducible explicit-bit stochastic rounding. P3109 is an
+unapproved draft; this is not a formal IEEE conformance claim. Install the checkout
+with `python -m pip install -e .` to use these additions.
+
+```python
+import numpy as np
+from pychop import P3109, P3109Format, SymbolicTimeSeries
+
+q = P3109(P3109Format(k=8, precision=4), saturate=True)
+series = np.sin(np.arange(256) / 10)
+train, test = series[:192], series[192:]
+symbolizer = SymbolicTimeSeries(segment_size=4, alphabet_size=8).fit(q(train))
+symbols = symbolizer.transform(q(test))
+approximation = symbolizer.inverse_transform(symbols)
+print(symbols)
+print("reconstruction RMSE:", np.sqrt(np.mean((test - approximation)**2)))
+print("exportable calibration:", symbolizer.to_dict())
+```
+
+- [P3109 guide](docs/source/p3109.rst): format semantics, encode/decode, rounding and parameter export.
+- [Time-series guide](docs/source/timeseries.rst): empirical PAA symbols, training-only calibration and JSON reload.
+- [Runnable toy models](examples/p3109/toy_models.py): AR(1) prediction, oscillator simulation and symbolic classification; export policies, model coefficients, codes and metrics.
+- [Native tensor training](examples/p3109/tensor_training.py): Torch, TensorFlow and JAX STE training with portable parameter export.
+- [Architecture](docs/source/architecture.rst) and [validation](docs/source/validation.rst): numerical contracts, test coverage and reproducible gfloat benchmarks.
+
+```bash
+python examples/p3109/quickstart.py
+python examples/p3109/toy_models.py --output-dir /tmp/pychop-demo
+python -m pip install gfloat
+python benchmarks/benchmark_p3109.py --output /tmp/p3109-benchmark.json
+```
+
+The [recorded CPU benchmark](benchmarks/p3109_macos_arm64.json) compares identical
+float64 results against `gfloat.round_ndarray`, with every measured case faster.
+See the validation guide for scope and timing methodology. Emulation normally
+retains host storage and host arithmetic; it does not automatically accelerate
+model inference. Explicit `encode` produces integer storage codes.
 
 ## Features
 The ``pychop`` library offers several key features for developers, researchers, and engineers working with numerical computations:
@@ -179,7 +221,7 @@ X = np.random.randn(5000, 5000)
 pychop.backend('numpy', 1) # Specify different backends, e.g., jax and torch
 backend = pychop.get_backend() # you can also get current backend via .get_backend()
 # One can also specify 'auto', the pychop will automatically detect the types,
-# but speed will be degraded. 
+# and reuse the selected implementation on repeated calls.
 # For other backends, e.g., the ``torch`` backend, the input must be consistent array type, e.g., X = torch.from_numpy(X) # torch array
  
 ch = Chop(exp_bits=5, sig_bits=10, rmode=3) # half precision

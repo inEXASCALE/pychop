@@ -419,6 +419,8 @@ Trigonometric functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: sin(x, chop)
+   :no-index:
+
 
    Compute sine of `x` with chopping.
 
@@ -428,47 +430,89 @@ Trigonometric functions
    :rtype: Same type as `x` (NumPy, PyTorch, or JAX)
 
 .. function:: cos(x, chop)
+   :no-index:
+
 .. function:: tan(x, chop)
+   :no-index:
+
 .. function:: arcsin(x, chop)
+   :no-index:
+
    Input must be in [-1, 1].
 .. function:: arccos(x, chop)
+   :no-index:
+
    Input must be in [-1, 1].
 .. function:: arctan(x, chop)
+   :no-index:
+
 
 Hyperbolic functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: sinh(x, chop)
+   :no-index:
+
 .. function:: cosh(x, chop)
+   :no-index:
+
 .. function:: tanh(x, chop)
+   :no-index:
+
 .. function:: arcsinh(x, chop)
+   :no-index:
+
 .. function:: arccosh(x, chop)
+   :no-index:
+
    Input must be >= 1.
 .. function:: arctanh(x, chop)
+   :no-index:
+
    Input must be in (-1, 1).
 
 Exponential and logarithmic functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: exp(x, chop)
+   :no-index:
+
 .. function:: expm1(x, chop)
+   :no-index:
+
 .. function:: log(x, chop)
+   :no-index:
+
    Input must be positive.
 .. function:: log10(x, chop)
+   :no-index:
+
    Input must be positive.
 .. function:: log2(x, chop)
+   :no-index:
+
    Input must be positive.
 .. function:: log1p(x, chop)
+   :no-index:
+
    Input must be > -1.
 
 Power and root functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: sqrt(x, chop)
+   :no-index:
+
    Input must be non-negative.
 .. function:: cbrt(x, chop)
+   :no-index:
+
 .. function:: square(x, chop)
+   :no-index:
+
 .. function:: power(x, y, chop)
+   :no-index:
+
    Compute x raised to the power y.
 
 Arithmetic functions
@@ -520,10 +564,18 @@ Miscellaneous functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: frexp(x, chop)
+   :no-index:
+
    Returns tuple of (chopped mantissa, exponent).
 .. function:: hypot(x, y, chop)
+   :no-index:
+
 .. function:: diff(x, n=1, chop)
+   :no-index:
+
    Compute n-th order difference.
 .. function:: reciprocal(x, chop)
+   :no-index:
+
    Input must be non-zero.
 
