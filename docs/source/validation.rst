@@ -9,7 +9,7 @@ From the repository root, using an editable installation:
 .. code-block:: bash
 
    python -m pip install pytest gfloat
-   python -m pytest tests/test_p3109.py tests/test_timeseries.py tests/test_chop_backend_reuse.py -q
+   python -m pytest tests/test_p3109.py tests/test_chop_backend_reuse.py -q
    python -m pytest tests -q
    python -m pip install -r docs/requirements.txt
    python -m sphinx -b html -W --keep-going docs/source /tmp/pychop-docs
@@ -25,9 +25,6 @@ canonical zero and propagation saturation. The implementation has no gfloat
 runtime dependency. Differential tests also passed against upstream gfloat
 revision ``caea0b1a971cc71fa9095336dd7457dc42b36dc7``.
 
-Time-series tests verify known segment averages and bins, training/test separation,
-constant inputs, invalid calibration, failed-fit state preservation and JSON
-round trips. Application tests execute the toy models and reload their exports.
 Backend reuse has a regression checking that stochastic sequences advance and
 match explicit NumPy dispatch with the same seed.
 

@@ -1,50 +1,30 @@
 Runnable application examples
 =============================
 
+NumPy quantization and linear inference
+---------------------------------------
+
 From an editable installation at the repository root:
 
 .. code-block:: bash
 
    python examples/p3109/quickstart.py
-   python examples/p3109/toy_models.py --output-dir /tmp/pychop-demo
 
-Both programs are self-contained, deterministic and use synthetic NumPy data.
-They need no downloaded dataset, plotting library, GPU or training framework.
+This self-contained program uses synthetic NumPy data and needs no downloaded
+dataset, plotting library, GPU or training framework. It demonstrates rounding,
+integer encoding and decoding, JSON-compatible policy export, reproducible
+stochastic rounding with explicit random bits, and a two-input linear model.
+The model quantizes its weights and inputs, accumulates the matrix product in
+host precision, then quantizes its output. Choose those rounding boundaries
+explicitly when comparing numerical error.
 
-The combined example builds three signals (noisy sine, AR(1), damped oscillator)
-and three toy computations:
-
-1. An AR(1) coefficient fitted by least squares, quantized to Binary8p4, and used
-   for one-step prediction with quantized inputs and outputs.
-2. An explicit-Euler damped oscillator with quantized state updates, compared
-   against the same integration steps in host precision. Matrix products use
-   host accumulation before output quantization.
-3. A nearest-centroid classifier over symbolic windows, using training-only
-   centroids and held-out sine/oscillator windows. Symbol indices are ordinal
-   features here; this deliberately simple baseline is not a claim of a
-   statistically reliable classifier.
-
-Output files
-------------
-
-``parameters.json`` contains both the P3109 policy and fitted symbolizer, plus
-full-precision and quantized AR coefficients. ``results.npz`` contains P3109
-integer code points, time-series symbols, reconstructions, predictions and the
-oscillator trajectory. ``metrics.json`` contains per-signal errors and classifier
-accuracy. Files in the selected directory are replaced on subsequent runs.
-
-The program reloads JSON and NPZ (with ``allow_pickle=False``) and verifies exact
-reproduction of the encoded data and symbols. In the recorded local run the sine,
-AR(1) and oscillator quantization RMSEs were approximately 0.0148, 0.00562 and
-0.00742. The classifier accuracy was 0.5; this baseline illustrates the API and
-also shows that a compact representation alone does not ensure prediction quality.
-
-Full combined program
----------------------
-
-.. literalinclude:: ../../examples/p3109/toy_models.py
+.. literalinclude:: ../../examples/p3109/quickstart.py
    :language: python
    :linenos:
+
+For writing and reloading a policy together with integer model weights, see
+:doc:`p3109`. The native training example below includes an executable export
+and reload workflow for each supported tensor framework.
 
 Other numerical workflows
 --------------------------

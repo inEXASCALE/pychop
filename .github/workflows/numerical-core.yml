@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install -e . pytest gfloat==0.5.2
-      - run: python -m pytest tests/test_p3109.py tests/test_timeseries.py tests/test_p3109_examples.py tests/test_chop_backend_reuse.py tests/test_documentation_examples.py tests/test_import_laziness.py tests/test_float_params.py -q
+      - run: python -m pytest tests/test_p3109.py tests/test_chop_backend_reuse.py tests/test_documentation_examples.py tests/test_import_laziness.py tests/test_float_params.py -q
   docs:
     runs-on: ubuntu-latest
     steps:

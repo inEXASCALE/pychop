@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def snippets():
-    for name in ("start", "p3109", "timeseries", "float_point"):
+    for name in ("start", "p3109", "float_point"):
         lines = (ROOT / "docs" / "source" / (name + ".rst")).read_text().splitlines()
         for i, line in enumerate(lines):
             if line == ".. code-block:: python":

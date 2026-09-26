@@ -2,7 +2,7 @@ Installation and first computation
 ==================================
 
 Install a released package with ``python -m pip install pychop``. To use changes
-in a local checkout (including the new P3109 and time-series APIs), run from its
+in a local checkout (including the P3109 API), run from its
 root:
 
 .. code-block:: bash
@@ -75,13 +75,11 @@ not produce identical sequences for the same seed.
 
 P3109 automatically dispatches on NumPy, Torch, TensorFlow and JAX inputs,
 independently of this global setting. It preserves the tensor backend and offers
-explicit STE training gradients. The time-series calibration API remains NumPy
-CPU; convert device data explicitly before using it.
+explicit STE training gradients.
 
 Next steps
 ----------
 
 * :doc:`p3109`: format selection, rounding, encode/decode and policy export.
-* :doc:`timeseries`: fit, symbolize, reconstruct and reload calibration.
 * :doc:`examples`: runnable quantized models and saved results.
 * :doc:`validation`: correctness tests and reproducible CPU benchmarks.

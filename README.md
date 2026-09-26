@@ -66,7 +66,7 @@ or with `mamba`:
 mamba search pychop --channel conda-forge
 ```
 
-## P3109 emulation and time-series workflows
+## P3109 emulation and parameter export
 
 The local source includes NumPy, PyTorch, TensorFlow and JAX emulation of the **P3109 v4.1 public draft**,
 with validated formats, nine rounding modes, three saturation policies, integer
@@ -76,28 +76,27 @@ with `python -m pip install -e .` to use these additions.
 
 ```python
 import numpy as np
-from pychop import P3109, P3109Format, SymbolicTimeSeries
+from pychop import P3109, P3109Format
 
 q = P3109(P3109Format(k=8, precision=4), saturate=True)
-series = np.sin(np.arange(256) / 10)
-train, test = series[:192], series[192:]
-symbolizer = SymbolicTimeSeries(segment_size=4, alphabet_size=8).fit(q(train))
-symbols = symbolizer.transform(q(test))
-approximation = symbolizer.inverse_transform(symbols)
-print(symbols)
-print("reconstruction RMSE:", np.sqrt(np.mean((test - approximation)**2)))
-print("exportable calibration:", symbolizer.to_dict())
+weights = np.array([[1.1, -0.3], [0.25, 0.9]])
+x = np.array([0.7, -0.2])
+codes = q.encode(weights)
+restored = P3109.from_dict(q.to_dict())
+# Host matrix accumulation, followed by explicit output rounding.
+prediction = restored(restored.decode(codes) @ restored(x))
+print("prediction:", prediction)
+print("weight codes:", codes)
+print("exportable policy:", q.to_dict())
 ```
 
 - [P3109 guide](docs/source/p3109.rst): format semantics, encode/decode, rounding and parameter export.
-- [Time-series guide](docs/source/timeseries.rst): empirical PAA symbols, training-only calibration and JSON reload.
-- [Runnable toy models](examples/p3109/toy_models.py): AR(1) prediction, oscillator simulation and symbolic classification; export policies, model coefficients, codes and metrics.
+- [NumPy quickstart](examples/p3109/quickstart.py): rounding, code round trips, policy export and a quantized linear model.
 - [Native tensor training](examples/p3109/tensor_training.py): Torch, TensorFlow and JAX STE training with portable parameter export.
 - [Architecture](docs/source/architecture.rst) and [validation](docs/source/validation.rst): numerical contracts, test coverage and reproducible gfloat benchmarks.
 
 ```bash
 python examples/p3109/quickstart.py
-python examples/p3109/toy_models.py --output-dir /tmp/pychop-demo
 python -m pip install gfloat
 python benchmarks/benchmark_p3109.py --output /tmp/p3109-benchmark.json
 ```

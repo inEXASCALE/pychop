@@ -26,7 +26,8 @@ exclude_patterns = []
 pygments_style = 'lovelace'
 pygments_dark_style = "monokai"
 
-html_theme = "furo" 
+html_theme = "furo"
+html_logo = "../imgs/pychop_logo.png"
 
 html_theme_options = {
     "sidebar_hide_name": False, 

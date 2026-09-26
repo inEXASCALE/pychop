@@ -94,4 +94,3 @@ class Options:
 
 # Draft P3109 scalar formats (NumPy CPU; independent of global backend).
 from .p3109 import P3109Format, P3109, p3109_quantize, p3109_encode, p3109_decode
-from .timeseries import SymbolicTimeSeries

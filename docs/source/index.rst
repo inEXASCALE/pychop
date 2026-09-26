@@ -1,6 +1,11 @@
 Pychop: reduced-precision arithmetic
 ====================================
 
+.. image:: ../imgs/pychop_logo.png
+   :alt: Pychop — efficient reduced-precision emulation
+   :width: 480px
+   :align: center
+
 Pychop emulates floating-point, fixed-point, integer, block floating-point (BFP),
 and microscaling (MX) quantization. Use it to measure numerical error and study
 algorithms before choosing a hardware format. NumPy, PyTorch, JAX and TensorFlow
@@ -12,9 +17,18 @@ or accelerate its arithmetic. Explicit integer code export is available for
 :doc:`p3109`; BFP/MX storage estimates describe logical formats, not necessarily
 the bytes occupied by a Python object.
 
-Start with :doc:`start`, then follow :doc:`timeseries` for a complete pipeline
-from training data to symbols, parameter export and reproducible inference.
-The :doc:`examples` chapter includes small runnable models without downloads.
+Start with :doc:`start`, then follow :doc:`p3109` for format selection, rounding
+and parameter export. The :doc:`examples` chapter includes runnable quantized
+models and native tensor training without dataset downloads.
+
+.. figure:: ../imgs/pychop_app.png
+   :alt: Pychop applications in quantization, hardware prototyping and numerical stability research
+   :width: 100%
+   :align: center
+
+   Application overview. The illustration shows the original NumPy, PyTorch and
+   JAX workflows; TensorFlow is also supported. See :doc:`architecture` for
+   backend coverage and numerical contracts.
 
 .. toctree::
    :maxdepth: 2
@@ -22,7 +36,6 @@ The :doc:`examples` chapter includes small runnable models without downloads.
 
    start
    p3109
-   timeseries
    examples
    architecture
    validation

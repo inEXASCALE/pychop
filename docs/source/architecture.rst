@@ -30,11 +30,6 @@ runtime gfloat dependency, mutable format cache or hidden stochastic generator.
 The NumPy kernel uses exact ``frexp``/``ldexp`` operations and fewer temporary
 arrays than the generic reference path. The NumPy path needs no JIT warm-up; tensor compilation is explicitly opt-in.
 
-``timeseries.py`` owns empirical PAA/quantile calibration and its versioned
-serialization. It consumes ordinary numeric arrays, so it can be combined with
-P3109 or existing quantizers without making time-series concerns part of the
-floating-point kernel.
-
 Rounding boundaries and storage
 -------------------------------
 
@@ -46,8 +41,7 @@ experimental results, especially for matrix products and iterative solvers.
 
 Integer code arrays are explicit storage representations. P3109 codes carry no
 format metadata by themselves. Save the versioned quantizer policy beside the
-codes. Time-series symbols use a learned alphabet and require their fitted
-calibration; they are not interchangeable with floating-point codes.
+codes.
 
 Compatibility and change discipline
 ------------------------------------

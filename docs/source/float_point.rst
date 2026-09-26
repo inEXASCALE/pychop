@@ -8,6 +8,14 @@ and trailing-fraction widths. ``FaultChop`` exposes the older research interface
 named precisions and fault injection. ``Simulate`` is an educational arbitrary
 radix interface for small problems. P3109 has distinct semantics; use :doc:`p3109`.
 
+.. figure:: figures/fmt.png
+   :alt: Sign, exponent and fraction bit layouts of FP64, FP32, FP16 and bfloat16
+   :width: 100%
+   :align: center
+
+   Common floating-point layouts. Fraction widths exclude the implicit leading
+   bit; the table gives approximate magnitudes and unit roundoff.
+
 Chop parameters and rounding
 ----------------------------
 
