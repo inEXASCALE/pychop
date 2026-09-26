@@ -159,7 +159,7 @@ e = a + 3.14
 print(e)                     # CPFloat(4.37438, prec=half)
 ```
 
-### Supported Microscaling (MX) formats
+### Supported microscaling (MX) formats
 
 [Microscaling formats](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf) use a **block-level shared scale** together with low-bit-width element formats. For the OCP-defined formats below, 32 elements share one E8M0 scale. When physically encoded and packed, this representation can reduce storage relative to FP16; PyChop itself emulates the numerical behavior rather than storing tensors in a packed MX representation.
 
@@ -348,7 +348,7 @@ X_q = ch(X);
 ```
 
 
-### Use Cases
+### Use cases
  
  * Machine Learning: Test the impact of low-precision arithmetic on model accuracy and training stability, especially for resource-constrained environments like edge devices.
 

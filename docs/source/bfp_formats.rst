@@ -1,7 +1,7 @@
 .. _bfp_formats:
 
 ====================================
-Block Floating Point Formats
+Block floating point formats
 ====================================
 
 Block Floating Point (BFP) is a quantization format where a group of numbers shares
@@ -12,7 +12,7 @@ a good balance between compression efficiency and hardware simplicity.
 Overview
 ========
 
-What is Block Floating Point?
+What is block floating point?
 ------------------------------
 
 Block Floating Point (BFP) divides data into blocks and applies a shared exponent
@@ -66,7 +66,7 @@ provides better dynamic range than fixed-point quantization.
 Architecture
 ============
 
-BFP Structure
+BFP structure
 -------------
 
 A BFP block consists of:
@@ -91,12 +91,12 @@ A BFP block consists of:
 - Total: 264 bits for 32 elements
 - Compression vs FP16: 512/264 = **1.94x**
 
-Predefined Formats
+Predefined formats
 ==================
 
 Pychop provides several predefined BFP formats optimized for different use cases:
 
-Standard Formats
+Standard formats
 ----------------
 
 .. list-table::
@@ -140,7 +140,7 @@ Standard Formats
      - 3.76x
      - Ultra-low precision
 
-Ultra-Low Precision Formats
+Ultra-low precision formats
 ----------------------------
 
 .. list-table::
@@ -166,7 +166,7 @@ Ultra-Low Precision Formats
      - 10.67x
      - Research only
 
-Intel Flexpoint Compatible
+Intel Flexpoint compatible
 ---------------------------
 
 .. list-table::
@@ -192,10 +192,10 @@ Intel Flexpoint Compatible
      - 1.97x
      - Intel compatible
 
-Quick Start
+Quick start
 ===========
 
-Basic Usage
+Basic usage
 -----------
 
 .. code-block:: python
@@ -239,7 +239,7 @@ Using BFPTensor
    mse = np.mean((X - X_reconstructed) ** 2)
    print(f"MSE: {mse:.2e}")
 
-Custom Formats
+Custom formats
 --------------
 
 .. code-block:: python
@@ -260,10 +260,10 @@ Custom Formats
    # Or use tuple shorthand
    X_q = bfp_quantize(X, format=(5, 64))  # (mantissa_bits, block_size)
 
-Backend-Specific Usage
+Backend-specific usage
 ======================
 
-NumPy Backend
+NumPy backend
 -------------
 
 Pure NumPy implementation for inference and analysis:
@@ -282,7 +282,7 @@ Pure NumPy implementation for inference and analysis:
    error = np.mean((X - X_q) ** 2)
    print(f"MSE: {error:.2e}")
 
-PyTorch Backend (with STE)
+PyTorch backend (with STE)
 ---------------------------
 
 PyTorch backend with **Straight-Through Estimator** for Quantization-Aware Training:
@@ -373,7 +373,7 @@ PyTorch backend with **Straight-Through Estimator** for Quantization-Aware Train
    for epoch in range(num_epochs):
        train(model)  # Gradients flow through STE automatically
 
-JAX Backend (with Custom VJP)
+JAX backend (with custom VJP)
 ------------------------------
 
 JAX backend with custom Vector-Jacobian Product for differentiation:
@@ -442,7 +442,7 @@ JAX backend with custom Vector-Jacobian Product for differentiation:
    # Forward pass with quantization
    output = model.apply(variables, x)
 
-TensorFlow Backend (with STE)
+TensorFlow backend (with STE)
 -------------------------------
 
 TensorFlow backend with **Straight-Through Estimator** for Quantization-Aware Training via ``tf.numpy_function()`` with custom gradients:
@@ -494,10 +494,10 @@ TensorFlow backend with **Straight-Through Estimator** for Quantization-Aware Tr
        grads = tape.gradient(loss, model.trainable_variables)
        optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
-API Reference
+API reference
 =============
 
-Core Functions
+Core functions
 --------------
 
 bfp_quantize
@@ -663,7 +663,7 @@ create_bfp_spec
       # Use custom format
       X_q = bfp_quantize(X, format=spec)
 
-Utility Functions
+Utility functions
 -----------------
 
 print_bfp_format_table
@@ -701,7 +701,7 @@ print_bfp_format_table
       flexpoint8      8          32           5          1.97x            261
       ==========================================================================================
 
-PyTorch-Specific API
+PyTorch-specific API
 --------------------
 
 BFPQuantizerSTE
@@ -855,7 +855,7 @@ convert_linear_to_bfp
       for epoch in range(num_epochs):
           train(model)
 
-JAX-Specific API
+JAX-specific API
 ----------------
 
 BFPQuantizerSTE (JAX)
@@ -911,10 +911,10 @@ BFPDense
               x = BFPDense(features=10)(x)
               return x
 
-Advanced Usage
+Advanced usage
 ==============
 
-Format Comparison
+Format comparison
 -----------------
 
 Compare different BFP formats on the same data:
@@ -944,7 +944,7 @@ Compare different BFP formats on the same data:
        print(f"{fmt:<10} {stats['compression_ratio_fp16']:.2f}x{'':>11} "
              f"{mse:.2e}{'':>6} {mae:.2e}")
 
-Memory Analysis
+Memory analysis
 ---------------
 
 Analyze memory usage for different formats:
@@ -971,7 +971,7 @@ Analyze memory usage for different formats:
        print(f"  Saved vs FP16: {stats['memory_saved_vs_fp16']:.1f}%")
        print(f"  Compression: {stats['compression_ratio_fp16']:.2f}x vs FP16")
 
-LLM Fine-Tuning Example
+LLM fine-tuning example
 -----------------------
 
 Complete example for fine-tuning LLMs with BFP quantization:
@@ -1021,10 +1021,10 @@ Complete example for fine-tuning LLMs with BFP quantization:
    # Save quantized model
    torch.save(model.state_dict(), 'model_bfp8.pt')
 
-Performance Tips
+Performance tips
 ================
 
-Choosing Block Size
+Choosing block size
 -------------------
 
 Block size affects compression and accuracy:
@@ -1041,7 +1041,7 @@ Block size affects compression and accuracy:
        mse = np.mean((X - X_q) ** 2)
        print(f"Block size {block_size}: MSE = {mse:.2e}")
 
-Choosing Mantissa Bits
+Choosing mantissa bits
 -----------------------
 
 Mantissa bits control precision:
@@ -1051,7 +1051,7 @@ Mantissa bits control precision:
 - **6 bits**: Aggressive compression, acceptable for inference
 - **4 bits or less**: Research/experimental
 
-Backend Selection
+Backend selection
 -----------------
 
 Choose backend based on your needs:
@@ -1073,7 +1073,7 @@ Choose backend based on your needs:
 Troubleshooting
 ===============
 
-Common Issues
+Common issues
 -------------
 
 **Import Error:**

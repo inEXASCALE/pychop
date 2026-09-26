@@ -7,7 +7,7 @@ This docs provides a concise reference for ``pychop`` usage for the Basic Linear
 - **Usage**: These routines are optimized for performance in numerical computing and are widely used in scientific computing, machine learning, and engineering applications.
 
 
-## Level 1 BLAS: Vector-Vector Operations
+## Level 1 BLAS: vector-vector operations
 
 | Routine   | Operation                     | Description                                           |
 |-----------|-------------------------------|-------------------------------------------------------|
@@ -26,7 +26,7 @@ This docs provides a concise reference for ``pychop`` usage for the Basic Linear
 | IAMAX     | Index of max                 | Finds the index of the maximum absolute value.        |
 | IAMIN     | Index of min                 | Finds the index of the minimum absolute value.        |
 
-## Level 2 BLAS: Matrix-Vector Operations
+## Level 2 BLAS: matrix-vector operations
 
 | Routine | Operation                              | Description                                                  |
 |---------|----------------------------------------|--------------------------------------------------------------|
@@ -54,7 +54,7 @@ This docs provides a concise reference for ``pychop`` usage for the Basic Linear
 | HER2    | $A = A + \alpha x y^H + \alpha y x^H$ | Rank-2 update of a Hermitian matrix.                        |
 | HPR2    | $A = A + \alpha x y^H + \alpha y x^H$ | Rank-2 update of a Hermitian matrix (packed storage).       |
 
-## Level 3 BLAS: Matrix-Matrix Operations
+## Level 3 BLAS: matrix-matrix operations
 
 | Routine | Operation                                     | Description                                                         |
 |---------|-----------------------------------------------|---------------------------------------------------------------------|

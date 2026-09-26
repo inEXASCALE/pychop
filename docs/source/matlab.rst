@@ -1,4 +1,4 @@
-Support in Matlab
+Support in MATLAB
 =====================================================
 
 MATLAB provides built-in support for calling Python libraries through its Python Interface. This allows users to use Python functions, classes, and modules directly from MATLAB, making it easy to integrate Python-based scientific computing, machine learning, and deep learning libraries into MATLAB workflows. MATLAB interacts with Python by adding the ``py.`` prefix, which allows MATLAB to call the needed Python library seamlessly. One can also execute Python statements in the Python interpreter directly from MATLAB using the ``pyrun`` or ``pyrunfile`` functions. For detail, we refer the users to \url{https://www.mathworks.com/help/matlab/call-python-libraries.html}

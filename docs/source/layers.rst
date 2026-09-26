@@ -43,12 +43,12 @@ STE quantizers (core)
 
 
 
-Utility Functions
+Utility functions
 -----------------
 
 .. autofunction:: post_quantization
 
-Floating-point / Fixed-point quantized layers
+Floating-point / fixed-point quantized layers
 =============================================
 
 These layers use ``ChopSTE`` (or ``Chop``) for **floating-point QAT**.
@@ -142,7 +142,7 @@ These layers use ``ChopSTE`` (or ``Chop``) for **floating-point QAT**.
 
 .. autodata:: QuantizedAvgPool
 
-Activation & Regularization Layers (Floating-Point)
+Activation & regularization layers (floating-point)
 ---------------------------------------------------
 
 .. autoclass:: QuantizedReLU
@@ -304,7 +304,7 @@ Integer activation & regularization layers
 
 .. autodata:: IQuantizedAvgPool
 
-Usage Example
+Usage example
 -------------
 
 .. code-block:: python
@@ -347,7 +347,7 @@ Post-training quantization (PTQ)
     quantized_model = post_quantization(model, chop, eval_mode=True, verbose=True)
 
 
-TensorFlow / Keras Quantized Layers
+TensorFlow / Keras quantized layers
 ====================================
 
 ``Pychop`` also provides quantized layer replacements for TensorFlow Keras models via the

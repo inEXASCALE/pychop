@@ -45,14 +45,14 @@ The quantization process scales the input by the resolution, applies the chosen 
 Usage
 -----
 
-Common Parameters
+Common parameters
 ~~~~~~~~~~~~~~~~~
 
 - **ibits**: Specifies the number of bits for the integer part, including the sign bit.
 - **fbits**: Defines the number of bits for the fractional part.
 - **rmode**: Selects the rounding method, defaulting to "nearest".
 
-PyTorch Version
+PyTorch version
 ~~~~~~~~~~~~~~~
 
 The PyTorch implementation integrates with PyTorch tensors, making it suitable for machine learning workflows.
@@ -77,7 +77,7 @@ Quantize a tensor of floating-point values by invoking the quantization method, 
     result = sim.quantize(values, rounding_mode="nearest")
     print(result)
 
-NumPy Version
+NumPy version
 ~~~~~~~~~~~~~
 
 The NumPy version operates on NumPy arrays, offering a general-purpose quantization tool.
@@ -102,7 +102,7 @@ Apply the quantization method to a NumPy array, with an optional rounding mode p
     result = sim.quantize(values, rounding_mode="nearest")
     print(result)
 
-JAX Version
+JAX version
 ~~~~~~~~~~~
 
 The JAX implementation uses JAX arrays and includes JIT compilation for performance, requiring a PRNG key for stochastic modes.
@@ -129,7 +129,7 @@ Quantize a JAX array using the quantization method, specifying a rounding mode a
     result = sim.quantize(values, rounding_mode="nearest")
     print(result)
 
-TensorFlow Version
+TensorFlow version
 ~~~~~~~~~~~~~~~~~~
 
 The TensorFlow implementation operates on TensorFlow tensors, wrapping NumPy implementations with custom gradients for automatic differentiation support (STE).

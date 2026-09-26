@@ -31,7 +31,7 @@ while maintaining a large dynamic range.
 Architecture
 ------------
 
-Block Structure
+Block structure
 ~~~~~~~~~~~~~~~
 
 Each MX block consists of:
@@ -68,7 +68,7 @@ This design offers significantly better dynamic range than Block Floating Point 
    - **Use MX** when you need maximum accuracy with compression
    - **Use BFP** when you need maximum simplicity for edge devices
 
-Key Features
+Key features
 ---------------- 
 
  **OCP Standard Compliance**
@@ -90,7 +90,7 @@ Key Features
    - Custom format creation (exp_bits, sig_bits)
    - Configurable block sizes
 
-MX Format Specification
+MX format specification
 -------------------------------- 
 
 Structure
@@ -112,7 +112,7 @@ Each MX block contains:
 
    Total bits per block = scale_bits + (1+e+m) × block_size
 
-Predefined Formats
+Predefined formats
 ------------------
 
 Pychop supports all OCP standard MX formats:
@@ -171,11 +171,11 @@ Pychop supports all OCP standard MX formats:
      - 1.94×
      - Integer-like
 
-Quick Start
+Quick start
 -----------
 
 
-NumPy Backend
+NumPy backend
 ~~~~~~~~~~~~~
 
 .. code-block:: python
@@ -202,7 +202,7 @@ NumPy Backend
    stats = mx.statistics()
    print(f"Compression: {stats['compression_ratio_fp16']:.2f}x vs FP16")
 
-PyTorch Backend (with STE)
+PyTorch backend (with STE)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
@@ -225,7 +225,7 @@ PyTorch Backend (with STE)
    print(f"Gradient shape: {X.grad.shape}")
    print(f"Gradient norm: {X.grad.norm():.2e}")
 
-JAX Backend (with Custom VJP)
+JAX backend (with custom VJP)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
@@ -252,7 +252,7 @@ JAX Backend (with Custom VJP)
    grads = grad_fn(X)
    print(f"Gradient norm: {jnp.linalg.norm(grads):.2e}")
 
-TensorFlow Backend (with STE)
+TensorFlow backend (with STE)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
@@ -274,7 +274,7 @@ TensorFlow Backend (with STE)
    grads = tape.gradient(loss, X)
    print(f"Gradient shape: {grads.shape}")
 
-API Reference
+API reference
 ---------------- 
 
 
@@ -413,7 +413,7 @@ MXSpec
       
       :type: float
 
-Utility Functions
+Utility functions
 -----------------
 
 create_mx_spec
@@ -491,7 +491,7 @@ print_mx_format_table
       
       print_mx_format_table()
 
-PyTorch Backend (QAT)
+PyTorch backend (QAT)
 -------------------------------- 
 
 For **Quantization-Aware Training** in PyTorch, use the ``tch`` submodule:
@@ -514,7 +514,7 @@ Quantizer with STE
    loss = x_q.sum()
    loss.backward()  # Gradients flow through
 
-Quantized Linear Layer
+Quantized linear layer
 ----------------------
 
 .. code-block:: python
@@ -541,7 +541,7 @@ Quantized Linear Layer
    loss = y.sum()
    loss.backward()
 
-Quantized Attention
+Quantized attention
 -------------------
 
 .. code-block:: python
@@ -566,7 +566,7 @@ Quantized Attention
    value = torch.randn(16, 64, 768)
    output = attn(query, key, value)
 
-Model Conversion
+Model conversion
 ----------------
 
 Convert existing PyTorch models to use MX quantization:
@@ -608,7 +608,7 @@ Convert existing PyTorch models to use MX quantization:
        loss.backward()  # Gradients flow through STE
        optimizer.step()
 
-LLM Fine-tuning
+LLM fine-tuning
 ---------------
 
 Example: Fine-tune Transformer with MX quantization:
@@ -655,12 +655,12 @@ Example: Fine-tune Transformer with MX quantization:
            
            print(f"Loss: {loss.item():.4f}")
 
-JAX Backend
+JAX backend
 ------------
 
 For JAX/Flax training, use the ``jx`` submodule:
 
-Quantizer with Custom VJP
+Quantizer with custom VJP
 --------------------------
 
 .. code-block:: python
@@ -683,7 +683,7 @@ Quantizer with Custom VJP
    x = jax.random.normal(jax.random.PRNGKey(0), (128, 768))
    grads = grad_fn(x)
 
-Quantized Dense Layer (Flax)
+Quantized dense layer (Flax)
 -----------------------------
 
 .. code-block:: python
@@ -722,7 +722,7 @@ Quantized Dense Layer (Flax)
    # Forward pass
    output = model.apply(variables, x)
 
-Advanced Usage
+Advanced usage
 ---------------- 
 
 Create custom MX formats for specific use cases:
@@ -750,7 +750,7 @@ Create custom MX formats for specific use cases:
    # Or use tuple shorthand
    X_q = mx_quantize(X, format=(1, 1), block_size=64)
 
-Fine-grained Control
+Fine-grained control
 --------------------
 
 Override scale parameters for advanced control:
@@ -768,7 +768,7 @@ Override scale parameters for advanced control:
        scale_sig_bits=0
    )
 
-Block Size Selection
+Block size selection
 --------------------
 
 Choose block size based on data characteristics:
@@ -789,11 +789,11 @@ Choose block size based on data characteristics:
    ])
    X_q = mx_quantize(X_varying, format='mxfp8_e4m3', block_size=16)
 
-Performance Tips
+Performance tips
 -----------------
 
 
-Memory Reduction
+Memory reduction
 ~~~~~~~~~~~~~~~~~~~~~~
 
 **MXFP8 E4M3** provides ~2× memory reduction vs FP16:
@@ -814,7 +814,7 @@ Memory Reduction
    print(f"MX: {stats['mx_memory_mb']:.2f} MB")
    print(f"Saved: {stats['memory_saved_vs_fp16']:.1f}%")
 
-Accuracy vs Compression
+Accuracy vs compression
 ------------------------
 
 Trade-off between accuracy and compression:
@@ -844,7 +844,7 @@ Trade-off between accuracy and compression:
      - ~1e-1
      - Extreme compression (careful!)
 
-Training Recommendations
+Training recommendations
 ------------------------
 
 For Quantization-Aware Training:
@@ -867,7 +867,7 @@ For Quantization-Aware Training:
 Troubleshooting
 ---------------- 
 
-Common Issues
+Common issues
 ~~~~~~~~~~~~~~~~~~~~~~
 
 **Q: Getting NaN or Inf after quantization?**
@@ -928,7 +928,7 @@ A: Explicitly set backend:
 References
 -----------------------------
 
-Standards and Specifications
+Standards and specifications
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. **OCP Microscaling Formats (MX) v1.0 Specification**
@@ -942,7 +942,7 @@ Standards and Specifications
    - Reference for floating-point arithmetic
    - https://ieeexplore.ieee.org/document/8766229
 
-Research Papers
+Research papers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. **Microscaling Data Formats for Deep Learning** (Rouhani et al., 2023)

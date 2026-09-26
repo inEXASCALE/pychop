@@ -1,4 +1,4 @@
-Mathematical functions 
+Mathematical functions
 ========================================
  
 ``Pychop`` provides two ways to implement mathematical functions in reduced precision.  

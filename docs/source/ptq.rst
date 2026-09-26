@@ -1,7 +1,7 @@
 .. _ptq_guide:
 
 ========================================
-Post-Training Quantization
+Post-training quantization
 ========================================
 
 Overview
@@ -22,7 +22,7 @@ without retraining. PTQ is ideal for quick deployment and model compression with
 
 .. _ptq_comparison:
 
-PTQ Methods Comparison
+PTQ methods comparison
 --------------------------
 
 **Legend:**
@@ -31,7 +31,7 @@ PTQ Methods Comparison
 - ⚫ Original precision = Not quantized, keeps model's current precision
 - ⚫ Preserved (FP32) = Always kept as FP32 for numerical stability
 
-Quantization Components
+Quantization components
 --------------------------
 
 Understanding what gets quantized in each method:
@@ -68,7 +68,7 @@ Understanding what gets quantized in each method:
 
 .. _ptq_api:
 
-API Reference
+API reference
 =============
 
 .. _post_quantization:
@@ -372,7 +372,7 @@ Dynamic PTQ: ``dynamic_post_quantization``
 
 .. _mixed_post_quantization:
 
-Mixed-Precision PTQ: ``mixed_post_quantization``
+Mixed-precision PTQ: ``mixed_post_quantization``
 -------------------------------------------------
 
 **Separate quantizers for weights and activations** (W8A16, W4A8, etc.).
@@ -496,7 +496,7 @@ Mixed-Precision PTQ: ``mixed_post_quantization``
 
 .. _ptq_examples:
 
-Complete Examples
+Complete examples
 =================
 
 Example 1: ResNet-18 INT8 PTQ (PyTorch)
@@ -685,7 +685,7 @@ Example 3: Vision Transformer (ViT) PTQ (JAX)
    print(f"Quantization config: {result['quant_config']}")
 
 
-Example 4: Comparing Calibration Methods
+Example 4: Comparing calibration methods
 -----------------------------------------
 
 .. code-block:: python
@@ -750,10 +750,10 @@ Example 4: Comparing Calibration Methods
 
 .. _ptq_best_practices:
 
-Best Practices
+Best practices
 --------------------------
 
-1. Choosing PTQ Method
+1. Choosing PTQ method
 -----------------------
 
 .. code-block:: text
@@ -771,7 +771,7 @@ Best Practices
    └─ Use Mixed PTQ (W8A16 for LLMs, W4A8 for extreme compression)
 
 
-2. Calibration Data Guidelines
+2. Calibration data guidelines
 -------------------------------
 
 **Size:**
@@ -805,7 +805,7 @@ Best Practices
    ])
 
 
-3. Conv+BN Fusion (PyTorch)
+3. Conv+BN fusion (PyTorch)
 ----------------------------
 
 **Always enable for better accuracy:**
@@ -829,7 +829,7 @@ Best Practices
    )
 
 
-4. Percentile Selection
+4. Percentile selection
 ------------------------
 
 **Guidelines:**
@@ -850,7 +850,7 @@ Best Practices
    )
 
 
-5. JAX Backend Tips
+5. JAX backend tips
 -------------------
 
 **Always provide ``model_apply_fn`` for activation quantization:**
@@ -882,7 +882,7 @@ Best Practices
 Troubleshooting
 ===============
 
-Common Issues
+Common issues
 -------------
 
 **Issue 1: Large Accuracy Drop (>5%)**
