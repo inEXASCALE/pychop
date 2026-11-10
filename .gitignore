@@ -1,3 +1,4 @@
+exps/*
 exps/data/
 exps/additional_cp/qat1_mobilenetv3small/data/
 exps/additional_cp/qat1_mobilenetv3small/*.pth
