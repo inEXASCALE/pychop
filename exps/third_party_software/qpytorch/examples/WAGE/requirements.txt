@@ -1,3 +1,0 @@
-qtorch
-tabulate
-tensorboardX

@@ -1,3 +1,0 @@
-numpy
-more_itertools
-array-api-compat
