@@ -12,11 +12,13 @@ from .._bitchop_common import (
 class Bitchop:
     """Quantize float32 or float64 JAX arrays into a binary format."""
 
-    def __init__(self, exp_bits, sig_bits, rmode=1, subnormal=True, random_state=42, device="cpu"):
+    def __init__(self, exp_bits, sig_bits, rmode=1, subnormal=True, random_state=42,
+                 device="cpu", allow_wider_source_range=False):
         validate_format(exp_bits, sig_bits)
-        jax.config.update("jax_enable_x64", True)
         available_devices = jax.devices()
-        if hasattr(device, "platform"):
+        if device is None:
+            target_device = None
+        elif hasattr(device, "platform"):
             if device not in available_devices:
                 raise ValueError(f"Unavailable JAX device: {device}")
             target_device = device
@@ -36,6 +38,7 @@ class Bitchop:
         self.sig_bits = sig_bits
         self.rmode = normalize_rmode(rmode)
         self.subnormal = subnormal
+        self.allow_wider_source_range = allow_wider_source_range
         self.device = target_device
         self.bias = (1 << (exp_bits - 1)) - 1
         self.max_exp = self.bias
@@ -44,11 +47,23 @@ class Bitchop:
         self.rng_key = random.PRNGKey(random_state)
 
     def __call__(self, values):
-        self.value = device_put(jnp.asarray(values), self.device)
+        # Keep float32 tracing in 32-bit arithmetic. A context-local setting
+        # supplies 64-bit operations only for float64 inputs.
+        input_dtype = getattr(values, "dtype", None)
+        if input_dtype is None or str(input_dtype) == "float64":
+            with jax.experimental.enable_x64(True):
+                return self._call_with_x64(values)
+        return self._call_with_x64(values)
+
+    def _call_with_x64(self, values):
+        self.value = jnp.asarray(values)
+        if self.device is not None:
+            self.value = device_put(self.value, self.device)
         self.dtype = self.value.dtype
         if self.dtype not in (jnp.float32, jnp.float64):
             raise ValueError("Input must be jnp.float32 or jnp.float64")
-        validate_input_range(self.exp_bits, 8 if self.dtype == jnp.float32 else 11)
+        if not self.allow_wider_source_range:
+            validate_input_range(self.exp_bits, 8 if self.dtype == jnp.float32 else 11)
         if self.value.ndim == 0:
             self.value = self.value[None]
         self.sign, self.exponent, self.significand, self.is_denormal, self.rounding_value = self._convert()
@@ -57,7 +72,7 @@ class Bitchop:
     def _convert(self):
         value = self.value
         if self.dtype == jnp.float32:
-            bits = value.view(jnp.int32).astype(jnp.int64)
+            bits = value.view(jnp.int32)
             source_sig_bits, source_bias, source_min_exp = 23, 127, -126
             raw_exp = (bits >> 23) & 0xff
         else:
@@ -72,27 +87,33 @@ class Bitchop:
         source_power = jnp.where(raw_exp == 0, source_min_exp, raw_exp - source_bias) - source_sig_bits
         whole_sig = jnp.where(raw_exp == 0, fraction, fraction | (1 << source_sig_bits))
         # JAX's float32 frexp flushes subnormal inputs on some platforms.
-        _, fraction_exp = jnp.frexp(jnp.maximum(fraction, 1).astype(jnp.float64))
+        _, fraction_exp = jnp.frexp(jnp.maximum(fraction, 1).astype(value.dtype))
         actual_exp = jnp.where(
             raw_exp == 0,
-            fraction_exp.astype(jnp.int64) - 1 + source_min_exp - source_sig_bits,
+            fraction_exp.astype(bits.dtype) - 1 + source_min_exp - source_sig_bits,
             raw_exp - source_bias,
         )
         scale_exp = jnp.maximum(actual_exp, self.min_exp)
         shift = scale_exp - self.sig_bits - source_power
 
-        right_shift = jnp.clip(shift, 0, 63)
+        right_shift = jnp.clip(shift, 0, 63 if self.dtype == jnp.float64 else 31)
         left_shift = jnp.clip(-shift, 0, 52)
         right_quotient = whole_sig >> right_shift
         quotient = jnp.where(shift > 0, right_quotient, whole_sig << left_shift)
         remainder = jnp.where(shift > 0, whole_sig - (right_quotient << right_shift), 0)
         inexact = remainder != 0
-        halfway = jnp.ones_like(remainder) << jnp.clip(shift - 1, 0, 62)
+        halfway = jnp.ones_like(remainder) << jnp.clip(shift - 1, 0, 62 if self.dtype == jnp.float64 else 30)
 
         if self.rmode in (0, 1):
             odd = (quotient & 1) != 0
             tie_up = odd if self.rmode == 1 else ~odd
             round_up = inexact & ((remainder > halfway) | ((remainder == halfway) & tie_up))
+        elif self.rmode in (7, 8):
+            round_up = inexact & (remainder > halfway)
+            if self.rmode == 8:
+                round_up = round_up | (inexact & (remainder == halfway))
+        elif self.rmode == 9:
+            round_up = inexact & ((quotient & 1) == 0)
         elif self.rmode == 2:
             round_up = inexact & (sign == 0)
         elif self.rmode == 3:
@@ -108,10 +129,10 @@ class Bitchop:
             else:
                 round_up = inexact & (random_value < 0.5)
 
-        rounded = quotient + round_up.astype(jnp.int64)
+        rounded = quotient + round_up.astype(bits.dtype)
         carry = rounded >= (1 << (self.sig_bits + 1))
         rounded = jnp.where(carry, rounded >> 1, rounded)
-        scale_exp = scale_exp + carry.astype(jnp.int64)
+        scale_exp = scale_exp + carry.astype(bits.dtype)
 
         overflow = scale_exp > self.max_exp
         flushed = (rounded < (1 << self.sig_bits)) & (not self.subnormal) & ~overflow & ~special
@@ -138,8 +159,8 @@ class Bitchop:
 
         # JAX's floating ldexp/cast also flushes source-format subnormals. Build
         # those exact results from their source IEEE bit pattern instead.
-        _, rounded_exp = jnp.frexp(jnp.maximum(rounded, 1).astype(jnp.float64))
-        output_exp = rounded_exp.astype(jnp.int64) - 1 + scale_exp - self.sig_bits
+        _, rounded_exp = jnp.frexp(jnp.maximum(rounded, 1).astype(value.dtype))
+        output_exp = rounded_exp.astype(bits.dtype) - 1 + scale_exp - self.sig_bits
         source_subnormal = (rounded > 0) & (output_exp < source_min_exp) & ~overflow & ~flushed & ~special
         bit_shift = scale_exp - self.sig_bits - (source_min_exp - source_sig_bits)
         source_fraction = jnp.where(
@@ -164,7 +185,7 @@ class Bitchop:
         sig_int = jnp.where(overflow & ~overflow_inf, self.mask_sig, sig_int)
         sig_int = jnp.where(special & jnp.isnan(value), 1, sig_int)
         sig_int = jnp.where(special & jnp.isinf(value), 0, sig_int)
-        return sign.astype(jnp.uint8), biased_exp.astype(jnp.int64), sig_int.astype(jnp.int64), is_denormal, result
+        return sign.astype(jnp.uint8), biased_exp.astype(bits.dtype), sig_int.astype(bits.dtype), is_denormal, result
 
     def __str__(self):
         lines = []

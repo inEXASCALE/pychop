@@ -36,7 +36,8 @@ def test_chop_keeps_negative_zero_and_negative_underflow(backend, rmode, monkeyp
     monkeypatch.setenv("chop_backend", "auto")
     x = _backend_array(backend, [-0.0, -1e-30, 0.0])
     result = _numpy(Chop(5, 10, rmode=rmode)(x))
-    np.testing.assert_array_equal(result, np.zeros(3))
+    expected = [-0.0, -2**-24 if rmode == 3 else -0.0, 0.0]
+    np.testing.assert_array_equal(result, expected)
     np.testing.assert_array_equal(np.signbit(result), [True, True, False])
 
 

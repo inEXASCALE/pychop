@@ -2,7 +2,6 @@
 
 import jax
 import jax.numpy as jnp
-from jax import jit
 from ..cadna_random import CADNARandomGenerator
 
 class LightChop_:
@@ -57,218 +56,66 @@ class LightChop_:
         self.sig_steps = 2.0 ** sig_bits
         self.chunk_size = chunk_size
         # Random state management
+        self.random_state = random_state
         self.rng_key = jax.random.PRNGKey(random_state)
+        self._bit_quantizers = {}
         if rmode == 10:
             self._cadna_gen = CADNARandomGenerator(seed=random_state, backend="jax")
         else:
             self._cadna_gen = None
 
-        # JIT-compile the quantization core. 
-        # static_argnums=(7,) corresponds to 'rmode' to allow specialized kernels.
-        self._quantize_core = jit(self._quantize_impl, static_argnums=(7,))
-
-            
     def _to_custom_float(self, x):
-        """Decomposes x into sign, exponent, and significand (vectorized)."""
-        sign = jnp.sign(x)
-        # Fix sign of 0 to be positive for standard handling, though IEEE supports -0.
-        # Here we just preserve the sign bit as extracted.
-        
-        abs_x = jnp.abs(x)
-        
-        zero_mask = (abs_x == 0)
-        inf_mask = jnp.isinf(x)
-        nan_mask = jnp.isnan(x)
-        
-        # Calculate exponent
-        # Use maximum(..., 1e-38) to avoid log2(0)
-        exponent = jnp.floor(jnp.log2(jnp.maximum(abs_x, 1e-45)))
-        significand = abs_x / (2.0 ** exponent)
-        
-        if self.subnormal:
-            # If exponent is below min_exp, treat as subnormal
-            subnormal_mask = (exponent < self.min_exp)
-            # Recalculate significand for subnormals: value / min_subnormal_scale
-            significand = jnp.where(subnormal_mask, abs_x / (2.0 ** self.min_exp), significand)
-            exponent = jnp.where(subnormal_mask, self.min_exp, exponent)
-        else:
-            # Flush subnormals to zero
-            subnormal_mask = (exponent < self.min_exp)
-            significand = jnp.where(subnormal_mask, 0.0, significand)
-            exponent = jnp.where(subnormal_mask, 0.0, exponent) # Set to arbitrary valid exp
-            zero_mask = zero_mask | subnormal_mask
+        """Decompose source bits exactly, including source subnormal values."""
+        x = jnp.asarray(x)
+        is_float32 = x.dtype == jnp.float32
+        source_sig_bits = 23 if is_float32 else 52
+        source_bias = 127 if is_float32 else 1023
+        source_exp_bits = 8 if is_float32 else 11
+        bit_dtype = jnp.uint32 if is_float32 else jnp.uint64
+        raw_bits = x.view(bit_dtype)
+        sign = jnp.where((raw_bits >> (source_sig_bits + source_exp_bits)) != 0, -1.0, 1.0)
+        bits = raw_bits & ((1 << (source_sig_bits + source_exp_bits)) - 1)
+        raw_exp = (bits >> source_sig_bits) & ((1 << source_exp_bits) - 1)
+        fraction = bits & ((1 << source_sig_bits) - 1)
+        zero_mask = (raw_exp == 0) & (fraction == 0)
+        inf_mask = (raw_exp == (1 << source_exp_bits) - 1) & (fraction == 0)
+        nan_mask = (raw_exp == (1 << source_exp_bits) - 1) & (fraction != 0)
+        active = ~(zero_mask | inf_mask | nan_mask)
+        whole_sig = jnp.where(raw_exp == 0, fraction, fraction | (1 << source_sig_bits))
+        source_power = jnp.where(raw_exp == 0, 1 - source_bias,
+                                 raw_exp.astype(jnp.int32) - source_bias) - source_sig_bits
+        _, fraction_exp = jnp.frexp(jnp.maximum(fraction, 1).astype(x.dtype))
+        actual_exp = jnp.where(raw_exp == 0, fraction_exp - 1 + source_power,
+                               raw_exp.astype(jnp.int32) - source_bias)
+        normal_sig = jnp.ldexp(whole_sig.astype(x.dtype), source_power - actual_exp)
+        sub = active & (actual_exp < self.min_exp)
 
+        # Reconstruct source-subnormal significands from bits because JAX may
+        # flush floating subnormal intermediate results on some devices.
+        sub_power = source_power - self.min_exp
+        source_min_sub_exp = 1 - source_bias - source_sig_bits
+        bit_shift = sub_power - source_min_sub_exp
+        sub_bits = jnp.where(
+            bit_shift >= 0,
+            whole_sig << jnp.clip(bit_shift, 0, 63).astype(bit_dtype),
+            whole_sig >> jnp.clip(-bit_shift, 0, 63).astype(bit_dtype),
+        )
+        sub_bit_value = sub_bits.astype(bit_dtype).view(x.dtype)
+        sub_float_value = jnp.ldexp(whole_sig.astype(x.dtype), sub_power)
+        sub_sig = jnp.where(actual_exp - self.min_exp < 1 - source_bias,
+                            sub_bit_value, sub_float_value)
+        significand = jnp.where(sub, sub_sig if self.subnormal else 0.0, normal_sig)
+        exponent = jnp.where(sub, self.min_exp - 1, actual_exp)
+        if not self.subnormal:
+            zero_mask = zero_mask | sub
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
 
-    def _quantize_impl(self, x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, rmode, noise):
-        """
-        Core quantization logic. 
-        'noise' is a pre-generated array of random values [0, 1] used for stochastic modes.
-        """
-        exp_max_val = 2 ** self.exp_bits - 1
-        overflow_mask = (exponent > exp_max_val)
-        
-        # Clip exponent to representable range
-        exponent = jnp.clip(exponent, 0, exp_max_val)
-        
-        # Identify normal vs subnormal in the target format
-        # Note: 'significand' coming in is in [1.0, 2.0) for normals (mostly)
-        
-        # For our extracted components, subnormal handling in target:
-        # If we allowed subnormals in decomposition, they are already scaled relative to min_exp.
-        # We just need to check if the *target* exponent is 0.
-        normal_mask = (exponent > 0) & (exponent < exp_max_val)
-        subnormal_mask = ((exponent == 0) & (significand > 0)) if self.subnormal else jnp.zeros_like(x, dtype=bool)
-
-        # Scale significand to integer range for rounding
-        # Normals: Remove implicit 1.0, scale fractional part
-        # Subnormals: Scale full value
-        sig_steps = self.sig_steps
-        
-        # Prepare values for rounding
-        # For normals: we round (significand - 1.0) * steps
-        # For subnormals: we round significand * steps
-        sig_to_round_normal = (significand - 1.0) * sig_steps
-        sig_to_round_sub = significand * sig_steps
-        
-        # Select the value to round based on whether it's normal or subnormal
-        val_to_round = jnp.where(subnormal_mask, sig_to_round_sub, sig_to_round_normal)
-        
-        # --- Rounding Implementations ---
-        
-        def nearest(val):
-            return jnp.round(val)
-
-        def plus_inf(val, sgn):
-            # If positive, ceil. If negative, floor.
-            return jnp.where(sgn > 0, jnp.ceil(val), jnp.floor(val))
-
-        def minus_inf(val, sgn):
-            # If positive, floor. If negative, ceil.
-            return jnp.where(sgn > 0, jnp.floor(val), jnp.ceil(val))
-
-        def towards_zero(val):
-            return jnp.floor(val)
-
-        def stoc_prop(val, noise):
-            # Stochastic proportional
-            floor_val = jnp.floor(val)
-            fraction = val - floor_val
-            # Round up if random noise < fraction
-            return jnp.where(noise < fraction, floor_val + 1.0, floor_val)
-
-        def stoc_equal(val, noise):
-            # Stochastic 50/50
-            floor_val = jnp.floor(val)
-            fraction = val - floor_val
-            exact_mask = (fraction == 0)
-            # Exact representable values must remain unchanged.
-            return jnp.where(exact_mask, floor_val,
-                             jnp.where(noise < 0.5, floor_val, floor_val + 1.0))
-        
-        def cadna_directed(val, sgn, bits):
-            """
-            CADNA-style random directed rounding for positive scaled significands.
-
-            bit = 0: upward rounding
-            bit = 1: downward rounding
-            """
-            bits = bits.astype(jnp.bool_)
-
-            upward = plus_inf(val, sgn)
-            downward = minus_inf(val, sgn)
-
-            return jnp.where(bits, downward, upward)
-        
-        def nearest_ties_zero(val, sgn):
-            floor_val = jnp.floor(val)
-            is_half = jnp.abs(val - floor_val - 0.5) < 1e-6
-            # If half: round towards zero (floor for pos, ceil for neg? No, magnitude towards zero)
-            # Floor is closer to zero for positive numbers. 
-            # Actually "ties to zero" usually means round 1.5 -> 1, 2.5 -> 2? No that's ties to even.
-            # Ties to zero: 1.5 -> 1, -1.5 -> -1.
-            round_half = jnp.where(sgn >= 0, floor_val, floor_val + 1.0)
-            return jnp.where(is_half, round_half, jnp.round(val))
-
-        def nearest_ties_away(val, sgn):
-            floor_val = jnp.floor(val)
-            is_half = jnp.abs(val - floor_val - 0.5) < 1e-6
-            # Ties away from zero: 1.5 -> 2, -1.5 -> -2
-            round_half = jnp.where(sgn >= 0, floor_val + 1.0, floor_val)
-            return jnp.where(is_half, round_half, jnp.round(val))
-            
-        def round_to_odd(val):
-            rounded = jnp.round(val)
-            # If result is even, nudge it to the nearest odd integer
-            # We nudge towards the original value to minimize error
-            # If val > rounded (e.g. 2.1 -> 2), nudge up (+1)
-            # If val < rounded (e.g. 1.9 -> 2), nudge down (-1)
-            diff = val - rounded
-            nudge = jnp.sign(diff)
-            # If diff is exactly 0 (integer), strictly speaking we force odd. 
-            # Usually RTO is for sticky bits, here we just force odd integer.
-            # Let's default nudge +1 if exactly even integer.
-            nudge = jnp.where(nudge == 0, 1.0, nudge) 
-            
-            return jnp.where(rounded % 2 == 0, rounded + nudge, rounded)
-
-        # Dispatcher
-        if rmode == 1:
-            rounded_val = nearest(val_to_round)
-        elif rmode == 2:
-            rounded_val = plus_inf(val_to_round, sign)
-        elif rmode == 3:
-            rounded_val = minus_inf(val_to_round, sign)
-        elif rmode == 4:
-            rounded_val = towards_zero(val_to_round)
-        elif rmode == 5:
-            rounded_val = stoc_prop(val_to_round, noise)
-        elif rmode == 6:
-            rounded_val = stoc_equal(val_to_round, noise)
-        elif rmode == 7:
-            rounded_val = nearest_ties_zero(val_to_round, sign)
-        elif rmode == 8:
-            rounded_val = nearest_ties_away(val_to_round, sign)
-        elif rmode == 9:
-            rounded_val = round_to_odd(val_to_round)
-        elif rmode == 10:
-            rounded_val = cadna_directed(val_to_round, sign, noise)
-        else:
-            # Fallback to nearest
-            rounded_val = nearest(val_to_round)
-
-        if rmode in (5, 6):
-            carry_mask = normal_mask & (rounded_val >= sig_steps)
-            exponent = jnp.where(carry_mask, exponent + 1, exponent)
-            rounded_val = jnp.where(carry_mask, jnp.zeros_like(rounded_val), rounded_val)
-            overflow_mask = overflow_mask | (exponent >= exp_max_val)
-            normal_mask = (exponent > 0) & (exponent < exp_max_val)
-
-        # Scale back down
-        sig_q = rounded_val / sig_steps
-        
-        # Reconstruct
-        # If normal: value = (1 + sig_q) * 2^(exp - bias)
-        # If subnormal: value = sig_q * 2^(min_exp)
-        
-        res_normal = sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias))
-        res_subnormal = sign * sig_q * (2.0 ** self.min_exp)
-        
-        result = jnp.where(subnormal_mask, res_subnormal, res_normal)
-        result = jnp.where(normal_mask | subnormal_mask, result, 0.0)
-        
-        # Apply standard masks
-        result = jnp.where(zero_mask, 0.0, result)
-        result = jnp.where(inf_mask, sign * jnp.inf, result)
-        result = jnp.where(nan_mask, jnp.nan, result)
-        
-        inf_val = jnp.where(sign < 0, -jnp.inf, jnp.inf)
-        result = jnp.where(overflow_mask & ~inf_mask & ~nan_mask & ~zero_mask, inf_val, result)
-
-        result = jnp.where(result == 0, jnp.copysign(jnp.zeros_like(result), x), result)
-        
-        return result
-
+    def _quantize_impl(self, x, sign, exponent, significand, zero_mask,
+                       inf_mask, nan_mask, rmode, noise):
+        """Compatibility entry point; conversion uses the native bit quantizer."""
+        if rmode != self.rmode:
+            raise ValueError("rmode does not match this LightChop instance")
+        return self.__call__(x)
 
     # Trigonometric Functions
     def sin(self, x):
@@ -813,28 +660,30 @@ class LightChop_:
         """
         Main entry point. Quantizes x.
         """
+        from .bitchop import Bitchop
+
         x = jnp.asarray(x)
-
-        if self.rmode in [5, 6]:
-            self.rng_key, subkey = jax.random.split(self.rng_key)
-            noise_dtype = x.dtype if jnp.issubdtype(x.dtype, jnp.floating) else jnp.float32
-            noise = jax.random.uniform(subkey, shape=x.shape, dtype=noise_dtype)
-
-        elif self.rmode == 10:
-            if self._cadna_gen is None:
-                self._cadna_gen = CADNARandomGenerator(backend="jax")
-
-            bits = self._cadna_gen.random_bits(tuple(x.shape))
-            noise = jnp.asarray(bits, dtype=jnp.bool_)
-
-        else:
-            noise = jnp.zeros_like(x)
-
-        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-
-        return self._quantize_core(
-            x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode, noise
-        )
+        source_dtype = x.dtype
+        if x.dtype not in (jnp.float32, jnp.float64):
+            x = x.astype(jnp.float32)
+        if x.dtype == jnp.float32 and self.exp_bits > 8 and self.sig_bits >= 23:
+            # Every float32 value is already exact in this wider target format.
+            return x.astype(source_dtype) if source_dtype in (jnp.float16, jnp.bfloat16) else x
+        # JIT tracers have no concrete device until the compiled call runs.
+        device = getattr(x, "device", None)
+        quantizer = self._bit_quantizers.get(device)
+        if quantizer is None:
+            quantizer = Bitchop(
+                self.exp_bits, self.sig_bits, rmode=self.rmode,
+                subnormal=self.subnormal, random_state=self.random_state,
+                device=device, allow_wider_source_range=True,
+            )
+            if device is not None:
+                self._bit_quantizers[device] = quantizer
+        result = quantizer(x)
+        if source_dtype in (jnp.float16, jnp.bfloat16, jnp.float32):
+            return result.astype(source_dtype)
+        return result
 
     def quantize(self, x):
         return self.__call__(x)

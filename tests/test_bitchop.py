@@ -77,6 +77,15 @@ def test_default_mode_and_unit_roundoff(backend, monkeypatch):
         Bitchop(5, 10, rmode="not_a_mode")
 
 
+def test_jax_bitchop_keeps_callers_x64_setting(monkeypatch):
+    jax = pytest.importorskip("jax")
+    monkeypatch.setenv("chop_backend", "jax")
+    with jax.experimental.enable_x64(False):
+        result = Bitchop(5, 10)(np.array([1.5]))
+        np.testing.assert_array_equal(np.asarray(result), [1.5])
+        assert not jax.config.jax_enable_x64
+
+
 @pytest.mark.parametrize("backend", ("numpy", "torch", "jax"))
 @pytest.mark.parametrize("dtype,exp_bits", ((np.float32, 11), (np.float64, 12)))
 def test_rejects_target_range_wider_than_result_dtype(backend, dtype, exp_bits, monkeypatch):

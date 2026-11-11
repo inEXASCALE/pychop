@@ -40,12 +40,8 @@ class Chop:
         If set `subnormal=False`, subnormals are flushed to zero.
         
     chunk_size : int, default=800
-        the number of elements in each smaller sub-array (or chunk) that a 
-        large array is divided into for parallel processing; smaller chunks
-        enable more parallelism but increase overhead, while larger chunks 
-        reduce overhead but demand more memory. Essentially, chunk size is 
-        the granular unit of work Dask manages, balancing 
-        computation efficiency and memory constraints. 
+        Accepted for compatibility. NumPy conversion now uses a vectorized
+        target-grid kernel and does not schedule Dask chunks.
 
     random_state : int, default=42
         Random seed set for stochastic rounding settings.

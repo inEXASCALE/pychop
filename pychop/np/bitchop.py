@@ -47,6 +47,11 @@ class Bitchop:
         if self.rmode in (0, 1):
             halfway = 1 << (shift - 1)
             return remainder > halfway or (remainder == halfway and (quotient & 1) != (self.rmode == 0))
+        if self.rmode in (7, 8):
+            halfway = 1 << (shift - 1)
+            return remainder > halfway or (self.rmode == 8 and remainder == halfway)
+        if self.rmode == 9:
+            return not (quotient & 1)
         if self.rmode == 2:
             return not sign
         if self.rmode == 3:

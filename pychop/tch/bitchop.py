@@ -75,6 +75,12 @@ class Bitchop:
             tie_up = odd if self.rmode == 1 else ~odd
             round_up = (remainder > halfway) | ((remainder == halfway) & tie_up)
             round_up &= inexact
+        elif self.rmode in (7, 8):
+            round_up = inexact & (remainder > halfway)
+            if self.rmode == 8:
+                round_up |= inexact & (remainder == halfway)
+        elif self.rmode == 9:
+            round_up = inexact & ((quotient & 1) == 0)
         elif self.rmode == 2:
             round_up = inexact & (sign == 0)
         elif self.rmode == 3:

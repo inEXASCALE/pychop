@@ -1,9 +1,11 @@
 """Issue #14: target-grid rounding, format parameters, and OCP E4M3."""
 
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pytest
+from scipy.io import loadmat
 
 from pychop import Customs, FaultChop
 
@@ -59,6 +61,50 @@ ISSUE_14_CASES = (
 def test_issue_14_reported_conversions(backend, value, expected, options, prec, monkeypatch):
     result = _convert(backend, [value], monkeypatch, prec=prec, **options)
     np.testing.assert_array_equal(result, [expected], err_msg=f"{backend}/{prec}: input={value!r}")
+
+
+def test_jax_faultchop_accepts_legacy_array_device_api(monkeypatch):
+    jax = pytest.importorskip("jax")
+    import jax.numpy as jnp
+    from pychop.jx.float_point import _single_array_device
+
+    device = jax.devices()[0]
+
+    class LegacyArray:
+        def devices(self):
+            return {device}
+
+    assert _single_array_device(LegacyArray()) == device
+    monkeypatch.setenv("chop_backend", "jax")
+    with jax.experimental.enable_x64(True):
+        source = jnp.asarray([0.007617498318158107, 8.209882269614045e-6])
+        result = FaultChop("q43", subnormal=False)(source)
+        np.testing.assert_array_equal(np.asarray(result), [0.0, 0.0])
+        result = FaultChop("q52", subnormal=True)(source)
+        np.testing.assert_array_equal(np.asarray(result)[1], 2**-16)
+        converter = FaultChop("q43", subnormal=False)
+        np.testing.assert_array_equal(
+            np.asarray(jax.jit(converter)(source)),
+            np.asarray(converter(source)),
+        )
+
+
+@pytest.mark.parametrize("fixture,index,smallest,expected", (
+    ("q43/q43_rmode_1_subnormal_0.mat", 1774, 2**-6, 0.0),
+    ("q43/q43_rmode_1_subnormal_1.mat", 2, 2**-9, 2**-9),
+    ("q52/q52_rmode_1_subnormal_1.mat", 1387, 2**-16, -2**-16),
+))
+def test_legacy_mat_rounding_boundary_reference(fixture, index, smallest, expected):
+    root = Path(__file__).resolve().parents[1] / "tests"
+    recorded = loadmat(root / fixture)["emu_vals"][index, 0]
+    input_value = loadmat(root / "verified_data.mat")["array"][0, index]
+    if "subnormal_1" in fixture:
+        input_value /= 1000
+    assert abs(input_value) != smallest / 2
+    nearest = np.copysign(
+        smallest if abs(input_value) > smallest / 2 else 0.0, input_value
+    )
+    assert recorded == expected == nearest
 
 
 @pytest.mark.parametrize("backend", BACKENDS)
@@ -219,7 +265,7 @@ def test_jax_fast_path_keeps_input_device(monkeypatch):
     monkeypatch.setenv("chop_backend", "jax")
     source = jax.device_put(jnp.asarray([1.0, 2**-24]), jax.devices()[0])
     result = FaultChop("h")(source)
-    assert result.device == source.device
+    assert result.devices() == source.devices()
     np.testing.assert_array_equal(np.asarray(result), [1.0, 2**-24])
 
 

@@ -1,11 +1,8 @@
 """NumPy LightChop backend for fast custom floating-point quantization."""
 
 import numpy as np
-try:
-    import dask.array as da
-except ImportError:
-    da = None
 from ..cadna_random import CADNARandomGenerator
+from ._light_quantize import quantize as _quantize_light
 
 
 class LightChop_:
@@ -41,7 +38,7 @@ class LightChop_:
         Whether to support subnormal numbers. If False, subnormals are flushed to zero.
 
     chunk_size : int, default=800
-        Dask chunk size used for large non-stateful rounding modes.
+        Accepted for compatibility; conversion uses a vectorized NumPy kernel.
 
     random_state : int, default=42
         Random seed for stochastic rounding. This implementation uses a per-instance
@@ -94,16 +91,20 @@ class LightChop_:
         inf_mask = np.isinf(x)
         nan_mask = np.isnan(x)
 
-        exponent = np.floor(np.log2(np.maximum(abs_x, 1e-38)))
-        significand = abs_x * (2.0 ** -exponent)
-
-        subnormal_mask = (exponent < self.min_exp)
+        finite_nonzero = np.isfinite(x) & (abs_x != 0)
+        fraction, power = np.frexp(np.where(finite_nonzero, abs_x, 1.0))
+        exponent = power - 1
+        significand = 2.0 * fraction
+        subnormal_mask = finite_nonzero & (exponent < self.min_exp)
         if self.subnormal:
-            significand = np.where(subnormal_mask, abs_x * self.inv_min_exp_power, significand)
-            exponent = np.where(subnormal_mask, self.min_exp, exponent)
+            with np.errstate(over="ignore", under="ignore"):
+                sub_significand = np.ldexp(np.where(subnormal_mask, abs_x, 0.0),
+                                             -self.min_exp)
+            significand = np.where(subnormal_mask, sub_significand, significand)
+            exponent = np.where(subnormal_mask, self.min_exp - 1, exponent)
         else:
             significand = np.where(subnormal_mask, 0.0, significand)
-            exponent = np.where(subnormal_mask, 0.0, exponent)
+            exponent = np.where(subnormal_mask, self.min_exp - 1, exponent)
 
         return sign, exponent + self.bias, significand, zero_mask, inf_mask, nan_mask
 
@@ -133,225 +134,20 @@ class LightChop_:
 
         return np.where(choose_floor, floor_val, ceil_val)
 
-    def _quantize_components(self, x: np.ndarray, sign: np.ndarray, exponent: np.ndarray,
-                             significand: np.ndarray, zero_mask: np.ndarray,
-                             inf_mask: np.ndarray, nan_mask: np.ndarray, rmode) -> np.ndarray:
-
-        overflow_mask = (exponent > self.exp_max)
-        exponent = np.clip(exponent, self.exp_min, self.exp_max)
-
-        normal_mask = (exponent > self.exp_min) & (exponent < self.exp_max)
-        subnormal_mask = ((exponent == self.exp_min) & (significand > 0)
-                          if self.subnormal else np.zeros_like(x, dtype=bool))
-
-        sig_steps = self.sig_steps
-        inv_sig_steps = self.inv_sig_steps
-
-        sig_normal = significand - 1.0
-        sig_scaled = sig_normal * sig_steps
-        sig_sub_scaled = significand * sig_steps if self.subnormal else None
-
-        if rmode == 1:  # Nearest
-            sig_q = np.round(sig_scaled) * inv_sig_steps
-            if self.subnormal:
-                sig_q = np.where(subnormal_mask, np.round(sig_sub_scaled) * inv_sig_steps, sig_q)
-
-        elif rmode == 2:  # Plus infinity
-            sig_q = np.where(sign > 0, np.ceil(sig_scaled), np.floor(sig_scaled)) * inv_sig_steps
-            if self.subnormal:
-                sig_q = np.where(
-                    subnormal_mask,
-                    np.where(sign > 0, np.ceil(sig_sub_scaled), np.floor(sig_sub_scaled)) * inv_sig_steps,
-                    sig_q,
-                )
-
-        elif rmode == 3:  # Minus infinity
-            sig_q = np.where(sign > 0, np.floor(sig_scaled), np.ceil(sig_scaled)) * inv_sig_steps
-            if self.subnormal:
-                sig_q = np.where(
-                    subnormal_mask,
-                    np.where(sign > 0, np.floor(sig_sub_scaled), np.ceil(sig_sub_scaled)) * inv_sig_steps,
-                    sig_q,
-                )
-
-        elif rmode == 4:  # Towards zero
-            sig_q = np.floor(sig_scaled) * inv_sig_steps
-            if self.subnormal:
-                sig_q = np.where(subnormal_mask, np.floor(sig_sub_scaled) * inv_sig_steps, sig_q)
-
-        elif rmode == 5:  # Stochastic proportional
-            # q_int = floor(y) + Bernoulli(frac(y))
-            floor_val = np.floor(sig_scaled)
-            fraction = sig_scaled - floor_val
-            prob = self._rand_like(fraction)
-            sig_q_int = np.where(prob < fraction, floor_val + 1, floor_val)
-
-            if self.subnormal:
-                sub_floor = np.floor(sig_sub_scaled)
-                sub_fraction = sig_sub_scaled - sub_floor
-                prob_sub = self._rand_like(sub_fraction)
-                sub_q_int = np.where(prob_sub < sub_fraction, sub_floor + 1, sub_floor)
-                sig_q_int = np.where(subnormal_mask, sub_q_int, sig_q_int)
-
-            carry_mask = normal_mask & (sig_q_int >= sig_steps)
-            exponent = np.where(carry_mask, exponent + 1, exponent)
-            sig_q_int = np.where(carry_mask, np.zeros_like(sig_q_int), sig_q_int)
-            overflow_mask = overflow_mask | (exponent >= self.exp_max)
-            normal_mask = (exponent > self.exp_min) & (exponent < self.exp_max)
-            sig_q = sig_q_int * inv_sig_steps
-
-        elif rmode == 6:  # Stochastic equal
-            # Non-exact values are rounded to floor/ceil with equal probability.
-            # Exact representable values remain unchanged.
-            floor_val = np.floor(sig_scaled)
-            fraction = sig_scaled - floor_val
-            prob = self._rand_like(floor_val)
-            exact_mask = (fraction == 0)
-            sig_q_int = np.where(
-                exact_mask,
-                floor_val,
-                np.where(prob < 0.5, floor_val, floor_val + 1),
-            )
-
-            if self.subnormal:
-                sub_floor = np.floor(sig_sub_scaled)
-                sub_fraction = sig_sub_scaled - sub_floor
-                prob_sub = self._rand_like(sub_floor)
-                sub_exact_mask = (sub_fraction == 0)
-                sub_q_int = np.where(
-                    sub_exact_mask,
-                    sub_floor,
-                    np.where(prob_sub < 0.5, sub_floor, sub_floor + 1),
-                )
-                sig_q_int = np.where(subnormal_mask, sub_q_int, sig_q_int)
-
-            carry_mask = normal_mask & (sig_q_int >= sig_steps)
-            exponent = np.where(carry_mask, exponent + 1, exponent)
-            sig_q_int = np.where(carry_mask, np.zeros_like(sig_q_int), sig_q_int)
-            overflow_mask = overflow_mask | (exponent >= self.exp_max)
-            normal_mask = (exponent > self.exp_min) & (exponent < self.exp_max)
-            sig_q = sig_q_int * inv_sig_steps
-
-        elif rmode == 7:  # Nearest, ties to zero
-            floor_val = np.floor(sig_scaled)
-            is_half = np.abs(sig_scaled - floor_val - 0.5) < 1e-6
-            sig_q = np.where(
-                is_half,
-                np.where(sign >= 0, floor_val, floor_val + 1),
-                np.round(sig_scaled),
-            ) * inv_sig_steps
-            if self.subnormal:
-                sub_floor = np.floor(sig_sub_scaled)
-                sub_is_half = np.abs(sig_sub_scaled - sub_floor - 0.5) < 1e-6
-                sig_q = np.where(
-                    subnormal_mask,
-                    np.where(
-                        sub_is_half,
-                        np.where(sign >= 0, sub_floor, sub_floor + 1),
-                        np.round(sig_sub_scaled),
-                    ) * inv_sig_steps,
-                    sig_q,
-                )
-
-        elif rmode == 8:  # Nearest, ties away
-            floor_val = np.floor(sig_scaled)
-            is_half = np.abs(sig_scaled - floor_val - 0.5) < 1e-6
-            sig_q = np.where(
-                is_half,
-                np.where(sign >= 0, floor_val + 1, floor_val),
-                np.round(sig_scaled),
-            ) * inv_sig_steps
-            if self.subnormal:
-                sub_floor = np.floor(sig_sub_scaled)
-                sub_is_half = np.abs(sig_sub_scaled - sub_floor - 0.5) < 1e-6
-                sig_q = np.where(
-                    subnormal_mask,
-                    np.where(
-                        sub_is_half,
-                        np.where(sign >= 0, sub_floor + 1, sub_floor),
-                        np.round(sig_sub_scaled),
-                    ) * inv_sig_steps,
-                    sig_q,
-                )
-
-        elif rmode == 9:  # Round-to-Odd
-            rounded = np.round(sig_scaled)
-            sig_q = np.where(
-                rounded % 2 == 0,
-                rounded + np.where(sig_scaled >= rounded, 1, -1),
-                rounded,
-            ) * inv_sig_steps
-            if self.subnormal:
-                sub_rounded = np.round(sig_sub_scaled)
-                sig_q = np.where(
-                    subnormal_mask,
-                    np.where(
-                        sub_rounded % 2 == 0,
-                        sub_rounded + np.where(sig_sub_scaled >= sub_rounded, 1, -1),
-                        sub_rounded,
-                    ) * inv_sig_steps,
-                    sig_q,
-                )
-
-        elif rmode == 10:  # CADNA random directed rounding
-            sig_q = self._cadna_directed_round(sig_scaled, sign) * inv_sig_steps
-            if self.subnormal:
-                sig_q_sub = self._cadna_directed_round(sig_sub_scaled, sign) * inv_sig_steps
-                sig_q = np.where(subnormal_mask, sig_q_sub, sig_q)
-
-        else:
-            raise ValueError(f"Unsupported rounding mode: {rmode}")
-
-        result = np.where(
-            normal_mask,
-            sign * (1.0 + sig_q) * (2.0 ** (exponent - self.bias)),
-            0.0,
-        )
-        if self.subnormal:
-            result = np.where(subnormal_mask, sign * sig_q * self.min_exp_power, result)
-
-        result = np.where(zero_mask, 0.0, result)
-
-        safe_sign = np.where(np.isclose(sign, 0), 1.0, sign)  # Avoid 0 * inf.
-        result = np.where(inf_mask, safe_sign * np.inf, result)
-        result = np.where(nan_mask, np.nan, result)
-
-        inf_val = safe_sign * np.full_like(result, np.inf)
-        result = np.where(overflow_mask & ~inf_mask & ~nan_mask & ~zero_mask, inf_val, result)
-
-        # Zero has a sign in floating-point formats.  Use the input rather than
-        # ``sign`` here because np.sign(-0.0) is +0.0.
-        result = np.where(result == 0, np.copysign(np.zeros_like(result), x), result)
-
-        return result
+    def _quantize_components(self, x, sign, exponent, significand,
+                             zero_mask, inf_mask, nan_mask, rmode):
+        """Compatibility entry point for the target-grid quantizer."""
+        random_values = self._rand_like(x) if rmode in (5, 6) else None
+        cadna_bits = self._cadna_gen.random_bits(np.shape(x)) if rmode == 10 else None
+        return _quantize_light(x, self.exp_bits, self.sig_bits, rmode,
+                               self.subnormal, random_values, cadna_bits)
 
     def quantize(self, x: np.ndarray) -> np.ndarray:
         x = np.asarray(x)
-
-        # Stateful RNG modes should not use Dask map_blocks here. Otherwise the
-        # RNG stream order can depend on Dask scheduling, and CADNA's generator is
-        # also stateful. This keeps rmode=5/6/10 deterministic per instance.
-        if self.rmode in (5, 6, 10):
-            sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-            return self._quantize_components(
-                x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode
-            )
-
-        # Convert to Dask array if input is large and the rounding mode is stateless.
-        if da is not None and isinstance(x, np.ndarray) and x.size > self.chunk_size:
-            x_da = da.from_array(x, chunks=self.chunk_size)
-            result = x_da.map_blocks(
-                lambda block: self._quantize_components(
-                    block,
-                    *self._to_custom_float(block),
-                    self.rmode,
-                ),
-                dtype=x.dtype,
-            )
-            return result.compute()
-
-        sign, exponent, significand, zero_mask, inf_mask, nan_mask = self._to_custom_float(x)
-        return self._quantize_components(x, sign, exponent, significand, zero_mask, inf_mask, nan_mask, self.rmode)
+        random_values = self._rand_like(x) if self.rmode in (5, 6) else None
+        cadna_bits = self._cadna_gen.random_bits(x.shape) if self.rmode == 10 else None
+        return _quantize_light(x, self.exp_bits, self.sig_bits, self.rmode,
+                               self.subnormal, random_values, cadna_bits)
 
     # Trigonometric Functions
     def sin(self, x):

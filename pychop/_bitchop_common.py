@@ -10,6 +10,10 @@ ROUNDING_MODES = {
     "toward_zero": 4,
     "stochastic_prop": 5,
     "stochastic_equal": 6,
+    "ties_to_zero": 7,
+    "ties_away": 8,
+    "round_to_odd": 9,
+    "cadna": 10,
 }
 
 
@@ -19,7 +23,7 @@ def normalize_rmode(rmode):
             return ROUNDING_MODES[rmode]
         except KeyError:
             pass
-    elif isinstance(rmode, Integral) and not isinstance(rmode, bool) and 0 <= rmode <= 6:
+    elif isinstance(rmode, Integral) and not isinstance(rmode, bool) and 0 <= rmode <= 10:
         return int(rmode)
     raise ValueError(f"Unknown rounding mode: {rmode!r}")
 
@@ -40,4 +44,4 @@ def validate_input_range(exp_bits, source_exp_bits):
 
 
 def overflow_to_infinity(rmode, sign):
-    return rmode in (0, 1, 5, 6) or (rmode == 2 and not sign) or (rmode == 3 and sign)
+    return rmode in (0, 1, 5, 6, 7, 8, 9, 10) or (rmode == 2 and not sign) or (rmode == 3 and sign)

@@ -10,6 +10,20 @@ from jax import random
 import numpy as np  # Used to initialize the CADNA-compatible generator.
 
 
+def _single_array_device(x):
+    """Return a concrete single device across supported JAX array APIs."""
+    get_devices = getattr(x, "devices", None)
+    if callable(get_devices):
+        try:
+            devices = get_devices()
+        except jax.errors.ConcretizationTypeError:
+            return None
+        if len(devices) == 1:
+            return next(iter(devices))
+    device = getattr(x, "device", None)
+    return device if hasattr(device, "platform") else None
+
+
 class CADNARandomGeneratorJAX:
     """JAX-compatible CADNA random bit generator.
 
@@ -344,7 +358,7 @@ class Chop_(object):
         if target_exp_bits is None or target_exp_bits > source_exp_bits:
             return None
         from .bitchop import Bitchop
-        input_device = x.device
+        input_device = _single_array_device(x)
         cache_key = (target_exp_bits, input_device, bool(self.explim))
         quantizer = self._bit_chop_cache.get(cache_key)
         if quantizer is None:
@@ -352,7 +366,8 @@ class Chop_(object):
                                 subnormal=True, device=input_device)
             if not self.explim:
                 quantizer.min_exp = -149 if x.dtype == jnp.float32 else -1074
-            self._bit_chop_cache[cache_key] = quantizer
+            if input_device is not None:
+                self._bit_chop_cache[cache_key] = quantizer
         result = quantizer(x)
         if self.explim and not self.subnormal:
             xmin = 2.0 ** (1 - self.emax)
