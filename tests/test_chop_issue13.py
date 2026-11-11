@@ -177,10 +177,11 @@ def test_torch_ste_uses_correct_forward_and_identity_gradient():
 
 def test_jax_chop_keeps_callers_x64_setting(monkeypatch):
     jax = pytest.importorskip("jax")
+    from pychop._jax_compat import enable_x64
     import jax.numpy as jnp
 
     monkeypatch.setenv("chop_backend", "jax")
-    with jax.experimental.enable_x64(False):
+    with enable_x64(False):
         source = jnp.array([1.5], dtype=jnp.float32)
         for exp_bits, sig_bits in ((5, 10), (11, 52)):
             result = Chop(exp_bits, sig_bits)(source)
@@ -193,10 +194,11 @@ def test_jax_chop_jit_matches_eager_without_global_x64(
     exp_bits, sig_bits, monkeypatch
 ):
     jax = pytest.importorskip("jax")
+    from pychop._jax_compat import enable_x64
     import jax.numpy as jnp
 
     monkeypatch.setenv("chop_backend", "jax")
-    with jax.experimental.enable_x64(False):
+    with enable_x64(False):
         source = jnp.asarray([1.1, 70000.0, 2**-149, -0.0], dtype=jnp.float32)
         converter = Chop(exp_bits, sig_bits)
         expected = np.asarray(converter(source))
@@ -209,10 +211,11 @@ def test_jax_chop_jit_matches_eager_without_global_x64(
 
 def test_jax_chop_jit_float64_subnormal(monkeypatch):
     jax = pytest.importorskip("jax")
+    from pychop._jax_compat import enable_x64
     import jax.numpy as jnp
 
     monkeypatch.setenv("chop_backend", "jax")
-    with jax.experimental.enable_x64(True):
+    with enable_x64(True):
         source = jnp.asarray([5e-324, 1e-300, np.nextafter(8.0, 0.0)])
         converter = Chop(5, 10, rmode=2)
         np.testing.assert_array_equal(

@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 from jax import device_put, random
+from .._jax_compat import enable_x64
 
 from .._bitchop_common import (
     normalize_rmode, overflow_to_infinity, validate_format, validate_input_range,
@@ -51,7 +52,7 @@ class Bitchop:
         # supplies 64-bit operations only for float64 inputs.
         input_dtype = getattr(values, "dtype", None)
         if input_dtype is None or str(input_dtype) == "float64":
-            with jax.experimental.enable_x64(True):
+            with enable_x64(True):
                 return self._call_with_x64(values)
         return self._call_with_x64(values)
 

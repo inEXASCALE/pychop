@@ -10,8 +10,9 @@ from pychop import P3109, P3109Format
 def framework(request):
     lib = pytest.importorskip(request.param)
     if request.param == "jax":
+        from pychop._jax_compat import enable_x64
         # Context-local test setting; the library never modifies JAX configuration.
-        with lib.experimental.enable_x64(True):
+        with enable_x64(True):
             yield request.param, lib
     else:
         yield request.param, lib
@@ -144,7 +145,8 @@ def test_graph_and_ste(framework):
 
 def test_jax_default_float32_mode():
     jax = pytest.importorskip("jax")
-    with jax.experimental.enable_x64(False):
+    from pychop._jax_compat import enable_x64
+    with enable_x64(False):
         q = P3109()
         x = jax.numpy.array([1.0625, -.1], dtype=jax.numpy.float32)
         np.testing.assert_array_equal(array(jax.jit(q)(x)), q(np.asarray(x)))

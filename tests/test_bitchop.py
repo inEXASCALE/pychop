@@ -79,8 +79,9 @@ def test_default_mode_and_unit_roundoff(backend, monkeypatch):
 
 def test_jax_bitchop_keeps_callers_x64_setting(monkeypatch):
     jax = pytest.importorskip("jax")
+    from pychop._jax_compat import enable_x64
     monkeypatch.setenv("chop_backend", "jax")
-    with jax.experimental.enable_x64(False):
+    with enable_x64(False):
         result = Bitchop(5, 10)(np.array([1.5]))
         np.testing.assert_array_equal(np.asarray(result), [1.5])
         assert not jax.config.jax_enable_x64

@@ -65,6 +65,7 @@ def test_issue_14_reported_conversions(backend, value, expected, options, prec, 
 
 def test_jax_faultchop_accepts_legacy_array_device_api(monkeypatch):
     jax = pytest.importorskip("jax")
+    from pychop._jax_compat import enable_x64
     import jax.numpy as jnp
     from pychop.jx.float_point import _single_array_device
 
@@ -76,7 +77,7 @@ def test_jax_faultchop_accepts_legacy_array_device_api(monkeypatch):
 
     assert _single_array_device(LegacyArray()) == device
     monkeypatch.setenv("chop_backend", "jax")
-    with jax.experimental.enable_x64(True):
+    with enable_x64(True):
         source = jnp.asarray([0.007617498318158107, 8.209882269614045e-6])
         result = FaultChop("q43", subnormal=False)(source)
         np.testing.assert_array_equal(np.asarray(result), [0.0, 0.0])
