@@ -23,6 +23,18 @@ Inspired by MATLAB’s well-known chop function by Nick Higham, to support both 
 
 
 
+## Download
+
+To download the full repo, simply via
+```bash
+git clone https://github.com/inEXASCALE/pychop.git
+```
+
+For fast download without experimental scripts, via
+```
+git clone --depth 1 --filter=blob:none --sparse \
+  https://github.com/inEXASCALE/pychop.git
+```
 
 
 
