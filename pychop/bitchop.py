@@ -17,6 +17,8 @@ def Bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_sta
     exp_bits : int
         Number of bits for the exponent in the target format. Determines the range
         of representable values (e.g., 5 bits gives a bias of 15, range -14 to 15).
+        The target width must fit the input dtype: at most 8 bits for float32
+        input or 11 bits for float64 input.
 
     sig_bits : int
         Number of bits for the significand (mantissa) in the target format, excluding
@@ -58,6 +60,10 @@ def Bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_sta
     ----------
     Bitchop(x) 
         Method that convert ``x`` to the user-specific arithmetic format.
+
+        Finite overflow follows the selected rounding direction: nearest modes
+        produce signed infinity, while directed modes may select the largest
+        finite value. Infinity, NaN, and the sign of zero are preserved.
         
     Returns 
     ----------
@@ -83,7 +89,7 @@ def Bitchop(exp_bits, sig_bits, rmode="nearest_even", subnormal=True, random_sta
         from .np.bitchop import Bitchop
         obj = Bitchop(exp_bits=exp_bits, sig_bits=sig_bits, subnormal=subnormal, random_state=random_state, rmode=rmode)
     
-    obj.u = 2**sig_bits / 2
+    obj.u = 2**-(sig_bits + 1)
     
     if verbose:
         print("The floating point format is with unit-roundoff of {:e}".format(
