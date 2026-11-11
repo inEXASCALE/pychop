@@ -18,6 +18,8 @@ jobs:
       - run: python -m pip install -e . pytest gfloat==0.5.2
       - name: Bitchop regression tests
         run: python -m pytest tests/test_bitchop.py -q
+      - name: FaultChop issue 14 regression tests
+        run: python -m pytest tests/test_faultchop_issue14.py -q
       - name: Numerical core tests
         run: python -m pytest tests/test_p3109.py tests/test_chop_backend_reuse.py tests/test_documentation_examples.py tests/test_import_laziness.py tests/test_float_params.py tests/test_signed_zero.py -q
   docs:
@@ -46,5 +48,7 @@ jobs:
       - run: python -c "import ${{ matrix.backend }}"
       - name: Bitchop regression tests
         run: python -m pytest tests/test_bitchop.py -q
+      - name: FaultChop issue 14 regression tests
+        run: python -m pytest tests/test_faultchop_issue14.py -q
       - name: Tensor backend tests
         run: python -m pytest tests/test_p3109_backends.py tests/test_import_laziness.py tests/test_signed_zero.py -q

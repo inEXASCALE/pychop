@@ -139,14 +139,22 @@ The supported floating point arithmetic formats include:
 
 | format | description | bits |
 | ------------- | ------------- | ------------- |
-| 'q43', 'fp8-e4m3'         | NVIDIA quarter precision | 4 exponent bits, 3 significand  bits |
+| 'q43'                     | Legacy IEEE-style E4M3; max finite 240, then infinity | 4 exponent bits, 3 significand bits |
+| 'fp8-e4m3'                | OCP E4M3; max finite 448, no infinity | 4 exponent bits, 3 significand bits |
 | 'q52', 'fp8-e5m2'         | NVIDIA quarter precision | 5 exponent bits, 2 significand bits |
-|  'b', 'bfloat16'          | bfloat16 | 8 exponent bits, 7 significand bits  |
+|  'b', 'bfloat16', 'bf16'   | bfloat16 | 8 exponent bits, 7 significand bits  |
 |  't', 'tf32'              | TensorFloat-32 | 8 exponent bits, 10 significand bits |
 |  'h', 'half', 'fp16'      | IEEE half precision | 5 exponent bits, 10 significand bits  |
 |  's', 'single', 'fp32'    | IEEE single precision |  8 exponent bits, 23 significand bits  |
 |  'd', 'double', 'fp64'    | IEEE double precision | 11 exponent bits, 52 significand bits |
 |  'c', 'custom'            | custom format | - - |
+
+For `FaultChop('fp8-e4m3')`, overflow saturates to ±448 by default; use
+`overflow='nan'` to map rounded results beyond the finite range to NaN. This format
+supports round-to-nearest-even with exponent limits and no fault injection.
+Use `q43` for the legacy E4M3 rounding and fault modes. Custom formats can be
+specified with `Customs(exp_bits=5, sig_bits=10)`; the exponent width gives
+`emax=15` and the significand width gives `t=11`.
 
 
 

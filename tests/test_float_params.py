@@ -21,6 +21,16 @@ def test_float_params_accepts_supported_binary_aliases():
     np.testing.assert_allclose(float_params("t"), float_params("tf32"))
 
 
+def test_float_params_distinguishes_ocp_e4m3_from_legacy_q43():
+    ocp = float_params("fp8-e4m3")
+    legacy = float_params("q43")
+
+    assert ocp[1:4] == (2**-9, 2**-6, 448.0)
+    assert ocp[5:] == (-9, -6, 8)
+    assert legacy[3] == 240.0
+    assert legacy[7] == 7
+
+
 def test_float_params_table_includes_registered_bfp_and_mx_formats():
     table = float_params()
     names = set(table[""])

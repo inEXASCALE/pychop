@@ -1,6 +1,9 @@
 """JAX floating-point chopping backend with stochastic and CADNA rounding."""
 
 import jax
+from .._fault_formats import (
+    FORMAT_PARAMS, NO_SUBNORMAL_DEFAULT, resolve_customs, exponent_bits_from_emax,
+)
 import jax.numpy as jnp
 from functools import wraps
 from jax import random
@@ -239,7 +242,9 @@ class Chop_(object):
         self.key = random.PRNGKey(random_state)
         
         self.prec = prec
-        self.subnormal = subnormal if subnormal is not None else (prec not in {'b', 'bfloat16'})
+        self.ocp_e4m3 = prec == "fp8-e4m3" and customs is None
+        self._bit_chop_cache = {}
+        self.subnormal = subnormal if subnormal is not None else (prec not in NO_SUBNORMAL_DEFAULT)
         self.rmode = rmode
         self.flip = flip
         self.explim = explim
@@ -259,21 +264,16 @@ class Chop_(object):
             raise ValueError('Unsupported value of rmode.')
         self._chop = self._chop_funcs[rmode]
 
-        prec_map = {
-            'q43': (4, 7), 'fp8-e4m3': (4, 7), 'q52': (3, 15), 'fp8-e5m2': (3, 15),
-            'h': (11, 15), 'half': (11, 15), 'fp16': (11, 15),
-            'b': (8, 127), 'bfloat16': (8, 127), 'bf16': (8, 127),
-            's': (24, 127), 'single': (24, 127), 'fp32': (24, 127),
-            'd': (53, 1023), 'double': (53, 1023), 'fp64': (53, 1023)
-        }
+        prec_map = FORMAT_PARAMS
         if customs is not None:
+            customs = resolve_customs(customs)
             self.t, self.emax = customs.t, customs.emax
         elif prec in prec_map:
             self.t, self.emax = prec_map[prec]
         else:
             raise ValueError('Please enter valid prec value.')
         
-        self._emin = 1 - self.emax
+        self._emin = -6 if self.ocp_e4m3 else 1 - self.emax
         self._xmin = 2.0 ** self._emin
         self._emins = self._emin + 1 - self.t
         self._xmins = 2.0 ** self._emins
@@ -298,12 +298,78 @@ class Chop_(object):
         if not x.ndim:
             x = x[None]
         
+        if self.ocp_e4m3:
+            return self._quantize_ocp_e4m3(x)
+        fast_result = self._try_fast_quantize(x)
+        if fast_result is not None:
+            return fast_result
+
         self.key, subkey = random.split(self.key)
         #return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
         #                 explim=self.explim, p=self.p, key=subkey)
         return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal,
                           flip=self.flip, explim=self.explim, p=self.p,
                           key=subkey, cadna_gen=self._cadna_gen)
+
+    def _quantize_ocp_e4m3(self, x):
+        if self.rmode != 1 or self.flip or not self.explim:
+            raise ValueError("fp8-e4m3 supports nearest rounding without bit flips")
+        abs_x = jnp.abs(x)
+        safe = jnp.where(jnp.isfinite(x) & (abs_x >= 2.0 ** -10), abs_x,
+                         jnp.ones_like(x))
+        _, frexp_exp = jnp.frexp(safe)
+        step_exp = jnp.maximum(frexp_exp - 1, -6) - 3
+        rounded = jnp.rint(jnp.ldexp(x, -step_exp))
+        result = jnp.ldexp(rounded, step_exp)
+        if not self.subnormal:
+            small = abs_x < 2.0 ** -6
+            magnitude = jnp.where(abs_x >= 2.0 ** -7,
+                                  jnp.full_like(x, 2.0 ** -6), jnp.zeros_like(x))
+            result = jnp.where(small, jnp.copysign(magnitude, x), result)
+        if getattr(self, "overflow", "saturate") == "nan":
+            result = jnp.where(jnp.abs(result) > 448.0, jnp.full_like(x, jnp.nan), result)
+        else:
+            result = jnp.clip(result, -448.0, 448.0)
+        result = jnp.where(jnp.isnan(x), x, result)
+        return jnp.where(result == 0, jnp.copysign(jnp.zeros_like(x), x), result)
+
+    def _try_fast_quantize(self, x):
+        if (self.flip or self.rmode not in (1, 2, 3, 4)
+                or self.prec == "fp8-e4m3" or x.dtype not in (jnp.float32, jnp.float64)):
+            return None
+        source_exp_bits = 8 if x.dtype == jnp.float32 else 11
+        target_exp_bits = (
+            exponent_bits_from_emax(self.emax) if self.explim else source_exp_bits
+        )
+        if target_exp_bits is None or target_exp_bits > source_exp_bits:
+            return None
+        from .bitchop import Bitchop
+        input_device = x.device
+        cache_key = (target_exp_bits, input_device, bool(self.explim))
+        quantizer = self._bit_chop_cache.get(cache_key)
+        if quantizer is None:
+            quantizer = Bitchop(target_exp_bits, self.t - 1, rmode=self.rmode,
+                                subnormal=True, device=input_device)
+            if not self.explim:
+                quantizer.min_exp = -149 if x.dtype == jnp.float32 else -1074
+            self._bit_chop_cache[cache_key] = quantizer
+        result = quantizer(x)
+        if self.explim and not self.subnormal:
+            xmin = 2.0 ** (1 - self.emax)
+            small = jnp.abs(x) < xmin
+            if self.rmode == 1:
+                round_up = jnp.abs(x) >= xmin / 2
+            elif self.rmode == 2:
+                round_up = x > 0
+            elif self.rmode == 3:
+                round_up = x < 0
+            else:
+                round_up = jnp.zeros_like(small)
+            replacement = jnp.copysign(
+                jnp.where(round_up, jnp.full_like(x, xmin), jnp.zeros_like(x)), x
+            )
+            result = jnp.where(small, replacement, result)
+        return result
 
     # Trigonometric Functions
     def sin(self, x):

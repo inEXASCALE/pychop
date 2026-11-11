@@ -35,16 +35,28 @@ class _BinaryFormat:
     exp_bits: int
     emax: int
     description: str
+    emin: Optional[int] = None
+    xmax: Optional[float] = None
 
 
 _BINARY_FORMATS: Tuple[_BinaryFormat, ...] = (
     _BinaryFormat(
         canonical="q43",
-        aliases=("q43", "fp8-e4m3"),
+        aliases=("q43",),
         p=4,
         exp_bits=4,
         emax=7,
-        description="FP8 E4M3 quarter precision",
+        description="Legacy E4M3 quarter precision",
+    ),
+    _BinaryFormat(
+        canonical="fp8-e4m3",
+        aliases=("fp8-e4m3",),
+        p=4,
+        exp_bits=4,
+        emax=8,
+        emin=-6,
+        xmax=448.0,
+        description="OCP FP8 E4M3 quarter precision",
     ),
     _BinaryFormat(
         canonical="q52",
@@ -173,15 +185,18 @@ def _binary_tuple(fmt: _BinaryFormat) -> Tuple[float, float, float, float, int, 
         Tuple ``(u, xmins, xmin, xmax, p, emins, emin, emax)`` used by the
         historical ``float_params`` API.
     """
-    emin = 1 - fmt.emax
+    emin = fmt.emin if fmt.emin is not None else 1 - fmt.emax
     emins = emin + 1 - fmt.p
     xmins = 2.0 ** emins
     xmin = 2.0 ** emin
 
-    try:
-        xmax = 2.0 ** fmt.emax * (2.0 - 2.0 ** (1 - fmt.p))
-    except OverflowError:
-        xmax = float("inf")
+    if fmt.xmax is not None:
+        xmax = fmt.xmax
+    else:
+        try:
+            xmax = 2.0 ** fmt.emax * (2.0 - 2.0 ** (1 - fmt.p))
+        except OverflowError:
+            xmax = float("inf")
 
     u = 2.0 ** (-fmt.p)
     return u, xmins, xmin, xmax, fmt.p, emins, emin, fmt.emax

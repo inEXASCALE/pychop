@@ -7,6 +7,7 @@ soft-error simulation.
 
 import os
 from .utils import detect_array_type, to_numpy_array, to_torch_tensor, to_jax_array, to_tensorflow_tensor
+from ._fault_formats import FORMAT_PARAMS, resolve_customs
 
 class FaultChop:
     """
@@ -69,6 +70,10 @@ class FaultChop:
     verbose : int | bool, defaul=0
         Whether or not to print out the unit-roundoff.
 
+    overflow : {'saturate', 'nan'}, default='saturate'
+        Overflow handling for OCP ``fp8-e4m3``. Saturation returns ±448;
+        ``'nan'`` returns NaN for values outside the finite range.
+
     Properties
     ----------
     u : float,
@@ -98,6 +103,7 @@ class FaultChop:
         customs=None,
         random_state: int = 0,
         verbose: int = 0,
+        overflow: str = "saturate",
     ):
         # -------- rmode mapping --------
         rmode_map = {
@@ -108,6 +114,7 @@ class FaultChop:
             4: 4, "toward_zero": 4,
             5: 5, "stoc_prop": 5,
             6: 6, "stoc_equal": 6,
+            10: 10, "cadna": 10,
         }
 
         try:
@@ -115,28 +122,30 @@ class FaultChop:
         except KeyError:
             raise NotImplementedError("Invalid parameter for ``rmode``.")
 
+        # A zero fault probability must leave the rounded value unchanged.
+        flip = bool(flip and p != 0)
+
         # -------- customs preprocessing --------
         if customs is not None:
-            if getattr(customs, "exp_bits", None) is not None:
-                customs.emax = (1 << customs.exp_bits) - 1
+            customs = resolve_customs(customs)
 
-            if getattr(customs, "sig_bits", None) is not None:
-                customs.t = customs.sig_bits + 1
+        if overflow not in ("saturate", "nan"):
+            raise ValueError("overflow must be 'saturate' or 'nan'")
+        if overflow != "saturate" and (prec != "fp8-e4m3" or customs is not None):
+            raise ValueError("overflow='nan' is available only for fp8-e4m3")
+        if prec == "fp8-e4m3" and customs is None and (rmode != 1 or flip or not explim):
+            raise ValueError(
+                "fp8-e4m3 supports nearest rounding with exponent limits and no bit flips; "
+                "use q43 for legacy modes"
+            )
 
         # -------- unit roundoff --------
         if customs:
             self.t, self.emax = customs.t, customs.emax
         else:
-            prec_map = {
-                'q43': (4, 7), 'fp8-e4m3': (4, 7), 'q52': (3, 15), 'fp8-e5m2': (3, 15),
-                'h': (11, 15), 'half': (11, 15), 'fp16': (11, 15),
-                'b': (8, 127), 'bfloat16': (8, 127), 'bf16': (8, 127),
-                's': (24, 127), 'single': (24, 127), 'fp32': (24, 127),
-                'd': (53, 1023), 'double': (53, 1023), 'fp64': (53, 1023)
-            }
-            if prec not in prec_map:
+            if prec not in FORMAT_PARAMS:
                 raise ValueError('Invalid prec value')
-            self.t, self.emax = prec_map[prec]
+            self.t, self.emax = FORMAT_PARAMS[prec]
 
         self.u = 2 ** (1 - self.t) / 2
         self._impl = None
@@ -149,6 +158,7 @@ class FaultChop:
         self.randfunc = randfunc
         self.customs = customs
         self.random_state = random_state
+        self.overflow = overflow
         
 
         # -------- backend selection --------
@@ -178,6 +188,9 @@ class FaultChop:
             )
 
             self._impl.u = self.u
+            self._impl.overflow = overflow
+            if backend == "tensorflow":
+                self._impl._np_impl.overflow = overflow
 
         if self.verbose:
             import numpy as np
@@ -188,7 +201,7 @@ class FaultChop:
 
 
     def __call__(self, X):
-        if os.environ['chop_backend'] == 'auto':
+        if os.environ.get('chop_backend', 'auto') == 'auto':
              # sanity check for supported array types
             backend =  detect_array_type(X, verbose=self.verbose) 
             self._impl = None 
@@ -217,6 +230,9 @@ class FaultChop:
                 self.customs,
                 self.random_state,
             )
+            self._impl.overflow = self.overflow
+            if backend == "tensorflow":
+                self._impl._np_impl.overflow = self.overflow
 
         return self._impl(X)
 

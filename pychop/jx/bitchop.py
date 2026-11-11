@@ -16,16 +16,21 @@ class Bitchop:
         validate_format(exp_bits, sig_bits)
         jax.config.update("jax_enable_x64", True)
         available_devices = jax.devices()
-        device_map = {d.device_kind.lower(): d for d in available_devices}
-        if device.lower() == "gpu" and "gpu" in device_map:
-            target_device = device_map["gpu"]
-        elif device.lower() == "cpu" and "cpu" in device_map:
-            target_device = device_map["cpu"]
-        elif device.lower().startswith("gpu:") and "gpu" in device_map:
-            gpu_idx = int(device.split(":")[1])
-            target_device = available_devices[gpu_idx] if gpu_idx < len(available_devices) else device_map["gpu"]
+        if hasattr(device, "platform"):
+            if device not in available_devices:
+                raise ValueError(f"Unavailable JAX device: {device}")
+            target_device = device
+        elif isinstance(device, str):
+            platform, _, index = device.lower().partition(":")
+            matches = [d for d in available_devices if d.platform == platform]
+            if not matches or (index and (not index.isdigit() or int(index) >= len(matches))):
+                raise ValueError(
+                    f"Invalid or unavailable device: {device}. "
+                    f"Available: {[d.platform for d in available_devices]}"
+                )
+            target_device = matches[int(index)] if index else matches[0]
         else:
-            raise ValueError(f"Invalid or unavailable device: {device}. Available: {[d.device_kind for d in available_devices]}")
+            raise ValueError(f"Invalid JAX device: {device}")
 
         self.exp_bits = exp_bits
         self.sig_bits = sig_bits

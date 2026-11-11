@@ -1,6 +1,9 @@
 """PyTorch floating-point chopping backend with stochastic and CADNA rounding."""
 
 import torch
+from .._fault_formats import (
+    FORMAT_PARAMS, NO_SUBNORMAL_DEFAULT, resolve_customs, exponent_bits_from_emax,
+)
 from functools import wraps
 
 
@@ -85,7 +88,9 @@ class Chop_(object):
         torch.manual_seed(random_state)
         
         self.prec = prec
-        self.subnormal = subnormal if subnormal is not None else (prec not in {'b', 'bfloat16'})
+        self.ocp_e4m3 = prec == "fp8-e4m3" and customs is None
+        self._bit_chop_cache = {}
+        self.subnormal = subnormal if subnormal is not None else (prec not in NO_SUBNORMAL_DEFAULT)
         self.rmode = rmode
         self.flip = flip
         self.explim = explim
@@ -112,21 +117,16 @@ class Chop_(object):
             raise ValueError('Unsupported value of rmode.')
         self._chop = self._chop_funcs[rmode]
 
-        prec_map = {
-            'q43': (4, 7), 'fp8-e4m3': (4, 7), 'q52': (3, 15), 'fp8-e5m2': (3, 15),
-            'h': (11, 15), 'half': (11, 15), 'fp16': (11, 15),
-            'b': (8, 127), 'bfloat16': (8, 127), 'bf16': (8, 127),
-            's': (24, 127), 'single': (24, 127), 'fp32': (24, 127),
-            'd': (53, 1023), 'double': (53, 1023), 'fp64': (53, 1023)
-        }
+        prec_map = FORMAT_PARAMS
         if customs is not None:
+            customs = resolve_customs(customs)
             self.t, self.emax = customs.t, customs.emax
         elif prec in prec_map:
             self.t, self.emax = prec_map[prec]
         else:
             raise ValueError('Please enter valid prec value.')
         
-        self._emin = 1 - self.emax
+        self._emin = -6 if self.ocp_e4m3 else 1 - self.emax
         self._xmin = torch.tensor(2.0 ** self._emin, dtype=torch.float32)
         self._emins = self._emin + 1 - self.t
         self._xmins = torch.tensor(2.0 ** self._emins, dtype=torch.float32)
@@ -146,6 +146,14 @@ class Chop_(object):
         if not x.ndim:
             x = x.unsqueeze(0)
             
+        if self.ocp_e4m3:
+            return self._quantize_ocp_e4m3(x)
+        if self.flip:
+            return self._quantize_with_faults(x)
+        fast_result = self._try_fast_quantize(x)
+        if fast_result is not None:
+            return fast_result
+
         # Move class constants to the same device as x
         self._xmin = self._xmin.to(x.device)
         self._xmins = self._xmins.to(x.device) 
@@ -157,6 +165,131 @@ class Chop_(object):
                           flip=self.flip, explim=self.explim, p=self.p,
                           randfunc=lambda n: self.randfunc(n, device=x.device),
                           random_gen=self._cadna_gen)
+
+    def _quantize_ocp_e4m3(self, x):
+        if self.rmode != 1 or self.flip or not self.explim:
+            raise ValueError("fp8-e4m3 supports nearest rounding without bit flips")
+        abs_x = x.abs()
+        safe = torch.where(torch.isfinite(x) & (abs_x >= 2.0 ** -10), abs_x,
+                           torch.ones_like(x))
+        _, frexp_exp = torch.frexp(safe)
+        step_exp = torch.maximum(frexp_exp - 1, torch.full_like(frexp_exp, -6)) - 3
+        rounded = torch.round(torch.ldexp(x, -step_exp))
+        result = torch.ldexp(rounded, step_exp)
+        if not self.subnormal:
+            small = abs_x < 2.0 ** -6
+            magnitude = torch.where(abs_x >= 2.0 ** -7,
+                                    torch.full_like(x, 2.0 ** -6), torch.zeros_like(x))
+            result = torch.where(small, torch.copysign(magnitude, x), result)
+        if getattr(self, "overflow", "saturate") == "nan":
+            result = torch.where(result.abs() > 448.0, torch.full_like(x, torch.nan), result)
+        else:
+            result = torch.clamp(result, -448.0, 448.0)
+        result = torch.where(torch.isnan(x), x, result)
+        return torch.where(result == 0, torch.copysign(torch.zeros_like(x), x), result)
+
+    def _quantize_with_faults(self, x):
+        """Round on the target grid before flipping a stored significand bit."""
+        active = torch.isfinite(x) & (x != 0)
+        safe = torch.where(active, x.abs(), torch.ones_like(x))
+        _, frexp_exp = torch.frexp(safe)
+        exponent = frexp_exp - 1
+        emin = 1 - self.emax
+        if self.explim:
+            grid_exp = torch.maximum(exponent, torch.full_like(exponent, emin))
+            if not self.subnormal:
+                grid_exp = torch.where(exponent < emin, emin + self.t - 1, grid_exp)
+        else:
+            grid_exp = exponent
+        step_exp = grid_exp - (self.t - 1)
+        scaled = torch.ldexp(x[active], -step_exp[active])
+        rounders = {
+            1: round_to_nearest,
+            2: round_towards_plus_inf,
+            3: round_towards_minus_inf,
+            4: round_towards_zero,
+            5: stochastic_rounding,
+            6: stochastic_rounding_equal,
+            10: cadna_style_rounding,
+        }
+        if self.rmode == 10:
+            rounded = rounders[self.rmode](scaled, flip=False, p=self.p, t=self.t,
+                                            random_gen=self._cadna_gen)
+        else:
+            rounded = rounders[self.rmode](
+                scaled, flip=False, p=self.p, t=self.t,
+                randfunc=lambda shape: self.randfunc(shape, device=x.device),
+            )
+
+        # Sample the fault with probability p, including for a zero mantissa.
+        # The previous randint(0, 2) <= p check gave the wrong probability.
+        faults = torch.rand(rounded.shape, device=x.device) < self.p
+        positions = torch.randint(0, max(self.t - 2, 1), rounded.shape, device=x.device)
+        bit = torch.bitwise_left_shift(torch.ones_like(positions, dtype=torch.int64), positions)
+        magnitude = torch.bitwise_xor(rounded.abs().to(torch.int64), bit).to(x.dtype)
+        rounded = torch.where(faults, torch.copysign(magnitude, scaled), rounded)
+
+        result = x.clone()
+        result[active] = torch.ldexp(rounded, step_exp[active])
+        if self.explim:
+            if self.rmode in (1, 6):
+                boundary = 2.0 ** self.emax * (2.0 - 0.5 * 2.0 ** (1 - self.t))
+                result = torch.where(result >= boundary, torch.inf, result)
+                result = torch.where(result <= -boundary, -torch.inf, result)
+            else:
+                xmax = 2.0 ** self.emax * (2.0 - 2.0 ** (1 - self.t))
+                if self.rmode == 2:
+                    result = torch.where(result > xmax, torch.inf, result)
+                    result = torch.where((result < -xmax) & torch.isfinite(result), -xmax, result)
+                elif self.rmode == 3:
+                    result = torch.where((result > xmax) & torch.isfinite(result), xmax, result)
+                    result = torch.where(result < -xmax, -torch.inf, result)
+                else:
+                    result = torch.where((result > xmax) & torch.isfinite(result), xmax, result)
+                    result = torch.where((result < -xmax) & torch.isfinite(result), -xmax, result)
+            if not self.subnormal and self.rmode == 1:
+                halfway = active & (x.abs() == 2.0 ** (emin - 1))
+                result = torch.where(halfway, torch.copysign(torch.full_like(x, 2.0 ** emin), x), result)
+        return torch.where(result == 0, torch.copysign(torch.zeros_like(x), x), result)
+
+    def _try_fast_quantize(self, x):
+        if (self.flip or self.rmode not in (1, 2, 3, 4)
+                or self.prec == "fp8-e4m3" or x.dtype not in (torch.float32, torch.float64)):
+            return None
+        source_exp_bits = 8 if x.dtype == torch.float32 else 11
+        target_exp_bits = (
+            exponent_bits_from_emax(self.emax) if self.explim else source_exp_bits
+        )
+        if target_exp_bits is None or target_exp_bits > source_exp_bits:
+            return None
+        from .bitchop import Bitchop
+        cache_key = (target_exp_bits, x.device, bool(self.explim))
+        quantizer = self._bit_chop_cache.get(cache_key)
+        if quantizer is None:
+            quantizer = Bitchop(target_exp_bits, self.t - 1, rmode=self.rmode,
+                                subnormal=True, device=x.device)
+            if not self.explim:
+                # Exponent limits are disabled: round at each input's actual
+                # exponent, including values subnormal in the source dtype.
+                quantizer.min_exp = -149 if x.dtype == torch.float32 else -1074
+            self._bit_chop_cache[cache_key] = quantizer
+        result = quantizer(x)
+        if self.explim and not self.subnormal:
+            xmin = 2.0 ** (1 - self.emax)
+            small = x.abs() < xmin
+            if self.rmode == 1:
+                round_up = x.abs() >= xmin / 2
+            elif self.rmode == 2:
+                round_up = x > 0
+            elif self.rmode == 3:
+                round_up = x < 0
+            else:
+                round_up = torch.zeros_like(small)
+            replacement = torch.copysign(
+                torch.where(round_up, torch.full_like(x, xmin), torch.zeros_like(x)), x
+            )
+            result = torch.where(small, replacement, result)
+        return result
 
     # Trigonometric Functions
     def sin(self, x):
