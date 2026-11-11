@@ -160,6 +160,7 @@ def test_float64_source_subnormals(backend, monkeypatch):
 @pytest.mark.parametrize("backend", ("numpy", "torch", "jax"))
 def test_component_metadata_matches_saturation(backend, monkeypatch):
     monkeypatch.setenv("chop_backend", backend)
+    pytest.importorskip({"torch": "torch", "jax": "jax"}.get(backend, "numpy"))
     obj = Bitchop(5, 10, rmode="toward_zero")
     obj(np.array([70000.0, -70000.0, 0.0, 2**-24]))
     def host(array):
