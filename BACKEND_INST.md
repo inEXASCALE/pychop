@@ -1,7 +1,7 @@
-# Backend Import and Dispatch Instructions
+# Backend Import and Dispatch
 
-This document explains how pychop imports optional backend packages and how
-backend dispatch works after the lazy-import changes.
+This document explains how pychop imports optional backend packages and selects
+a backend for each input.
 
 ## Import Behavior
 
@@ -92,15 +92,12 @@ classes.
 `Chopi` and `Chopf` keep a backend implementation once it has been resolved.
 They reuse that implementation while the resolved backend stays the same.
 
-### Auto Mode Rebuilds in `Chop`
+### Reuse in `Chop`
 
-`Chop` currently detects the backend on each call in `"auto"` mode and rebuilds
-the backend wrapper for that call.
-
-This does not repeatedly import the heavy framework, because imports are cached
-by Python. However, high-frequency workloads using the same `Chop` instance and
-same backend may still benefit from a future optimization that reuses the
-backend wrapper when the resolved backend has not changed.
+In `"auto"` mode, `Chop` detects the input backend on each call and reuses its
+current backend implementation while that backend stays the same. Switching to
+a different backend creates a new implementation and restarts its random-number
+sequence from the configured seed.
 
 ## Recommended Usage
 
@@ -117,16 +114,4 @@ pychop.backend("torch")
 
 Use `"auto"` when code needs to accept arrays from multiple frameworks and the
 small per-call type check is acceptable.
-
-## Regression Test
-
-The import-laziness behavior is covered by `tests/test_import_laziness.py`.
-That test imports pychop in a clean subprocess and verifies that these modules
-are still absent from `sys.modules` after import:
-
-- `tensorflow`
-- `torch`
-- `jax`
-- `jaxlib`
-- `pandas`
 

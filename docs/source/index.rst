@@ -26,7 +26,7 @@ models and native tensor training without dataset downloads.
    :width: 100%
    :align: center
 
-   Application overview. The illustration shows the original NumPy, PyTorch and
+   Application overview. The illustration shows NumPy, PyTorch and
    JAX workflows; TensorFlow is also supported. See :doc:`architecture` for
    backend coverage and numerical contracts.
 

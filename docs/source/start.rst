@@ -1,9 +1,8 @@
 Installation and first computation
 ==================================
 
-Install a released package with ``python -m pip install pychop``. To use changes
-in a local checkout (including the P3109 API), run from its
-root:
+Install Pychop with ``python -m pip install pychop``. To install from a source
+checkout, run from the repository root:
 
 .. code-block:: bash
 
@@ -13,7 +12,7 @@ root:
 
 On Windows activate with ``.venv\Scripts\activate``. The package metadata declares
 Python >=3.8. Dependency resolvers select compatible NumPy, pandas, SciPy,
-scikit-learn and Dask versions. New examples use NumPy; optional frameworks are
+scikit-learn and Dask versions. The examples below use NumPy; optional frameworks are
 not imported merely by importing Pychop.
 
 Install only the extra needed for your application:

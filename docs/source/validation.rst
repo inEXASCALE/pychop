@@ -42,7 +42,7 @@ uses warm-ups, alternates timing order and reports median elapsed time. No JIT
 compilation or random generation is included in either timed call. The JSON
 records versions, machine, seed, distribution, sizes, samples and ratios.
 
-The checked-in ``benchmarks/p3109_macos_arm64.json`` records a local macOS arm64
+The checked-in ``benchmarks/p3109_macos_arm64.json`` records a macOS arm64
 run against gfloat 0.5.2, NumPy 2.5.3 and Python 3.12. It covers Binary8p3se and
 Binary8p4se, normal and wide-range inputs, and sizes 1, 1,024, 65,536 and 1,000,000.
 Every measured case was faster than gfloat. Consult the JSON for exact timings;
@@ -60,14 +60,13 @@ and in-place updates to owned output buffers for saturation and signs. It does
 not depend on unsafe fast-math, a lookup table proportional to ``2**k``, JIT
 compilation or approximations to boundary decisions.
 
-Limitations of local validation
---------------------------------
+Validation scope
+----------------
 
 Core-only runs skip unavailable framework integrations. Passing NumPy tests does
 not establish CUDA, TPU, TensorFlow, JAX or Torch behavior on every supported
-version. Existing backend code remains separately tested. The package's declared
-Python minimum and old dependency minima are not a claim that this local run
-covered every historical environment; use the CI matrix and downstream tests.
+version. Use the CI matrix and backend-specific tests for the Python versions,
+frameworks and devices relevant to an application.
 
 Native tensor validation and timing
 -----------------------------------
@@ -139,8 +138,3 @@ These are observations on one CPU, not accelerator or all-format guarantees.
      - 0.734
      - Not measured
      - Not claimed
-
-The local Torch Inductor run used Apple clang++, an explicit macOS SDK C++ header
-path, and an ``OMP_PREFIX`` linking the same OpenMP library already loaded by
-Torch. This avoided conflicting Homebrew/packaged OpenMP libraries. These were
-per-process verification settings, not changes made by Pychop at import time.

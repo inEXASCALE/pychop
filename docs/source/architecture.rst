@@ -43,15 +43,12 @@ Integer code arrays are explicit storage representations. P3109 codes carry no
 format metadata by themselves. Save the versioned quantizer policy beside the
 codes.
 
-Compatibility and change discipline
-------------------------------------
+Compatibility
+-------------
 
 Existing public quantizer names and backend selection remain available. The
 P3109 API intentionally uses named rounding modes to avoid overloading the
 historical ``Chop.rmode`` numbering. Draft evolution can require a new format
 interpretation; pin the package revision and the reference draft in experiments.
 
-Changes should preserve input ownership, validate format boundaries and include
-regressions for numerical edge cases. Optional frameworks must remain lazy.
-Tests should skip an unavailable optional backend at collection time, not fail
-core-only installations. See :doc:`validation` for executable checks.
+See :doc:`validation` for numerical checks and benchmark scope.

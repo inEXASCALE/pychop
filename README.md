@@ -81,11 +81,10 @@ mamba search pychop --channel conda-forge
 
 ## P3109 emulation and parameter export
 
-The local source includes NumPy, PyTorch, TensorFlow and JAX emulation of the **P3109 v4.1 public draft**,
+Pychop provides NumPy, PyTorch, TensorFlow and JAX emulation of the **P3109 v4.1 public draft**,
 with validated formats, nine rounding modes, three saturation policies, integer
 code export and reproducible explicit-bit stochastic rounding. P3109 is an
-unapproved draft; this is not a formal IEEE conformance claim. Install the checkout
-with `python -m pip install -e .` to use these additions.
+unapproved draft; this is not a formal IEEE conformance claim.
 
 ```python
 import numpy as np
@@ -384,7 +383,7 @@ X_q = ch(X);
 
 
 ## Contributing
-Our software is licensed under the MIT License. We welcome contributions in any form! Assistance with documentation is always welcome. To contribute, feel free to open an issue or fork the project, make your changes, and submit a pull request. We will do our best to work through any issues and requests.
+Our software is licensed under the MIT License. Contributions are welcome; see the [contributing guide](CONTRIBUTING.md) for development and documentation checks. To contribute, open an issue or fork the project, make your changes, and submit a pull request.
 
 
 ## Acknowledgement
