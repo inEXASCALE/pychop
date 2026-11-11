@@ -3,6 +3,7 @@
 
 # pychop: efficient reduced-precision quantization library 
 
+
 [![PyPI](https://img.shields.io/pypi/v/pychop?color=3776AB&logo=pypi&logoColor=white)](https://pypi.org/project/pychop/)
 [![Python](https://img.shields.io/pypi/pyversions/pychop?logo=python&logoColor=white)](https://pypi.org/project/pychop/)
 [![Tests](https://github.com/inEXASCALE/pychop/actions/workflows/numerical-core.yml/badge.svg)](https://github.com/inEXASCALE/pychop/actions/workflows/numerical-core.yml)
