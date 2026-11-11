@@ -72,7 +72,7 @@ def _quantize_float_element(value: float, spec: MXSpec, params: dict) -> float:
     if np.isnan(value):
         return np.nan
     if value == 0:
-        return 0.0
+        return math.copysign(0.0, value)
 
     sign = -1.0 if value < 0 else 1.0
     value = abs(float(value))
@@ -86,7 +86,7 @@ def _quantize_float_element(value: float, spec: MXSpec, params: dict) -> float:
     rounded = np.rint(value / step) * step
 
     if rounded == 0:
-        return 0.0
+        return math.copysign(0.0, sign)
     if rounded > params["max"]:
         rounded = params["max"]
     return sign * float(rounded)
@@ -183,7 +183,7 @@ class MXBlock_:
         if np.all(data == 0):
             min_scale_exp, _ = _scale_exponent_bounds(self.scale_exp_bits)
             self.shared_scale = 2.0 ** min_scale_exp
-            self.quantized_elements = np.zeros(len(data), dtype=np.float32)
+            self.quantized_elements = data.astype(np.float32, copy=True)
             return
         
         # Step 1: Find maximum absolute value for scale
@@ -192,7 +192,7 @@ class MXBlock_:
         if max_val == 0:
             min_scale_exp, _ = _scale_exponent_bounds(self.scale_exp_bits)
             self.shared_scale = 2.0 ** min_scale_exp
-            self.quantized_elements = np.zeros(len(data), dtype=np.float32)
+            self.quantized_elements = data.astype(np.float32, copy=True)
             return
         
         # Step 2: Compute the E8M0 shared scale.

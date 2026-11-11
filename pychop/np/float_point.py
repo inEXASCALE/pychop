@@ -1,6 +1,7 @@
 """NumPy floating-point chopping backend with deterministic and stochastic modes."""
 
 import numpy as np
+from functools import wraps
 import gc
    
 
@@ -140,9 +141,9 @@ class Chop_(object):
             if self.t > self.maxfraction:
                 raise ValueError('Precision of the custom format must be at most')
                 
-        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
-                                explim=self.explim, p=self.p, randfunc=self.randfunc, 
-                                random_gen=self._cadna_gen)
+        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip,
+                          explim=self.explim, p=self.p, randfunc=self.randfunc,
+                          random_gen=self._cadna_gen)
     
 
     # Trigonometric Functions
@@ -1508,6 +1509,28 @@ def _chop_cadna_rounding(
         x[k_small] = 0.0
 
     return x
+
+
+def _preserve_signed_zero(rounding_function):
+    """Restore the input sign whenever a floating-point result rounds to zero."""
+    @wraps(rounding_function)
+    def wrapped(x, *args, **kwargs):
+        negative = np.signbit(x)
+        input_zero = x == 0
+        result = rounding_function(x, *args, **kwargs)
+        restore = (result == 0) | (input_zero & np.isnan(result))
+        result[restore] = np.where(negative[restore], -0.0, 0.0)
+        return result
+    return wrapped
+
+
+_chop_round_to_nearest = _preserve_signed_zero(_chop_round_to_nearest)
+_chop_round_towards_plus_inf = _preserve_signed_zero(_chop_round_towards_plus_inf)
+_chop_round_towards_minus_inf = _preserve_signed_zero(_chop_round_towards_minus_inf)
+_chop_round_towards_zero = _preserve_signed_zero(_chop_round_towards_zero)
+_chop_stochastic_rounding = _preserve_signed_zero(_chop_stochastic_rounding)
+_chop_stochastic_rounding_equal = _preserve_signed_zero(_chop_stochastic_rounding_equal)
+_chop_cadna_rounding = _preserve_signed_zero(_chop_cadna_rounding)
 
 
 def roundit_test(x, rmode=1, flip=0, p=0.5, t=24, randfunc=None):

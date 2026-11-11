@@ -2,6 +2,7 @@
 
 import jax
 import jax.numpy as jnp
+from functools import wraps
 from jax import random
 import numpy as np  # Used to initialize the CADNA-compatible generator.
 
@@ -300,9 +301,9 @@ class Chop_(object):
         self.key, subkey = random.split(self.key)
         #return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, flip=self.flip, 
         #                 explim=self.explim, p=self.p, key=subkey)
-        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal, 
-                        flip=self.flip, explim=self.explim, p=self.p, 
-                        key=subkey, cadna_gen=self._cadna_gen)
+        return self._chop(x, t=self.t, emax=self.emax, subnormal=self.subnormal,
+                          flip=self.flip, explim=self.explim, p=self.p,
+                          key=subkey, cadna_gen=self._cadna_gen)
 
     # Trigonometric Functions
     def sin(self, x):
@@ -1233,6 +1234,26 @@ def _chop_cadna_rounding(x, t, emax, subnormal=1, flip=0, explim=1, p=0.5,
         x = jnp.where(k_small, 0, x)
     
     return x
+
+
+def _preserve_signed_zero(rounding_function):
+    """Restore zero's input sign, including exact zero through JAX kernels."""
+    @wraps(rounding_function)
+    def wrapped(x, *args, **kwargs):
+        source = x
+        result = rounding_function(x, *args, **kwargs)
+        signed_zero = jnp.copysign(jnp.zeros_like(result), source)
+        return jnp.where((result == 0) | ((source == 0) & jnp.isnan(result)), signed_zero, result)
+    return wrapped
+
+
+_chop_round_to_nearest = _preserve_signed_zero(_chop_round_to_nearest)
+_chop_round_towards_plus_inf = _preserve_signed_zero(_chop_round_towards_plus_inf)
+_chop_round_towards_minus_inf = _preserve_signed_zero(_chop_round_towards_minus_inf)
+_chop_round_towards_zero = _preserve_signed_zero(_chop_round_towards_zero)
+_chop_stochastic_rounding = _preserve_signed_zero(_chop_stochastic_rounding)
+_chop_stochastic_rounding_equal = _preserve_signed_zero(_chop_stochastic_rounding_equal)
+_chop_cadna_rounding = _preserve_signed_zero(_chop_cadna_rounding)
 
 
 def round_to_nearest(x, flip=0, p=0.5, t=24, randfunc=None, key=None, **kwargs):

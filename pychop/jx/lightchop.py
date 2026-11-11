@@ -264,6 +264,8 @@ class LightChop_:
         
         inf_val = jnp.where(sign < 0, -jnp.inf, jnp.inf)
         result = jnp.where(overflow_mask & ~inf_mask & ~nan_mask & ~zero_mask, inf_val, result)
+
+        result = jnp.where(result == 0, jnp.copysign(jnp.zeros_like(result), x), result)
         
         return result
 

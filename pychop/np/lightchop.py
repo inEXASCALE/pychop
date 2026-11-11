@@ -319,6 +319,10 @@ class LightChop_:
         inf_val = safe_sign * np.full_like(result, np.inf)
         result = np.where(overflow_mask & ~inf_mask & ~nan_mask & ~zero_mask, inf_val, result)
 
+        # Zero has a sign in floating-point formats.  Use the input rather than
+        # ``sign`` here because np.sign(-0.0) is +0.0.
+        result = np.where(result == 0, np.copysign(np.zeros_like(result), x), result)
+
         return result
 
     def quantize(self, x: np.ndarray) -> np.ndarray:

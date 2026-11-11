@@ -301,6 +301,7 @@ class LightChop_:
                                                 torch.where(nan_mask, float('nan'), 0.0))))
         inf_val = sign * torch.full_like(result, float('inf'))
         result = torch.where(overflow_mask & ~inf_mask & ~nan_mask & ~zero_mask, inf_val, result)
+        result = torch.where(result == 0, torch.copysign(torch.zeros_like(result), x), result)
         
         return result
 
@@ -710,6 +711,19 @@ class LightChop_:
 
 
 
+class _PreserveSignedZeroSTE(torch.autograd.Function):
+    """Keep zero's sign in the forward pass and the STE gradient in backward."""
+
+    @staticmethod
+    def forward(ctx, result, source):
+        signed_zero = torch.copysign(torch.zeros_like(result), source)
+        return torch.where(result == 0, signed_zero, result)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return grad_output, None
+
+
 class LightChopSTE(nn.Module):
     """
     A PyTorch module for simulating low-precision floating-point quantization with Quantization-Aware Training (QAT) support.
@@ -989,6 +1003,7 @@ class LightChopSTE(nn.Module):
         
         # Straight-Through Estimator (STE)
         result = x + (result - x).detach()
+        result = _PreserveSignedZeroSTE.apply(result, x)
             
         return result
 
