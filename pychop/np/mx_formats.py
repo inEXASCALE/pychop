@@ -197,10 +197,13 @@ class MXBlock_:
         
         # Step 2: Compute the E8M0 shared scale.
         min_scale_exp, max_scale_exp = _scale_exponent_bounds(self.scale_exp_bits)
-        if np.isinf(max_val):
+        if np.isnan(max_val):
+            scale_exp = np.nan
+        elif np.isinf(max_val):
             scale_exp = max_scale_exp
         else:
-            scale_exp = np.floor(np.log2(max_val)) - params["emax"]
+            # frexp gives the exact binary exponent, even just below 2**k.
+            scale_exp = np.frexp(max_val)[1] - 1 - params["emax"]
             scale_exp = np.clip(scale_exp, min_scale_exp, max_scale_exp)
         self.shared_scale = 2.0 ** scale_exp
         
