@@ -13,6 +13,7 @@
 [![P3109](https://img.shields.io/badge/P3109-draft%20emulation-6F42C1)](docs/source/p3109.rst)
 [![Download Status](https://static.pepy.tech/badge/pychop)](https://pypi.org/project/pychop/)
 </div>
+
       
 Lower-precision floating-point arithmetic is becoming more often used in recently growing hardware, moving beyond the usual IEEE 64-bit double-precision and 32-bit single-precision formats. Today, hardware accelerators and software simulations often, in one way or another, use reduced-precision formats, such as 16-bit half-precision (e.g., brain floating point), which are widely used in scientific computing and deep learning applications. These formats, if used properly, improve speed performance, reduce data transfer between memory and processors, and use less energy, while retaining the target accuracy. These benefits are most important with large datasets or real-time applications. 
 However, one never realizes how much reduced precision is needed in their applications or certain computational steps, unless via rigorous error analysis, a program precision tuning tool, or trial and error. 
